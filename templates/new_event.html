@@ -3,21 +3,28 @@
 <body>
     <div class="container mt-5">
         <h1 class="mb-4">Create a New Event</h1>
-        <form action="/createEvent" method="POST">
+        <form action="/event" method="POST">
             <div class="mb-3">
-                <label for="eventName" class="form-label">Event Name</label>
-                <input type="text" class="form-control" id="eventName" placeholder="Enter event name" required>
+                <label for="event_name" class="form-label">Event Name</label>
+                <input type="text" class="form-control" id="event_name" placeholder="Enter event name" required>
+            </div>
+            <div class="row mb-3">
+                <div class="col">
+                    <label for="event_date" class="form-label">Event Date</label>
+                    <input type="date" class="form-control" id="event_date" required>
+                </div>
+                <div class="col">
+                    <label for="start_time" class="form-label">Start Time</label>
+                    <input type="time" class="form-control" id="start_time" required>
+                </div>
+                <div class="col">
+                    <label for="end_time" class="form-label">End Time</label>
+                    <input type="time" class="form-control" id="end_time" required>
+                </div>
             </div>
             <div class="mb-3">
-                <label for="eventDate" class="form-label">Event Date</label>
-                <input type="date" class="form-control" id="eventDate" required>
-            </div>
-            <div class="mb-3">
-                <label for="eventTime" class="form-label">Event Time</label>
-                <input type="time" class="form-control" id="eventTime" required>
-            <div class="mb-3">
-                <label for="secretLink" class="form-label">Secret Link</label>
-                <input type="text" class="form-control" id="secretLink" placeholder="Enter secret link" required>
+                <label for="secret_code" class="form-label">Secret Link</label>
+                <input type="text" class="form-control" id="secret_code" placeholder="Enter secret link">
             </div>
             <button type="submit" class="btn btn-primary">Create Event</button>
         </form>
@@ -26,3 +33,4 @@
 </body>
 
 {% include '_footer.html' %}
+
