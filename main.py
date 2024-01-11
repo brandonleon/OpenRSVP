@@ -1,20 +1,28 @@
-from typing import Annotated, Dict, Optional
+from datetime import datetime
+from typing import Annotated
+from typing import Dict
+from typing import Optional
 
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI
+from fastapi import Form
+from fastapi import Request
+from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from icecream import ic
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP.database import init_db, insert_event
+from OpenRSVP.database import init_db
+from OpenRSVP.database import insert_event
+from OpenRSVP.database import fetch_event
 from OpenRSVP.utils import code_format
 from OpenRSVP.utils import pad_string
-from datetime import datetime
-
-from icecream import ic
+from OpenRSVP.utils import format_timestamp
 
 # Initialize the database if it doesn't exist
 init_db()
 
+# Initialize the FastAPI app
 app = FastAPI()
 
 # Static files (CSS, JS, etc.)
@@ -24,7 +32,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-@app.get("/", response_class=HTMLResponse)
+templates.env.filters["format_timestamp"] = format_timestamp
+
+
+@app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request):
     return templates.TemplateResponse("get_index.html", {"request": request})
 
@@ -72,9 +83,8 @@ async def create_event(
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
 async def view_event(request: Request, event_id: str):
-    print(request, event_id)
     return templates.TemplateResponse(
-        "event.html", {"request": request, "event_id": event_id}
+        "get_event_id.html", {"request": request, "event": fetch_event(event_id)}
     )
 
 

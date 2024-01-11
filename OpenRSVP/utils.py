@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 from icecream import ic
 
@@ -36,3 +37,8 @@ def pad_string(st: str, ln: int = 6) -> str:
     pad = pad.replace("-", "")
     pad = pad[:ln]
     return f"{st}_{pad}"
+
+
+# Function to take a unix timestamp and return a string in the default format YYYY-MM-DD HH:MM.
+def format_timestamp(ts: int, frmt: str = "%Y-%m-%d %H:%M") -> str:
+    return datetime.fromtimestamp(ts).strftime(frmt)

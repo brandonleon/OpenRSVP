@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenRSVP - Event Details</title>
+    {% include '_bootstrap_css.html' %}
+</head>
+
+<body>
+{% if event %}
+<div class="container mt-5">
+    <h1>{{ event.name }}</h1>
+    <p>Here are the details for this event:</p>
+
+    <div class="mt-4">
+        <h2>Event Details</h2>
+        <p><strong>Secret Code:</strong> {{ event.secret_code }}</p>
+        <p><strong>Start Time:</strong> {{ event.start_datetime | format_timestamp }}</p>
+        <p><strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}</p>
+    </div>
+
+    <div class="mt-4">
+        <a class="btn btn-primary" href="{{ request.url_for('root') }}" role="button">Back to Home</a>
+    </div>
+</div>
+{% else %}
+<div class="container mt-5">
+    <h1>Event Not Found</h1>
+    <p>Sorry, we couldn't find an event with that ID.</p>
+    <div class="mt-4">
+        <a class="btn btn-primary" href="{{ request.url_for('root') }}" role="button">Back to Home</a>
+    </div>
+{% endif %}
+{% include '_bootstrap_js.html' %}
+</body>
+</html>

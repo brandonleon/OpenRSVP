@@ -1,6 +1,8 @@
 from uuid import uuid4
 import sqlite3
 
+DATABASE_FILE = "events.db"
+
 
 def init_db() -> tuple[bool, str | None]:
     """
@@ -22,7 +24,7 @@ def init_db() -> tuple[bool, str | None]:
         and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
     """
     try:
-        with sqlite3.connect("events.db") as conn:
+        with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
             c.execute(
                 """
@@ -84,7 +86,7 @@ def insert_event(
         and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
     """
     try:
-        with sqlite3.connect("events.db") as conn:
+        with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
             c.execute(
                 "INSERT INTO events VALUES (?, ?, ?, ?)",
@@ -100,3 +102,34 @@ def insert_event(
     except Exception as e:
         error_message = str(e)
         return False, error_message  # Unsuccessful insertion, error message
+
+
+def fetch_event(code: str) -> dict | bool:
+    """
+    Fetches an event from the database.
+
+    Args:
+        code (str): The event's secret code.
+
+    Returns:
+        dict | bool: A dictionary containing the event's details if the operation is successful,
+        or False if an exception occurs.
+    """
+
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT secret_code, name, start_datetime, end_datetime FROM events WHERE secret_code = ?",
+                (code,),
+            )
+            event = c.fetchone()
+            return {
+                "secret_code": event[0],
+                "name": event[1],
+                "start_datetime": event[2],
+                "end_datetime": event[3],
+            }
+    except Exception as e:
+        print(e)
+        return False
