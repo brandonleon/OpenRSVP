@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP - Event Creation</title>
+    {% include '_bootstrap_css.html' %}
+  </head>
+
+  <body>
+    <div class="container mt-5">
+      <h1 class="mb-4">Create a New Event</h1>
+      <form action="/event" method="POST">
+        <div class="mb-3">
+          <label for="event_name" class="form-label">Event Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="event_name"
+            name="event_name"
+            placeholder="Enter event name"
+            required
+          />
+        </div>
+        <div class="row mb-3 startDateTime">
+          <div class="col">
+            <label for="start_date" class="form-label">Start Date</label>
+            <input
+              type="date"
+              class="form-control"
+              id="start_date"
+              name="start_date"
+              required
+            />
+          </div>
+          <div class="col">
+            <label for="start_time" class="form-label">Start Time</label>
+            <input
+              type="time"
+              class="form-control"
+              id="start_time"
+              name="start_time"
+              required
+            />
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col">
+            <button type="button" class="btn btn-info" id="showEndDateTime">
+              Specify Event End Date/Time
+            </button>
+          </div>
+        </div>
+        <div class="row mb-3 d-none endDateTime">
+          <div class="col">
+            <label for="end_date" class="form-label">End Date</label>
+            <input
+              type="date"
+              class="form-control"
+              id="end_date"
+              name="end_date"
+            />
+          </div>
+          <div class="col">
+            <label for="end_time" class="form-label">End Time</label>
+            <input
+              type="time"
+              class="form-control"
+              id="end_time"
+              name="end_time"
+            />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="secret_code" class="form-label">Secret Link</label>
+          <input
+            type="text"
+            class="form-control"
+            id="secret_code"
+            name="secret_code"
+            placeholder="Enter secret link"
+          />
+        </div>
+        <button type="submit" class="btn btn-primary">Create Event</button>
+      </form>
+    </div>
+
+    {% include '_bootstrap_js.html' %}
+    <script>
+      $(document).ready(function () {
+        // Set initial button text based on initial visibility of endDateTime element
+        if ($(".endDateTime").hasClass("d-none")) {
+          $("#showEndDateTime").text("Specify Event End Date/Time");
+        } else {
+          $("#showEndDateTime").text("Remove Event End Date/Time");
+        }
+
+        // Toggle visibility of endDateTime element and button text when button is clicked
+        $("#showEndDateTime").click(function () {
+          $(".endDateTime").toggleClass("d-none");
+          if ($(this).text() == "Specify Event End Date/Time") {
+            $(this).text("Remove Event End Date/Time");
+            // Clear the form fields in the endDateTime div
+            $("#end_date").val("");
+            $("#end_time").val("");
+          } else {
+            $(this).text("Specify Event End Date/Time");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
