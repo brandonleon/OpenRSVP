@@ -1,5 +1,5 @@
-from uuid import uuid4
 import sqlite3
+from uuid import uuid4
 
 DATABASE_FILE = "events.db"
 

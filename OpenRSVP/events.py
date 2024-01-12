@@ -1,6 +1,6 @@
+import datetime
 import sqlite3
 import uuid
-import datetime
 
 
 def create_event(name, date, start_time, end_time, secret_code=None) -> str:
