@@ -20,7 +20,7 @@
         <p><strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}</p>
         {% endif %}
         {% if event.details %}
-        <p><strong>Details:</strong> {{ event.details | markdown | safe }}</p>
+        <p><strong>Details:</strong> {{ event.details | sanitize_markdown | safe }}</p>
         {% endif %}
     </div>
 

@@ -1,21 +1,13 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import FastAPI
-from fastapi import Form
-from fastapi import Request
-from fastapi.responses import HTMLResponse
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from markdown import markdown
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP.database import fetch_event
-from OpenRSVP.database import init_db
-from OpenRSVP.database import insert_event
-from OpenRSVP.utils import code_format
-from OpenRSVP.utils import format_timestamp
-from OpenRSVP.utils import pad_string
+from OpenRSVP.database import fetch_event, init_db, insert_event
+from OpenRSVP.utils import code_format, format_timestamp, pad_string, sanitize_markdown
 
 # Initialize the database if it doesn't exist
 init_db()
@@ -31,7 +23,7 @@ templates = Jinja2Templates(directory="templates")
 
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
-templates.env.filters["markdown"] = markdown
+templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
