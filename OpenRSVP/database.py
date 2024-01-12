@@ -31,6 +31,7 @@ def init_db() -> tuple[bool, str | None]:
                 CREATE TABLE IF NOT EXISTS events (
                     secret_code TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
+                    details TEXT,
                     start_datetime INTEGER NOT NULL,
                     end_datetime INTEGER
                 )
