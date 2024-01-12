@@ -1,4 +1,4 @@
-§<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -21,14 +21,14 @@
             placeholder="Enter event name"
             required
           />
-        <label for="event_detail" class="form-label">Details</label>
+          <label for="event_detail" class="form-label">Details</label>
           <textarea
             class="form-control"
             id="event_detail"
             name="event_detail"
             placeholder="Enter event details"
             rows="6"
-            ></textarea>
+          ></textarea>
         </div>
         <div class="row mb-3 startDateTime">
           <div class="col">
@@ -52,33 +52,41 @@
             />
           </div>
         </div>
-        <div class="row mb-3">
-          <div class="col">
-            <button type="button" class="btn btn-info" id="showEndDateTime">
-              Specify Event End Date/Time
-            </button>
+        <p>
+          <button
+            class="btn btn-primary"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapseExample"
+            aria-expanded="false"
+            aria-controls="collapseExample"
+          >
+            Add End Date/Time
+          </button>
+        </p>
+        <div class="collapse" id="collapseExample">
+          <div class="row mb-3">
+            <div class="col">
+              <label for="end_date" class="form-label">End Date</label>
+              <input
+                type="date"
+                class="form-control"
+                id="end_date"
+                name="end_date"
+              />
+            </div>
+            <div class="col">
+              <label for="end_time" class="form-label">End Time</label>
+              <input
+                type="time"
+                class="form-control"
+                id="end_time"
+                name="end_time"
+              />
+            </div>
           </div>
         </div>
-        <div class="row mb-3 d-none endDateTime">
-          <div class="col">
-            <label for="end_date" class="form-label">End Date</label>
-            <input
-              type="date"
-              class="form-control"
-              id="end_date"
-              name="end_date"
-            />
-          </div>
-          <div class="col">
-            <label for="end_time" class="form-label">End Time</label>
-            <input
-              type="time"
-              class="form-control"
-              id="end_time"
-              name="end_time"
-            />
-          </div>
-        </div>
+
         <div class="mb-3">
           <label for="secret_code" class="form-label">Secret Link</label>
           <input
@@ -94,28 +102,5 @@
     </div>
 
     {% include '_bootstrap_js.html' %}
-    <script>
-      $(document).ready(function () {
-        // Set initial button text based on initial visibility of endDateTime element
-        if ($(".endDateTime").hasClass("d-none")) {
-          $("#showEndDateTime").text("Specify Event End Date/Time");
-        } else {
-          $("#showEndDateTime").text("Remove Event End Date/Time");
-        }
-
-        // Toggle visibility of endDateTime element and button text when button is clicked
-        $("#showEndDateTime").click(function () {
-          $(".endDateTime").toggleClass("d-none");
-          if ($(this).text() == "Specify Event End Date/Time") {
-            $(this).text("Remove Event End Date/Time");
-            // Clear the form fields in the endDateTime div
-            $("#end_date").val("");
-            $("#end_time").val("");
-          } else {
-            $(this).text("Specify Event End Date/Time");
-          }
-        });
-      });
-    </script>
   </body>
 </html>
