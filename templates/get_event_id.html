@@ -15,9 +15,10 @@
 
     <div class="mt-4">
         <h2>Event Details</h2>
-        <p><strong>Secret Code:</strong> {{ event.secret_code }}</p>
         <p><strong>Start Time:</strong> {{ event.start_datetime | format_timestamp }}</p>
+        {% if event.end_datetime %}
         <p><strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}</p>
+        {% endif %}
     </div>
 
     <div class="mt-4">
@@ -31,6 +32,7 @@
     <div class="mt-4">
         <a class="btn btn-primary" href="{{ request.url_for('root') }}" role="button">Back to Home</a>
     </div>
+</div>
 {% endif %}
 {% include '_bootstrap_js.html' %}
 </body>

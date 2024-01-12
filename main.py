@@ -78,7 +78,7 @@ async def create_event(
                 break
             padding += 1
 
-    return RedirectResponse(url=f"/event/{code}")
+    return RedirectResponse(url=f"/event/{code}", status_code=303)
 
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
