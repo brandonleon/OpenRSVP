@@ -9,7 +9,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from icecream import ic
+from markdown import markdown
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP.database import init_db
@@ -33,6 +33,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 templates.env.filters["format_timestamp"] = format_timestamp
+templates.env.filters["markdown"] = markdown
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
@@ -49,6 +50,7 @@ async def event_root(request: Request):
 async def create_event(
     secret_code: Optional[str] = Form(None),
     event_name: str = Form(...),
+    event_details: Optional[str] = Form(None),
     start_date: str = Form(...),
     start_time: str = Form(...),
     end_date: Optional[str] = Form(None),
@@ -66,7 +68,7 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    if insert_event(code, event_name, start_datetime, end_datetime) == (
+    if insert_event(code, event_name, event_details, start_datetime, end_datetime) == (
         False,
         "UNIQUE constraint failed: events.secret_code",
     ):

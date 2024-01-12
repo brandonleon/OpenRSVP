@@ -64,7 +64,7 @@ def init_db() -> tuple[bool, str | None]:
 
 
 def insert_event(
-    secret_code, name, start_datetime, end_datetime
+    code, name, details, start_datetime, end_datetime
 ) -> tuple[bool, str | None]:
     """
     Inserts a new event into the 'events' table in the SQLite database 'events.db'.
@@ -75,8 +75,9 @@ def insert_event(
     After executing the command, it commits the changes and closes the connection to the database.
 
     Args:
-        secret_code (str): The secret code associated with the event.
+        code (str): The secret code associated with the event.
         name (str): The name of the event.
+        details (str): The details of the event.
         start_date (str): The start date of the event.
         start_time (str): The start time of the event.
         end_date (str): The end date of the event.
@@ -90,10 +91,11 @@ def insert_event(
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO events VALUES (?, ?, ?, ?)",
+                "INSERT INTO events VALUES (?, ?, ?, ?, ?)",
                 (
-                    secret_code,
+                    code,
                     name,
+                    details,
                     start_datetime,
                     end_datetime,
                 ),
@@ -121,15 +123,16 @@ def fetch_event(code: str) -> dict | bool:
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
             c.execute(
-                "SELECT secret_code, name, start_datetime, end_datetime FROM events WHERE secret_code = ?",
+                "SELECT secret_code, name, details, start_datetime, end_datetime FROM events WHERE secret_code = ?",
                 (code,),
             )
             event = c.fetchone()
             return {
                 "secret_code": event[0],
                 "name": event[1],
-                "start_datetime": event[2],
-                "end_datetime": event[3],
+                "details": event[2],
+                "start_datetime": event[3],
+                "end_datetime": event[4],
             }
     except Exception as e:
         print(e)
