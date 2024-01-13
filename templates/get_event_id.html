@@ -1,42 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenRSVP - Event Details</title>
     {% include '_bootstrap_css.html' %}
-</head>
+  </head>
 
-<body>
-{% if event %}
-<div class="container mt-5">
-    <h1>{{ event.name }}</h1>
-    <p>Here are the details for this event:</p>
+  <body>
+    <div class="container mt-5">
+      {% if event %}
+      <h1>{{ event.name }}</h1>
+      <p>Here are the details for this event:</p>
 
-    <div class="mt-4">
+      <div class="container m3-3">
         <h2>Event Details</h2>
-        <p><strong>Start Time:</strong> {{ event.start_datetime | format_timestamp }}</p>
+        <p>
+          <strong>Start Time:</strong> {{ event.start_datetime |
+          format_timestamp }}
+        </p>
         {% if event.end_datetime %}
-        <p><strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}</p>
-        {% endif %}
-        {% if event.details %}
-        <p><strong>Details:</strong> {{ event.details | sanitize_markdown | safe }}</p>
-        {% endif %}
+        <p>
+          <strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}
+        </p>
+        {% endif %} {% if event.details %}
+
+        <strong>Details:</strong>
+        {{ event.details | sanitize_markdown | safe }} {% endif %}
+      </div>
+      <div class="container mt-5">
+        <h2>RSVP to this event</h2>
+        <form action="{{ request.url_for('rsvp') }}" method="post">
+          <div class="form-group">
+            <label for="user_id_email">User ID / Email</label>
+            <input
+              type="text"
+              class="form-control"
+              id="user_id_email"
+              name="user_id_email"
+            />
+          </div>
+          <div class="form-group">
+            <label for="display_name">Display Name</label>
+            <input
+              type="text"
+              class="form-control"
+              id="display_name"
+              name="display_name"
+            />
+          </div>
+          <div class="form-group">
+            <label>RSVP</label>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="rsvp"
+                id="rsvpYes"
+                value="yes"
+              />
+              <label class="form-check-label" for="rsvpYes">Yes</label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="rsvp"
+                id="rsvpNo"
+                value="no"
+              />
+              <label class="form-check-label" for="rsvpNo">No</label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="rsvp"
+                id="rsvpMaybe"
+                value="maybe"
+              />
+              <label class="form-check-label" for="rsvpMaybe">Maybe</label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+      </div>
+      {% else %}
+
+      <h1>Event Not Found</h1>
+      <p>Sorry, we couldn't find an event with that ID.</p>
+
+      {% endif %}
+
+      <div class="mt-4">
+        <a
+          class="btn btn-primary"
+          href="{{ request.url_for('root') }}"
+          role="button"
+          >Back to Home</a
+        >
+      </div>
     </div>
 
-    <div class="mt-4">
-        <a class="btn btn-primary" href="{{ request.url_for('root') }}" role="button">Back to Home</a>
-    </div>
-</div>
-{% else %}
-<div class="container mt-5">
-    <h1>Event Not Found</h1>
-    <p>Sorry, we couldn't find an event with that ID.</p>
-    <div class="mt-4">
-        <a class="btn btn-primary" href="{{ request.url_for('root') }}" role="button">Back to Home</a>
-    </div>
-</div>
-{% endif %}
-{% include '_bootstrap_js.html' %}
-</body>
+    {% include '_bootstrap_js.html' %}
+  </body>
 </html>

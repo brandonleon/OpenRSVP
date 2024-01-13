@@ -30,6 +30,7 @@ def init_db() -> tuple[bool, str | None]:
                 """
                 CREATE TABLE IF NOT EXISTS events (
                     secret_code TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
                     name TEXT NOT NULL,
                     details TEXT,
                     start_datetime INTEGER NOT NULL,
@@ -56,6 +57,15 @@ def init_db() -> tuple[bool, str | None]:
                 )
                 """
             )
+            c.execute(
+                """
+                CREATE TABLE IF NOT EXISTS config
+                (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+                """
+            )
             conn.commit()
         return True, None  # Successful initialization, no error message
     except Exception as e:
@@ -64,7 +74,7 @@ def init_db() -> tuple[bool, str | None]:
 
 
 def insert_event(
-    code, name, details, start_datetime, end_datetime
+    code, name, user_id, details, start_datetime, end_datetime
 ) -> tuple[bool, str | None]:
     """
     Inserts a new event into the 'events' table in the SQLite database 'events.db'.
@@ -78,6 +88,7 @@ def insert_event(
         code (str): The secret code associated with the event.
         name (str): The name of the event.
         details (str): The details of the event.
+        user_id (str): The user ID of the event creator.
         start_date (str): The start date of the event.
         start_time (str): The start time of the event.
         end_date (str): The end date of the event.
@@ -91,10 +102,11 @@ def insert_event(
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO events VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO events VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     code,
                     name,
+                    user_id,
                     details,
                     start_datetime,
                     end_datetime,

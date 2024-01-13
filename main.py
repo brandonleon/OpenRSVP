@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Optional
+from uuid import uuid4
 
-from fastapi import FastAPI, Form, Request
+from fastapi import Cookie, FastAPI, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
@@ -38,6 +39,8 @@ async def event_root(request: Request):
 
 @app.post("/event", response_class=HTMLResponse)
 async def create_event(
+    request: Request,
+    response: Response,
     secret_code: Optional[str] = Form(None),
     event_name: str = Form(...),
     event_details: Optional[str] = Form(None),
@@ -58,14 +61,22 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    if insert_event(code, event_name, event_details, start_datetime, end_datetime) == (
+    if user_id := request.cookies.get("user_id"):
+        print(user_id)
+    else:
+        user_id = str(uuid4())
+        response.set_cookie(key="user_id", value=user_id, httponly=True)
+
+    if insert_event(
+        code, user_id, event_name, event_details, start_datetime, end_datetime
+    ) == (
         False,
         "UNIQUE constraint failed: events.secret_code",
     ):
         padding = 2
         while True:
             padded_code = pad_string(code, padding)
-            result = insert_event(padded_code, event_name, start_datetime, end_datetime)
+            result = insert_event(padded_code, user_id, start_datetime, end_datetime)
             if result != (False, "UNIQUE constraint failed: events.secret_code"):
                 break
             padding += 1
