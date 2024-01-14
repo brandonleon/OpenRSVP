@@ -29,31 +29,48 @@ templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request):
+    user_expire_time = int(fetch_config("user_expire_time"))
     response = templates.TemplateResponse("get_index.html", {"request": request})
-    if cookie := request.cookies.get("user_id"):
-        # if the cookie exists, update the expiration date
+    if not (cookie := request.cookies.get("user_id")):
         response.set_cookie(
             key="user_id",
             value=cookie,
             httponly=True,
-            expires=int(fetch_config("user_expire_time")),
+            expires=user_expire_time,
         )
     else:
         response.set_cookie(
             key="user_id",
             value=str(uuid4()),
             httponly=True,
-            expires=int(fetch_config("user_expire_time")),
+            expires=user_expire_time,
         )
+
     return response
 
 
 @app.get("/event", response_class=HTMLResponse)
 async def event_root(request: Request):
-    return templates.TemplateResponse("get_event.html", {"request": request})
+    user_expire_time = fetch_config("user_expire_time")
+    response = templates.TemplateResponse("get_event.html", {"request": request})
+    if cookie := request.cookies.get("user_id"):
+        response.set_cookie(
+            key="user_id",
+            value=cookie,
+            httponly=True,
+            expires=user_expire_time,
+        )
+    else:
+        response.set_cookie(
+            key="user_id",
+            value=str(uuid4()),
+            httponly=True,
+            expires=user_expire_time,
+        )
+    return response
 
 
-@app.post("/event", response_class=HTMLResponse)
+@app.post("/event", response_class=HTMLResponse, name="event")
 async def create_event(
     request: Request,
     response: Response,
@@ -77,9 +94,7 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    if user_id := request.cookies.get("user_id"):
-        print(user_id)
-    else:
+    if not (user_id := request.cookies.get("user_id")):
         user_id = str(uuid4())
         response.set_cookie(key="user_id", value=user_id, httponly=True)
 
