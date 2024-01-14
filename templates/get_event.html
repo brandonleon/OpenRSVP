@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenRSVP - Event Creation</title>
     {% include '_bootstrap_css.html' %}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css"
+    />
   </head>
 
   <body>
+    {% include '_navbar.html' %}
     <div class="container mt-5">
       <h1 class="mb-4">Create a New Event</h1>
       <form action="/event" method="POST">
@@ -22,7 +26,7 @@
             placeholder="Enter event name"
             required
           />
-          <label for="event_details" class="form-label" >Details</label>
+          <label for="event_details" class="form-label">Details</label>
           <textarea
             class="form-control"
             id="event_details"
