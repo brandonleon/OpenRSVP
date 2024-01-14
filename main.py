@@ -1,13 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import Cookie, FastAPI, Form, Request, Response
+from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP.database import fetch_event, init_db, insert_event
+from OpenRSVP.database import fetch_event, init_db, insert_event, fetch_config
 from OpenRSVP.utils import code_format, format_timestamp, pad_string, sanitize_markdown
 
 # Initialize the database if it doesn't exist
@@ -29,7 +29,23 @@ templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request):
-    return templates.TemplateResponse("get_index.html", {"request": request})
+    response = templates.TemplateResponse("get_index.html", {"request": request})
+    if cookie := request.cookies.get("user_id"):
+        # if the cookie exists, update the expiration date
+        response.set_cookie(
+            key="user_id",
+            value=cookie,
+            httponly=True,
+            expires=int(fetch_config("user_expire_time")),
+        )
+    else:
+        response.set_cookie(
+            key="user_id",
+            value=str(uuid4()),
+            httponly=True,
+            expires=int(fetch_config("user_expire_time")),
+        )
+    return response
 
 
 @app.get("/event", response_class=HTMLResponse)

@@ -67,6 +67,9 @@ def init_db() -> tuple[bool, str | None]:
                 """
             )
             conn.commit()
+
+            # insert default config values
+            insert_config("user_expire_time", 60 * 60 * 24 * 30)
         return True, None  # Successful initialization, no error message
     except Exception as e:
         error_message = str(e)
@@ -149,3 +152,58 @@ def fetch_event(code: str) -> dict | bool:
     except Exception as e:
         print(e)
         return False
+
+
+def fetch_config(key: str) -> str | bool:
+    """
+    Fetches a config value from the database.
+
+    Args:
+        key (str): The config value's key.
+
+    Returns:
+        str | bool: A string containing the config value if the operation is successful,
+        or False if an exception occurs.
+    """
+
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT value FROM config WHERE key = ?",
+                (key,),
+            )
+            value = c.fetchone()
+            return value[0]
+    except Exception as e:
+        print(e)
+        return False
+
+
+# insert default config values
+def insert_config(key: str, value: str) -> tuple[bool, str | None]:
+    """
+    Inserts a new config value into the 'config' table in the SQLite database 'events.db'.
+
+    This function takes two arguments: key and value.
+    It connects to the SQLite database 'events.db', creates a cursor,
+    and executes an SQL INSERT INTO command to insert a new row into the 'config' table with the provided values.
+    After executing the command, it commits the changes and closes the connection to the database.
+
+    Args:
+        key (str): The key of the config value.
+        value (str): The value of the config value.
+
+    Returns:
+        tuple[bool, str | None]: A tuple where the first element is a boolean indicating the success of the operation,
+        and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
+    """
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute("INSERT INTO config VALUES (?, ?)", (key, value))
+            conn.commit()
+        return True, None  # Successful insertion, no error message
+    except Exception as e:
+        error_message = str(e)
+        return False, error_message  # Unsuccessful insertion, error message
