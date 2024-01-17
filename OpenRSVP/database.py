@@ -70,6 +70,16 @@ def init_db() -> tuple[bool, str | None]:
                 )
                 """
             )
+            c.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sessions
+                (
+                    session_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    expire_time INTEGER NOT NULL
+                )
+                """
+            )
             conn.commit()
 
             # insert default config values
