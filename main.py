@@ -127,6 +127,19 @@ async def rsvp(request: Request):
     return templates.TemplateResponse("rsvp.html", {"request": request})
 
 
+@app.get("/user", response_class=HTMLResponse, name="user")
+async def user(request: Request):
+    # Get user_id from cookie
+    try:
+        user_id = request.cookies.get("user_id")
+    except Exception as e:
+        print(e)
+        return RedirectResponse(url="/", status_code=303)
+    return templates.TemplateResponse(
+        "get_user.html", {"request": request, "user": user_id}
+    )
+
+
 if __name__ == "__main__":
     import uvicorn
 

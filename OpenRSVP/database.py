@@ -42,8 +42,12 @@ def init_db() -> tuple[bool, str | None]:
                 """
                 CREATE TABLE IF NOT EXISTS people (
                     user_id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT NOT NULL
+                    display_name TEXT NOT NULL,
+                    email TEXT NOT NULL,
+                    salt TEXT NOT NULL,
+                    password TEXT NOT NULL,
+                    cell_phone TEXT NOT NULL
+                    
                 )
                 """
             )
@@ -69,7 +73,13 @@ def init_db() -> tuple[bool, str | None]:
             conn.commit()
 
             # insert default config values
-            insert_config("user_expire_time", 60 * 60 * 24 * 30)
+            insert_config("user_expire_time", 60 * 60 * 24 * 30)  # 30 days.
+            insert_config(
+                "event_expire_time", 60 * 60 * 24 * 180
+            )  # 180 days or approximately 6 months.
+            insert_config(
+                "user_expire_time", 60 * 60 * 24 * 365
+            )  # 365 days or approximately 1 year.
         return True, None  # Successful initialization, no error message
     except Exception as e:
         error_message = str(e)

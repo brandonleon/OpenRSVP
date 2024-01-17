@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP</title>
+    {% include '_bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include '_navbar.html' %}
+
+    <div class="container mt-5">
+      {% if user %}
+        <h1>Welcome, {{ user }}</h1>
+      {% endif %}
+    </div>
+
+    {% include '_bootstrap_js.html' %}
+  </body>
+</html>
