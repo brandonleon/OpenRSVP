@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
+from pathlib import Path
 
 from fastapi import FastAPI, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -17,10 +18,14 @@ init_db()
 app = FastAPI()
 
 # Static files (CSS, JS, etc.)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_dir = Path("static")
+static_dir.mkdir(exist_ok=True)
+
+# Static files (CSS, JS, etc.)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=Path("templates"))
 
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
