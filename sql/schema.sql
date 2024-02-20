@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS events (
   details TEXT, 
   start_datetime INTEGER NOT NULL,
   end_datetime INTEGER,
+  INDEX active_index (active),
   INDEX start_end_index (start_datetime, end_datetime)
 );
 
