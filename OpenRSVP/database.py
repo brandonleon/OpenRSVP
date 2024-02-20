@@ -1,10 +1,12 @@
 import sqlite3
-from uuid import uuid4
+from pathlib import Path
 
-DATABASE_FILE = "events.db"
+CURRENT_DIR = Path(__file__).parent
+DATABASE_FILE = Path("events.db")
+SCHEMA_FILE = CURRENT_DIR / ".." / "sql" / "schema.sql"
 
 
-def init_db() -> tuple[bool, str | None]:
+def init_db() -> tuple[bool, str | None]:  # sourcery skip: extract-method
     """
     Initializes the database by creating the necessary tables if they do not exist.
 
@@ -26,69 +28,18 @@ def init_db() -> tuple[bool, str | None]:
     try:
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
-            c.execute(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    secret_code TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    details TEXT,
-                    start_datetime INTEGER NOT NULL,
-                    end_datetime INTEGER
-                )
-                """
-            )
-            c.execute(
-                """
-                CREATE TABLE IF NOT EXISTS people (
-                    user_id TEXT PRIMARY KEY,
-                    display_name TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    salt TEXT NOT NULL,
-                    password TEXT NOT NULL,
-                    cell_phone TEXT NOT NULL
-                    
-                )
-                """
-            )
-            c.execute(
-                """
-                CREATE TABLE IF NOT EXISTS rsvp (
-                    rsvp_id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    event_id TEXT NOT NULL,
-                    rsvp_status TEXT NOT NULL
-                )
-                """
-            )
-            c.execute(
-                """
-                CREATE TABLE IF NOT EXISTS config
-                (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-                """
-            )
-            c.execute(
-                """
-                CREATE TABLE IF NOT EXISTS sessions
-                (
-                    session_id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL,
-                    expire_time INTEGER NOT NULL
-                )
-                """
-            )
+
+            with open(SCHEMA_FILE) as f:
+                c.executescript(f.read())
             conn.commit()
 
             # insert default config values
-            insert_config("user_expire_time", 60 * 60 * 24 * 30)  # 30 days.
+            insert_config("user_expire_time", str(60 * 60 * 24 * 30))  # 30 days.
             insert_config(
-                "event_expire_time", 60 * 60 * 24 * 180
+                "event_expire_time", str(60 * 60 * 24 * 180)
             )  # 180 days or approximately 6 months.
             insert_config(
-                "user_expire_time", 60 * 60 * 24 * 365
+                "user_expire_time", str(60 * 60 * 24 * 365)
             )  # 365 days or approximately 1 year.
         return True, None  # Successful initialization, no error message
     except Exception as e:
