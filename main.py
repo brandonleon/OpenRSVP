@@ -14,6 +14,7 @@ from OpenRSVP.utils import (
     format_timestamp,
     pad_string,
     sanitize_markdown,
+    fetch_user_id,
 )
 
 # Initialize the database if it doesn't exist
@@ -41,20 +42,7 @@ templates.env.filters["sanitize_markdown"] = sanitize_markdown
 async def root(request: Request):
     user_expire_time = int(fetch_config("user_expire_time"))
     response = templates.TemplateResponse("get_index.html", {"request": request})
-    if not (cookie := request.cookies.get("user_id")):
-        response.set_cookie(
-            key="user_id",
-            value=cookie,
-            httponly=True,
-            expires=user_expire_time,
-        )
-    else:
-        response.set_cookie(
-            key="user_id",
-            value=str(uuid4()),
-            httponly=True,
-            expires=user_expire_time,
-        )
+    user_id = fetch_user_id(request, response)
 
     return response
 
@@ -104,9 +92,7 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    if not (user_id := request.cookies.get("user_id")):
-        user_id = str(uuid4())
-        response.set_cookie(key="user_id", value=user_id, httponly=True)
+    user_id = fetch_user_id(request, response)
 
     if insert_event(
         code, event_name, user_id, event_details, str(start_datetime), str(end_datetime)
@@ -134,9 +120,14 @@ async def create_event(
 
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
-async def view_event(request: Request, event_id: str):
+async def view_event(request: Request, response: Response, event_id: str):
     return templates.TemplateResponse(
-        "get_event_id.html", {"request": request, "event": fetch_event(event_id)}
+        "get_event_id.html",
+        {
+            "request": request,
+            "user_id": fetch_user_id(request, response),
+            "event": fetch_event(event_id),
+        },
     )
 
 
@@ -149,7 +140,7 @@ async def rsvp(request: Request):
 async def user(request: Request):
     # Get user_id from cookie
     try:
-        user_id = request.cookies.get("user_id")
+        user_id = fetch_user_id(request, Response())
     except Exception as e:
         print(e)
         return RedirectResponse(url="/", status_code=303)
@@ -158,7 +149,12 @@ async def user(request: Request):
     )
 
 
+@app.get("/cookie")
+async def get_cookie(request: Request):
+    return {"cookie": request.cookies.get("user_id")}
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="localhost", port=8001)
+    uvicorn.run(app, host="localhost", port=8765)

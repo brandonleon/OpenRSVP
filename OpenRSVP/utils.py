@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from bleach import clean
 from markdown import markdown
+from OpenRSVP.database import fetch_config
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -52,7 +53,8 @@ def pad_string(st: str, ln: int = 1) -> str:
     pad = str(uuid4())
     pad = pad.replace("-", "")
     pad = pad[:ln]
-    return f"{st}_{pad}"
+    # Check if the original string has a _.
+    return f"{st}{pad}" if "_" in st else f"{st}_{pad}"
 
 
 # Function to take a unix timestamp and return a string in the default format YYYY-MM-DD HH:MM.
@@ -123,3 +125,31 @@ def sanitize_markdown(md: str) -> str:
             "td",
         ],
     )
+
+
+def fetch_user_id(request, response) -> str:
+    """
+    Fetches the user's ID from the request's cookies,
+    if the cookie is not present, generates a new UUID and sets it in the cookies.
+
+    This function takes a request object as input and fetches the user's ID from the request's cookies.
+    If the user's ID is not present in the cookies, the function generates a new UUID and returns it.
+
+    Args:
+        request (Request): The input request object.
+        response (Response): The input response object.
+
+    Returns:
+        str: The user's ID.
+    """
+    user_expire_time = int(fetch_config("user_expire_time"))
+    if not (user_id := request.cookies.get("user_id")):
+        user_id = str(uuid4())
+        response.set_cookie(
+            key="user_id",
+            value=user_id,
+            httponly=True,
+            max_age=user_expire_time,
+        )
+        return user_id
+    return user_id
