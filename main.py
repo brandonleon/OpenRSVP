@@ -9,7 +9,12 @@ from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP.database import fetch_event, init_db, insert_event, fetch_config
-from OpenRSVP.utils import code_format, format_timestamp, pad_string, sanitize_markdown
+from OpenRSVP.utils import (
+    format_code_to_alphanumeric,
+    format_timestamp,
+    pad_string,
+    sanitize_markdown,
+)
 
 # Initialize the database if it doesn't exist
 init_db()
@@ -87,7 +92,7 @@ async def create_event(
     end_date: Optional[str] = Form(None),
     end_time: Optional[str] = Form(None),
 ):
-    code = code_format(secret_code)
+    code = format_code_to_alphanumeric(secret_code)
 
     start_datetime = int(
         datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M").timestamp()

@@ -34,13 +34,10 @@ def init_db() -> tuple[bool, str | None]:  # sourcery skip: extract-method
             conn.commit()
 
             # insert default config values
-            insert_config("user_expire_time", str(60 * 60 * 24 * 30))  # 30 days.
+            insert_config("user_expire_time", str(60 * 60 * 24 * 90))  # 90 days
             insert_config(
                 "event_expire_time", str(60 * 60 * 24 * 180)
             )  # 180 days or approximately 6 months.
-            insert_config(
-                "user_expire_time", str(60 * 60 * 24 * 365)
-            )  # 365 days or approximately 1 year.
         return True, None  # Successful initialization, no error message
     except Exception as e:
         error_message = str(e)

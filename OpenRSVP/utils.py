@@ -5,7 +5,7 @@ from bleach import clean
 from markdown import markdown
 
 
-def code_format(st: str = None, ln: int = 12) -> str:
+def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
     """
     Ensures that a given string is at least 12 characters long.
 
