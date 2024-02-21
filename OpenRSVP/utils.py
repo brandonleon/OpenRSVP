@@ -131,9 +131,7 @@ def fetch_user_id(request, response) -> str:
     """
     Fetches the user's ID from the request's cookies,
     if the cookie is not present, generates a new UUID and sets it in the cookies.
-
-    This function takes a request object as input and fetches the user's ID from the request's cookies.
-    If the user's ID is not present in the cookies, the function generates a new UUID and returns it.
+    If the user's ID is present in the cookies, updates the max_age of the cookie.
 
     Args:
         request (Request): The input request object.
@@ -145,11 +143,12 @@ def fetch_user_id(request, response) -> str:
     user_expire_time = int(fetch_config("user_expire_time"))
     if not (user_id := request.cookies.get("user_id")):
         user_id = str(uuid4())
-        response.set_cookie(
-            key="user_id",
-            value=user_id,
-            httponly=True,
-            max_age=user_expire_time,
-        )
-        return user_id
+
+    # Set or update the cookie with the user_id
+    response.set_cookie(
+        key="user_id",
+        value=user_id,
+        httponly=True,
+        max_age=user_expire_time,
+    )
     return user_id
