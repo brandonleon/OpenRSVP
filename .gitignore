@@ -233,4 +233,8 @@ fabric.properties
 # asdf version manager
 /.tool-versions
 
+# Application Database
 /events.db
+
+# Operating System Files
+.DS_Store
