@@ -1,5 +1,6 @@
 import sqlite3
 from pathlib import Path
+from time import time
 
 CURRENT_DIR = Path(__file__).parent
 DATABASE_FILE = Path("events.db")
@@ -67,15 +68,17 @@ def insert_event(
         tuple[bool, str | None]: A tuple where the first element is a boolean indicating the success of the operation,
         and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
     """
-    from icecream import ic
-
-    ic(code, name, user_id, details, start_datetime, end_datetime)
     try:
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()
+
+            # If start_datetime is in the future, the event is active
+            active = 1 if int(start_datetime) > int(time()) else 0
+
             c.execute(
-                "INSERT INTO events VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO events VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
+                    active,
                     code,
                     name,
                     user_id,
@@ -88,6 +91,7 @@ def insert_event(
         return True, None  # Successful insertion, no error message
     except Exception as e:
         error_message = str(e)
+        ic(error_message)
         return False, error_message  # Unsuccessful insertion, error message
 
 

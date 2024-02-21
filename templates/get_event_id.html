@@ -17,12 +17,12 @@
       <div class="container m3-3">
         <h2>Event Details</h2>
         <p>
-          <strong>Start Time:</strong> {{ event.start_datetime |
+          <strong>Start Time:</strong> {{ event.start_datetime | int |
           format_timestamp }}
         </p>
         {% if event.end_datetime %}
         <p>
-          <strong>End Time:</strong> {{ event.end_datetime | format_timestamp }}
+          <strong>End Time:</strong> {{ event.end_datetime | int | format_timestamp }}
         </p>
         {% endif %} {% if event.details %}
 

@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS events (
   active INTEGER DEFAULT 1,
   secret_code TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
   name TEXT NOT NULL,
+  user_id TEXT NOT NULL,
   details TEXT,
   start_datetime INTEGER NOT NULL,
   end_datetime INTEGER
