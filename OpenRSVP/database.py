@@ -58,17 +58,18 @@ def insert_event(
     Args:
         code (str): The secret code associated with the event.
         name (str): The name of the event.
-        details (str): The details of the event.
         user_id (str): The user ID of the event creator.
-        start_date (str): The start date of the event.
-        start_time (str): The start time of the event.
-        end_date (str): The end date of the event.
-        end_time (str): The end time of the event.
+        details (str): The details of the event.
+        start_datetime (str): The start datetime of the event in ISO 8601 format.
+        end_datetime (str): The end datetime of the event in ISO 8601 format.
 
     Returns:
         tuple[bool, str | None]: A tuple where the first element is a boolean indicating the success of the operation,
         and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
     """
+    from icecream import ic
+
+    ic(code, name, user_id, details, start_datetime, end_datetime)
     try:
         with sqlite3.connect(DATABASE_FILE) as conn:
             c = conn.cursor()

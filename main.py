@@ -109,7 +109,7 @@ async def create_event(
         response.set_cookie(key="user_id", value=user_id, httponly=True)
 
     if insert_event(
-        code, user_id, event_name, event_details, start_datetime, end_datetime
+        code, event_name, user_id, event_details, str(start_datetime), str(end_datetime)
     ) == (
         False,
         "UNIQUE constraint failed: events.secret_code",
@@ -117,7 +117,14 @@ async def create_event(
         padding = 2
         while True:
             padded_code = pad_string(code, padding)
-            result = insert_event(padded_code, user_id, start_datetime, end_datetime)
+            result = insert_event(
+                padded_code,
+                event_name,
+                user_id,
+                event_details,
+                str(start_datetime),
+                str(end_datetime),
+            )
             if result != (False, "UNIQUE constraint failed: events.secret_code"):
                 break
             padding += 1
