@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from bleach import clean
 from markdown import markdown
-from icecream import ic
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -53,7 +52,6 @@ def pad_string(st: str, ln: int = 1) -> str:
     pad = str(uuid4())
     pad = pad.replace("-", "")
     pad = pad[:ln]
-    ic(pad)
     return f"{st}_{pad}"
 
 
