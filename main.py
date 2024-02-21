@@ -116,9 +116,9 @@ async def create_event(
     ):
         padding = 1
         while True:
-            padded_code = pad_string(code, padding)
+            code = pad_string(code, padding)
             result = insert_event(
-                padded_code,
+                code,
                 event_name,
                 user_id,
                 event_details,

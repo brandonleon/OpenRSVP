@@ -91,7 +91,6 @@ def insert_event(
         return True, None  # Successful insertion, no error message
     except Exception as e:
         error_message = str(e)
-        ic(error_message)
         return False, error_message  # Unsuccessful insertion, error message
 
 
