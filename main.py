@@ -115,8 +115,9 @@ async def create_event(
         "UNIQUE constraint failed: events.secret_code",
     ):
         padding = 1
+        starting_code = code
         while True:
-            code = pad_string(code, padding)
+            code = pad_string(starting_code, padding)
             result = insert_event(
                 code,
                 event_name,

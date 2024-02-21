@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from bleach import clean
 from markdown import markdown
+from icecream import ic
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -34,7 +35,7 @@ def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
     return st
 
 
-def pad_string(st: str, ln: int = 6) -> str:
+def pad_string(st: str, ln: int = 1) -> str:
     """
     Pads a string with a unique identifier.
 
@@ -44,7 +45,7 @@ def pad_string(st: str, ln: int = 6) -> str:
 
     Args:
         st (str): The input string.
-        ln (int, optional): The length of the padding. Defaults to 6.
+        ln (int, optional): The length of the padding. Defaults to 1.
 
     Returns:
         str: The input string padded with a unique identifier.
@@ -52,6 +53,7 @@ def pad_string(st: str, ln: int = 6) -> str:
     pad = str(uuid4())
     pad = pad.replace("-", "")
     pad = pad[:ln]
+    ic(pad)
     return f"{st}_{pad}"
 
 
