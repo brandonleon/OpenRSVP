@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS events (
   active INTEGER DEFAULT 1,
-  secret_code TEXT PRIMARY KEY,
+  secret_code TEXT PRIMARY KEY NOT NULL UNIQUE,
   name TEXT NOT NULL,
   user_id TEXT NOT NULL,
   details TEXT,
@@ -12,13 +12,13 @@ CREATE INDEX IF NOT EXISTS active_index ON events(active);
 CREATE INDEX IF NOT EXISTS start_end_index ON events(start_datetime, end_datetime);
 
 CREATE TABLE IF NOT EXISTS people (
-  user_id TEXT PRIMARY KEY,
+  user_id TEXT PRIMARY KEY NOT NULL UNIQUE,
   display_name TEXT,
   email TEXT,
-  salt TEXT NOT NULL,
-  password TEXT NOT NULL,
+  salt TEXT,
+  password TEXT,
   cell_phone TEXT,
-  last_login INTEGER,
+  last_login INTEGER NOT NULL,
   created INTEGER NOT NULL,
   updated INTEGER NOT NULL,
   role TEXT NOT NULL

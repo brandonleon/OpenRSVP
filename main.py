@@ -4,7 +4,7 @@ from uuid import uuid4
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 
@@ -20,7 +20,7 @@ from OpenRSVP.utils import (
     format_timestamp,
     pad_string,
     sanitize_markdown,
-    fetch_user_id,
+    get_or_set_user_id_cookie,
 )
 
 # Initialize the database if it doesn't exist
@@ -45,18 +45,15 @@ templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
-async def root(request: Request):
-    user_expire_time = int(fetch_config("user_expire_time"))
-    response = templates.TemplateResponse("get_index.html", {"request": request})
-    user_id = fetch_user_id(request, response)
-
-    return response
+async def root(request: Request, response: Response):
+    get_or_set_user_id_cookie(request, response)
+    return templates.TemplateResponse("get_index.html", {"request": request})
 
 
-@app.get("/event", response_class=HTMLResponse)
+@app.get("/event/create", response_class=HTMLResponse)
 async def event_root(request: Request):
     user_expire_time = fetch_config("user_expire_time")
-    response = templates.TemplateResponse("get_event.html", {"request": request})
+    response = templates.TemplateResponse("event_create.html", {"request": request})
     if cookie := request.cookies.get("user_id"):
         response.set_cookie(
             key="user_id",
@@ -74,7 +71,7 @@ async def event_root(request: Request):
     return response
 
 
-@app.post("/event", response_class=HTMLResponse, name="event")
+@app.post("/event/create", response_class=HTMLResponse, name="create_event")
 async def create_event(
     request: Request,
     response: Response,
@@ -98,7 +95,7 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    user_id = fetch_user_id(request, response)
+    user_id = get_or_set_user_id_cookie(request, response)
 
     if insert_event(
         code, event_name, user_id, event_details, str(start_datetime), str(end_datetime)
@@ -127,8 +124,8 @@ async def create_event(
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
 async def view_event(request: Request, response: Response, event_id: str):
-    user_id = fetch_user_id(request, response)
-    usr = fetch_user(user_id)
+    user_id = get_or_set_user_id_cookie(request, response)
+    usr = fetch_user(user_id) or {}
     if not usr:
         usr["user_id"] = user_id
 
@@ -150,7 +147,7 @@ async def rsvp(request: Request):
 @app.get("/user", response_class=HTMLResponse, name="user")
 async def user(request: Request):
     # Get user_id from cookie
-    user_id = fetch_user_id(request, Response())
+    user_id = get_or_set_user_id_cookie(request, Response())
     usr = fetch_user(user_id)
     return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
 

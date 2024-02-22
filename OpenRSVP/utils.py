@@ -3,7 +3,9 @@ from uuid import uuid4
 
 from bleach import clean
 from markdown import markdown
-from OpenRSVP.database import fetch_config
+
+from OpenRSVP.database import (fetch_config, fetch_user, insert_user,
+                               update_user)
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -127,7 +129,7 @@ def sanitize_markdown(md: str) -> str:
     )
 
 
-def fetch_user_id(request, response) -> str:
+def get_or_set_user_id_cookie(request, response) -> str:
     """
     Fetches the user's ID from the request's cookies,
     if the cookie is not present, generates a new UUID and sets it in the cookies.
@@ -151,4 +153,10 @@ def fetch_user_id(request, response) -> str:
         httponly=True,
         max_age=user_expire_time,
     )
+
+    if not fetch_user(user_id):
+        insert_user(user_id)
+    else:
+        update_user(user_id, "last_login", int(datetime.now().timestamp()))
+
     return user_id

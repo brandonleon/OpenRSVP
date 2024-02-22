@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link id="favicon" rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <title>OpenRSVP</title>
     {% include '_bootstrap_css.html' %}
   </head>
@@ -20,7 +21,7 @@
       <div class="mt-4">
         <h2>Getting Started</h2>
         <p>To create a new event, click the button below:</p>
-        <a class="btn btn-primary" href="/event" role="button"
+        <a class="btn btn-primary" href="{{ request.url_for('create_event') }}" role="button"
           >Create New Event</a
         >
       </div>

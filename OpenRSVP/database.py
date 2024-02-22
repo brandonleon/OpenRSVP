@@ -126,6 +126,36 @@ def fetch_event(code: str) -> dict | bool:
         return False
 
 
+def insert_user(user_id: str) -> tuple[bool, str | None]:
+    """
+    Inserts a new user into the 'people' table in the SQLite database 'events.db'.
+
+    This function takes one argument: user_id.
+    It connects to the SQLite database 'events.db', creates a cursor,
+    and executes an SQL INSERT INTO command to insert a new row into the 'people' table with the provided user_id.
+    After executing the command, it commits the changes and closes the connection to the database.
+
+    Args:
+        user_id (str): The user's ID.
+
+    Returns:
+        tuple[bool, str | None]: A tuple where the first element is a boolean indicating the success of the operation,
+        and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
+    """
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute(
+                "INSERT INTO people (user_id, last_login, created, updated, role) VALUES (?, ?, ?, ?, ?)",
+                (user_id, int(time()), int(time()), int(time()), "user"),
+            )
+            conn.commit()
+        return True, None  # Successful insertion, no error message
+    except Exception as e:
+        error_message = str(e)
+        return False, error_message  # Unsuccessful insertion, error message
+
+
 def fetch_user(user_id: str) -> dict | bool:
     """
     Fetches a user from the database.
@@ -155,6 +185,38 @@ def fetch_user(user_id: str) -> dict | bool:
     except Exception as e:
         print(e)
         return False
+
+
+def update_user(user_id: str, column: str, value: str) -> tuple[bool, str | None]:
+    """
+    Updates a user's details in the 'people' table in the SQLite database 'events.db'.
+
+    This function takes three arguments: user_id, column, and value.
+    It connects to the SQLite database 'events.db', creates a cursor,
+    and executes an SQL UPDATE command to update the specified column of the user with the provided user_id.
+    After executing the command, it commits the changes and closes the connection to the database.
+
+    Args:
+        user_id (str): The user's ID.
+        column (str): The column to be updated.
+        value (str): The new value of the column.
+
+    Returns:
+        tuple[bool, str | None]: A tuple where the first element is a boolean indicating the success of the operation,
+        and the second element is either None (if successful) or a string containing an error message (if unsuccessful).
+    """
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute(
+                f"UPDATE people SET {column} = ? WHERE user_id = ?",
+                (value, user_id),
+            )
+            conn.commit()
+        return True, None  # Successful update, no error message
+    except Exception as e:
+        error_message = str(e)
+        return False, error_message  # Unsuccessful update, error message
 
 
 def fetch_config(key: str) -> str | bool:
