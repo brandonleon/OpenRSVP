@@ -13,11 +13,15 @@ CREATE INDEX IF NOT EXISTS start_end_index ON events(start_datetime, end_datetim
 
 CREATE TABLE IF NOT EXISTS people (
   user_id TEXT PRIMARY KEY,
-  display_name TEXT NOT NULL,
-  email TEXT NOT NULL,
+  display_name TEXT,
+  email TEXT,
   salt TEXT NOT NULL,
   password TEXT NOT NULL,
-  cell_phone TEXT NOT NULL
+  cell_phone TEXT,
+  last_login INTEGER,
+  created INTEGER NOT NULL,
+  updated INTEGER NOT NULL,
+  role TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS email_index ON people(email);

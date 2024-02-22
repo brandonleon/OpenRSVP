@@ -8,7 +8,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP.database import fetch_event, init_db, insert_event, fetch_config
+from OpenRSVP.database import (
+    fetch_event,
+    fetch_user,
+    init_db,
+    insert_event,
+    fetch_config,
+)
 from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
@@ -121,11 +127,16 @@ async def create_event(
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
 async def view_event(request: Request, response: Response, event_id: str):
+    user_id = fetch_user_id(request, response)
+    usr = fetch_user(user_id)
+    if not usr:
+        usr["user_id"] = user_id
+
     return templates.TemplateResponse(
         "get_event_id.html",
         {
             "request": request,
-            "user_id": fetch_user_id(request, response),
+            "usr": usr,
             "event": fetch_event(event_id),
         },
     )
@@ -139,18 +150,16 @@ async def rsvp(request: Request):
 @app.get("/user", response_class=HTMLResponse, name="user")
 async def user(request: Request):
     # Get user_id from cookie
-    try:
-        user_id = fetch_user_id(request, Response())
-    except Exception as e:
-        print(e)
-        return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse(
-        "get_user.html", {"request": request, "user": user_id}
-    )
+    user_id = fetch_user_id(request, Response())
+    usr = fetch_user(user_id)
+    return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
 
 
-@app.get("/cookie")
-async def get_cookie(request: Request):
+@app.post("/user", response_class=HTMLResponse, name="user")
+async def update_user(
+    request: Request,
+    response: Response,
+):
     return {"cookie": request.cookies.get("user_id")}
 
 

@@ -126,6 +126,37 @@ def fetch_event(code: str) -> dict | bool:
         return False
 
 
+def fetch_user(user_id: str) -> dict | bool:
+    """
+    Fetches a user from the database.
+
+    Args:
+        user_id (str): The user's ID.
+
+    Returns:
+        dict | bool: A dictionary containing the user's details if the operation is successful,
+        or False if an exception occurs.
+    """
+
+    try:
+        with sqlite3.connect(DATABASE_FILE) as conn:
+            c = conn.cursor()
+            c.execute(
+                "SELECT user_id, display_name, email, cell_phone FROM people WHERE user_id = ?",
+                (user_id,),
+            )
+            user = c.fetchone()
+            return {
+                "user_id": user[0],
+                "name": user[1],
+                "email": user[2],
+                "cell_phone": user[3],
+            }
+    except Exception as e:
+        print(e)
+        return False
+
+
 def fetch_config(key: str) -> str | bool:
     """
     Fetches a config value from the database.

@@ -39,7 +39,7 @@
               class="form-control"
               id="user_id_email"
               name="user_id_email"
-              value="{{ user_id }}"
+              value="{{ usr.email|default(usr.user_id) }}"
             />
           </div>
           <div class="form-group">

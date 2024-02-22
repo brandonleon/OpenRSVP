@@ -1,3 +1,7 @@
+**Warning:**
+This project is currently under development and is not ready for production use. Please be aware that schema changes may occur, which could potentially break the application until version 1.0 is released. Use with caution.
+
+
 # OpenRSVP
 
 OpenRSVP is an open-source event management application built with FastAPI. It allows users to create events, manage RSVPs, and receive notifications for upcoming events.
