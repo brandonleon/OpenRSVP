@@ -128,7 +128,6 @@ async def view_event(request: Request, response: Response, event_id: str):
     usr = fetch_user(user_id) or {}
     if not usr:
         usr["user_id"] = user_id
-
     return templates.TemplateResponse(
         "get_event_id.html",
         {
