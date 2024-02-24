@@ -11,7 +11,6 @@ from starlette.staticfiles import StaticFiles
 from OpenRSVP.database import (
     fetch_event,
     fetch_user,
-    init_db,
     insert_event,
     fetch_config,
 )
@@ -23,8 +22,7 @@ from OpenRSVP.utils import (
     get_or_set_user_id_cookie,
 )
 
-# Initialize the database if it doesn't exist
-init_db()
+import OpenRSVP.models
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -42,6 +40,12 @@ templates = Jinja2Templates(directory=Path("templates"))
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
+
+
+@app.on_event("startup")
+async def startup_event():
+    # Initialize the database if it doesn't exist
+    OpenRSVP.models.create_tables()
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
