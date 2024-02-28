@@ -34,13 +34,13 @@
         <h2>RSVP to this event</h2>
         <form action="{{ request.url_for('rsvp') }}" method="post">
           <div class="form-group">
-            <label for="user_id_email"">User ID / Email</label>
+            <label for="user_id_email"">Email / User ID</label>
             <input
               type="text"
               class="form-control"
               id="user_id_email"
               name="user_id_email"
-              value="{% if usr.email %}{{ usr.email }}{% endif %}"
+              value="{% if usr.email %}{{ usr.email }}{% elif usr.user_id %}{{ usr.user_id }}{% endif %}"
             />
           </div>
           <div class="form-group">

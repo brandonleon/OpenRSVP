@@ -2,13 +2,13 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from sqlmodel import Field, SQLModel, create_engine
+from sqlmodel import Field, SQLModel, create_engine, Session
 
 DATABASE_FILE = Path("events.db")
-engine = create_engine(f"sqlite:///{DATABASE_FILE.resolve()}", echo=True)
+engine = create_engine(f"sqlite:///{DATABASE_FILE.resolve()}")
 
 
-class Event(SQLModel, table=True):
+class Events(SQLModel, table=True):
     active: int = Field(default=1)
     secret_code: str = Field(primary_key=True, index=True)
     name: str
@@ -18,7 +18,7 @@ class Event(SQLModel, table=True):
     end_datetime: Optional[int]
 
 
-class Person(SQLModel, table=True):
+class People(SQLModel, table=True):
     user_id: str = Field(primary_key=True, index=True, default=uuid4())
     display_name: Optional[str]
     email: Optional[str] = Field(index=True)
@@ -46,6 +46,19 @@ class Config(SQLModel, table=True):
 def create_tables(engine=engine):
     SQLModel.metadata.create_all(engine)
 
+    # Insert default config values
+    with Session(engine) as session:
+        user_expire_time = Config(
+            key="user_expire_time", value=str(60 * 60 * 24 * 30)
+        )  # 30 days
+        event_expire_time = Config(
+            key="event_expire_time", value=str(60 * 60 * 24 * 90)
+        )  # 90 days
+        session.add(user_expire_time)
+        session.add(event_expire_time)
+        session.commit()
+
 
 if __name__ == "__main__":
+    # Create the tables
     create_tables()

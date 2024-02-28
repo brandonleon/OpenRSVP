@@ -1,38 +1,50 @@
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional
 from uuid import uuid4
-from pathlib import Path
 
-from fastapi import FastAPI, Form, Request, Response
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi import FastAPI, Form, Request, Response, Depends
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from icecream import ic
+from sqlmodel import Session, Table, insert, select
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP.database import (
-    fetch_event,
-    fetch_user,
-    insert_event,
-    fetch_config,
-)
+from OpenRSVP import Config, create_tables, engine, Events, People
+from OpenRSVP.database import fetch_config, fetch_event, fetch_user, insert_event
 from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
+    get_or_set_user_id_cookie,
     pad_string,
     sanitize_markdown,
-    get_or_set_user_id_cookie,
 )
 
-import OpenRSVP.models
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    session = Session(engine)
+
+    with Session(engine) as session:
+        stmt = select(Config).limit(1)
+        result = session.exec(stmt).all()
+
+    if not result:
+        create_tables()
+
+    # Static files (CSS, JS, etc.)
+    static_dir = Path("static")
+    static_dir.mkdir(exist_ok=True)
+
+    # Static files (CSS, JS, etc.)
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    yield
+    print("Shutting down...")
+
 
 # Initialize the FastAPI app
-app = FastAPI()
-
-# Static files (CSS, JS, etc.)
-static_dir = Path("static")
-static_dir.mkdir(exist_ok=True)
-
-# Static files (CSS, JS, etc.)
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+app = FastAPI(lifespan=lifespan)
 
 # Templates
 templates = Jinja2Templates(directory=Path("templates"))
@@ -42,15 +54,14 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-@app.on_event("startup")
-async def startup_event():
-    # Initialize the database if it doesn't exist
-    OpenRSVP.models.create_tables()
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request, response: Response):
-    get_or_set_user_id_cookie(request, response)
+    _ = get_or_set_user_id_cookie(request, response)
     return templates.TemplateResponse("get_index.html", {"request": request})
 
 
@@ -127,19 +138,22 @@ async def create_event(
 
 
 @app.get("/event/{event_id}", response_class=HTMLResponse)
-async def view_event(request: Request, response: Response, event_id: str):
+async def view_event(
+    request: Request,
+    response: Response,
+    event_id: str,
+    session: Session = Depends(get_session),
+):
     user_id = get_or_set_user_id_cookie(request, response)
-    usr = fetch_user(user_id) or {}
+    usr = session.get(People, user_id) or {}
     if not usr:
         usr["user_id"] = user_id
-    return templates.TemplateResponse(
-        "get_event_id.html",
-        {
-            "request": request,
-            "usr": usr,
-            "event": fetch_event(event_id),
-        },
-    )
+    if event := session.get(Events, event_id):
+        return templates.TemplateResponse(
+            "get_event_id.html", {"request": request, "event": event, "usr": usr}
+        )
+    response.status_code = 404
+    return templates.TemplateResponse("404.html", {"request": request})
 
 
 @app.post("/rsvp", response_class=HTMLResponse)

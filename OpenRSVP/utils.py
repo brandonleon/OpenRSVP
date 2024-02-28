@@ -4,8 +4,7 @@ from uuid import uuid4
 from bleach import clean
 from markdown import markdown
 
-from OpenRSVP.database import (fetch_config, fetch_user, insert_user,
-                               update_user)
+from OpenRSVP.database import fetch_config, fetch_user, insert_user, update_user
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:

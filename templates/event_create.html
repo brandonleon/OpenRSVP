@@ -17,24 +17,6 @@
     <div class="container mt-5">
       <h1 class="mb-4">Create a New Event</h1>
       <form action="{{ request.url_for('create_event') }}" method="POST">
-        <div class="mb-3">
-          <label for="event_name" class="form-label">Event Name</label>
-          <input
-            type="text"
-            class="form-control"
-            id="event_name"
-            name="event_name"
-            placeholder="Enter event name"
-            required
-          />
-          <label for="event_details" class="form-label">Details</label>
-          <textarea
-            class="form-control"
-            id="event_details"
-            name="event_details"
-            placeholder="Enter event details"
-          ></textarea>
-        </div>
         <div class="row mb-3 startDateTime">
           <div class="col">
             <label for="start_date" class="form-label">Start Date</label>
@@ -90,6 +72,24 @@
               />
             </div>
           </div>
+        </div>
+        <div class="mb-3">
+          <label for="event_name" class="form-label">Event Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="event_name"
+            name="event_name"
+            placeholder="Enter event name"
+            required
+          />
+          <label for="event_details" class="form-label">Details</label>
+          <textarea
+            class="form-control"
+            id="event_details"
+            name="event_details"
+            placeholder="Enter event details"
+          ></textarea>
         </div>
 
         <div class="mb-3">
