@@ -43,19 +43,17 @@ class Config(SQLModel, table=True):
     value: str
 
 
-def create_tables(engine=engine):
-    SQLModel.metadata.create_all(engine)
+def create_tables(engine_=engine):
+    SQLModel.metadata.create_all(engine_)
 
     # Insert default config values
-    with Session(engine) as session:
-        user_expire_time = Config(
-            key="user_expire_time", value=str(60 * 60 * 24 * 30)
+    with Session(engine_) as session:
+        session.add(
+            Config(key="user_expire_time", value=str(60 * 60 * 24 * 30))
         )  # 30 days
-        event_expire_time = Config(
-            key="event_expire_time", value=str(60 * 60 * 24 * 90)
+        session.add(
+            Config(key="event_expire_time", value=str(60 * 60 * 24 * 90))
         )  # 90 days
-        session.add(user_expire_time)
-        session.add(event_expire_time)
         session.commit()
 
 
