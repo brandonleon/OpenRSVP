@@ -1,10 +1,18 @@
+"""
+This module contains utility functions that are used throughout the application.
+"""
+
 from datetime import datetime
+from typing import Union
 from uuid import uuid4
 
+import starlette
 from bleach import clean
 from markdown import markdown
 
 from OpenRSVP.database import fetch_config, fetch_user, insert_user, update_user
+from OpenRSVP.models import People, Config, engine
+from sqlmodel import Session, select
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -128,7 +136,20 @@ def sanitize_markdown(md: str) -> str:
     )
 
 
-def get_or_set_user_id_cookie(request, response) -> str:
+def get_user_id_from_cookie(request) -> Union[str, None]:
+    """
+    Fetches the user's ID from the request's cookies, if present.
+
+    Args:
+        request (Request): The input request object.
+
+    Returns:
+        Union[str, None]: The user's ID if present, otherwise None.
+    """
+    return user_id if (user_id := request.cookies.get("user_id")) else None
+
+
+def get_or_set_user_id_cookie(request, response) -> starlette:
     """
     Fetches the user's ID from the request's cookies,
     if the cookie is not present, generates a new UUID and sets it in the cookies.
@@ -141,8 +162,12 @@ def get_or_set_user_id_cookie(request, response) -> str:
     Returns:
         str: The user's ID.
     """
-    user_expire_time = int(fetch_config("user_expire_time"))
-    if not (user_id := request.cookies.get("user_id")):
+    with Session(engine) as session:
+        user_expire_time = session.get(Config, "user_expire_time").value
+
+    if not (
+        user_id := request.cookies.get("user_id")
+    ):  # TODO: Pull from get_user_id_cookie function.
         user_id = str(uuid4())
 
     # Set or update the cookie with the user_id
@@ -150,12 +175,17 @@ def get_or_set_user_id_cookie(request, response) -> str:
         key="user_id",
         value=user_id,
         httponly=True,
-        max_age=user_expire_time,
+        max_age=user_expire_time,  # max age accepts seconds
+        # expires=datetime.now() + timedelta(seconds=user_expire_time), # expires accepts a datetime object
     )
+
+    with Session(engine) as session:
+        user = session.get(People, user_id)
+        user_id = user.user_id if user else user_id
 
     if not fetch_user(user_id):
         insert_user(user_id)
     else:
-        update_user(user_id, "last_login", int(datetime.now().timestamp()))
+        update_user(user_id, "last_login", str(datetime.now().timestamp()))
 
-    return user_id
+    return response

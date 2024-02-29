@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import FastAPI, Form, Request, Response, Depends
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Form, Request, Depends
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from icecream import ic
 from sqlmodel import Session, Table, insert, select
@@ -19,6 +19,7 @@ from OpenRSVP.utils import (
     get_or_set_user_id_cookie,
     pad_string,
     sanitize_markdown,
+    get_user_id_from_cookie,
 )
 
 
@@ -26,12 +27,13 @@ from OpenRSVP.utils import (
 async def lifespan(app: FastAPI):
     session = Session(engine)
 
-    with Session(engine) as session:
-        stmt = select(Config).limit(1)
-        result = session.exec(stmt).all()
-
-    if not result:
-        create_tables()
+    # Does the database file exist?
+    if not Path("events.db").exists():
+        with Session(engine) as session:
+            stmt = select(Config).limit(1)
+            result = session.exec(stmt).all()
+        if not result:
+            create_tables()
 
     # Static files (CSS, JS, etc.)
     static_dir = Path("static")
@@ -61,29 +63,21 @@ def get_session():
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request, response: Response):
-    _ = get_or_set_user_id_cookie(request, response)
-    return templates.TemplateResponse("get_index.html", {"request": request})
+    template_response = templates.TemplateResponse(
+        "get_index.html", {"request": request}
+    )
+    template_response = get_or_set_user_id_cookie(request, template_response)
+
+    return template_response
 
 
 @app.get("/event/create", response_class=HTMLResponse)
 async def event_root(request: Request):
-    user_expire_time = fetch_config("user_expire_time")
-    response = templates.TemplateResponse("event_create.html", {"request": request})
-    if cookie := request.cookies.get("user_id"):
-        response.set_cookie(
-            key="user_id",
-            value=cookie,
-            httponly=True,
-            expires=user_expire_time,
-        )
-    else:
-        response.set_cookie(
-            key="user_id",
-            value=str(uuid4()),
-            httponly=True,
-            expires=user_expire_time,
-        )
-    return response
+    template_response = templates.TemplateResponse(
+        "event_create.html", {"request": request}
+    )
+    template_response = get_or_set_user_id_cookie(request, template_response)
+    return template_response
 
 
 @app.post("/event/create", response_class=HTMLResponse, name="create_event")
@@ -110,7 +104,7 @@ async def create_event(
             datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M").timestamp()
         )
 
-    user_id = get_or_set_user_id_cookie(request, response)
+    user_id = get_user_id_from_cookie(request)
 
     if insert_event(
         code, event_name, user_id, event_details, str(start_datetime), str(end_datetime)
@@ -144,7 +138,20 @@ async def view_event(
     event_id: str,
     session: Session = Depends(get_session),
 ):
-    user_id = get_or_set_user_id_cookie(request, response)
+    if user_id := get_user_id_from_cookie(request):
+        usr = session.get(People, user_id)
+    else:
+        usr = {}
+
+    if event := session.get(Events, event_id):
+        template_response = templates.TemplateResponse(
+            "get_event_id.html", {"request": request, "event": event, "usr": usr}
+        )
+    else:
+        template_response = templates.TemplateResponse(
+            "404.html", {"request": request, "usr": usr}
+        )
+    user_id, template_response = get_or_set_user_id_cookie(request, template_response)
     usr = session.get(People, user_id) or {}
     if not usr:
         usr["user_id"] = user_id
@@ -153,7 +160,7 @@ async def view_event(
             "get_event_id.html", {"request": request, "event": event, "usr": usr}
         )
     response.status_code = 404
-    return templates.TemplateResponse("404.html", {"request": request})
+    return template_response
 
 
 @app.post("/rsvp", response_class=HTMLResponse)
