@@ -24,23 +24,19 @@ from OpenRSVP.utils import (
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app_: FastAPI):
     session = Session(engine)
 
     # Does the database file exist?
     if not Path("events.db").exists():
-        with Session(engine) as session:
-            stmt = select(Config).limit(1)
-            result = session.exec(stmt).all()
-        if not result:
-            create_tables()
+        create_tables()
 
     # Static files (CSS, JS, etc.)
     static_dir = Path("static")
     static_dir.mkdir(exist_ok=True)
 
     # Static files (CSS, JS, etc.)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app_.mount("/static", StaticFiles(directory=static_dir), name="static")
     yield
     print("Shutting down...")
 
@@ -151,7 +147,7 @@ async def view_event(
         template_response = templates.TemplateResponse(
             "404.html", {"request": request, "usr": usr}
         )
-    user_id, template_response = get_or_set_user_id_cookie(request, template_response)
+    template_response = get_or_set_user_id_cookie(request, template_response)
     usr = session.get(People, user_id) or {}
     if not usr:
         usr["user_id"] = user_id
