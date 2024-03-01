@@ -165,9 +165,7 @@ def get_or_set_user_id_cookie(request, response) -> starlette:
     with Session(engine) as session:
         user_expire_time = session.get(Config, "user_expire_time").value
 
-    if not (
-        user_id := request.cookies.get("user_id")
-    ):  # TODO: Pull from get_user_id_cookie function.
+    if not (user_id := get_user_id_from_cookie(request)):
         user_id = str(uuid4())
 
     # Set or update the cookie with the user_id
