@@ -8,6 +8,7 @@ from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from icecream import ic
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, Table, insert, select
 from starlette.staticfiles import StaticFiles
 
@@ -87,6 +88,7 @@ async def create_event(
     start_time: str = Form(...),
     end_date: Optional[str] = Form(None),
     end_time: Optional[str] = Form(None),
+    session: Session = Depends(get_session),
 ):
     code = format_code_to_alphanumeric(secret_code)
 
@@ -102,27 +104,43 @@ async def create_event(
 
     user_id = get_user_id_from_cookie(request)
 
-    if insert_event(
-        code, event_name, user_id, event_details, str(start_datetime), str(end_datetime)
-    ) == (
-        False,
-        "UNIQUE constraint failed: events.secret_code",
-    ):
+    try:
+        new_event = Events(
+            active=1,  # TODO: Active if event in the future.
+            secret_code=code,
+            name=event_name,
+            user_id=user_id,
+            event_details=event_details,
+            start_datetime=start_datetime,
+            end_datetime=end_datetime,
+        )
+        session.add(new_event)
+        session.commit()
+        session.refresh(new_event)
+    except IntegrityError as e:
         padding = 1
         starting_code = code
+        session.rollback()
         while True:
-            code = pad_string(starting_code, padding)
-            result = insert_event(
-                code,
-                event_name,
-                user_id,
-                event_details,
-                str(start_datetime),
-                str(end_datetime),
-            )
-            if result != (False, "UNIQUE constraint failed: events.secret_code"):
-                break
-            padding += 1
+            try:
+                code = pad_string(starting_code, padding)
+                pad_event = Events(
+                    active=1,  # TODO: Active if event in the future.
+                    secret_code=code,
+                    name=event_name,
+                    user_id=user_id,
+                    event_details=event_details,
+                    start_datetime=start_datetime,
+                    end_datetime=end_datetime,
+                )
+                session.add(pad_event)
+                session.commit()
+                session.refresh(pad_event)
+                break  # Exit the loop once the event is inserted.
+            except IntegrityError as e:
+                padding += 1
+                session.rollback()
+                continue
 
     return RedirectResponse(url=f"/event/{code}", status_code=303)
 
