@@ -59,6 +59,8 @@ def pad_string(st: str, ln: int = 1) -> str:
     Returns:
         str: The input string padded with a unique identifier.
     """
+    if ln == 0:
+        return st
     pad = str(uuid4())
     pad = pad.replace("-", "")
     pad = pad[:ln]
