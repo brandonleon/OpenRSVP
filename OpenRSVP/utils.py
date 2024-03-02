@@ -50,7 +50,7 @@ def pad_string(st: str, ln: int = 1) -> str:
 
     This function takes a string and a length as input. It generates a UUID, removes the hyphens,
     and truncates it to the specified length. This truncated UUID is then appended to the input string
-    with an underscore separator.
+    with an underscore separator. If the ln is 0, the function returns the input string as is.
 
     Args:
         st (str): The input string.
