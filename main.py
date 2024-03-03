@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
-from uuid import uuid4
 
 from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -13,7 +12,7 @@ from sqlmodel import Session, Table, insert, select
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP import Config, create_tables, engine, Events, People
-from OpenRSVP.database import fetch_config, fetch_event, fetch_user, insert_event
+from OpenRSVP.database import fetch_user
 from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
@@ -136,28 +135,19 @@ async def view_event(
     event_id: str,
     session: Session = Depends(get_session),
 ):
-    if user_id := get_user_id_from_cookie(request):
-        usr = session.get(People, user_id)
-    else:
-        usr = {}
+    user_id = get_user_id_from_cookie(request)
+    usr = session.get(People, user_id) or {"user_id": user_id}
+    if event := session.get(Events, event_id):
+        template = "get_event_id.html"
+        context = {"request": request, "event": event, "usr": usr}
 
-    if event := session.get(Events, event_id):
-        template_response = templates.TemplateResponse(
-            "get_event_id.html", {"request": request, "event": event, "usr": usr}
-        )
     else:
-        template_response = templates.TemplateResponse(
-            "404.html", {"request": request, "usr": usr}
-        )
+        response.status_code = 404
+        template = "404.html"
+        context = {"request": request, "usr": usr}
+    template_response = templates.TemplateResponse(template, context)
     template_response = get_or_set_user_id_cookie(request, template_response)
-    usr = session.get(People, user_id) or {}
-    if not usr:
-        usr["user_id"] = user_id
-    if event := session.get(Events, event_id):
-        return templates.TemplateResponse(
-            "get_event_id.html", {"request": request, "event": event, "usr": usr}
-        )
-    response.status_code = 404
+
     return template_response
 
 
@@ -167,10 +157,12 @@ async def rsvp(request: Request):
 
 
 @app.get("/user", response_class=HTMLResponse, name="user")
-async def user(request: Request):
-    # Get user_id from cookie
-    user_id = get_or_set_user_id_cookie(request, Response())
-    usr = fetch_user(user_id)
+async def user(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    user_id = get_user_id_from_cookie(request)
+    usr = session.get(People, user_id) or {"user_id": user_id}
     return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
 
 
@@ -178,8 +170,29 @@ async def user(request: Request):
 async def update_user(
     request: Request,
     response: Response,
+    display_name: str = Form(None),
+    email: str = Form(None),
+    cell_phone: str = Form(None),
+    session: Session = Depends(get_session),
 ):
-    return {"cookie": request.cookies.get("user_id")}
+    # Update just the supplied fields
+    user_id = get_user_id_from_cookie(request)
+    usr = session.get(People, user_id)
+
+    # Strip all characters except digits from the cell_phone
+    cell_phone = "".join([c for c in cell_phone if c.isdigit()])
+
+    for f, v in {
+        "display_name": display_name,
+        "email": email,
+        "cell_phone": cell_phone,
+    }.items():
+        if v:
+            setattr(usr, f, v)
+    session.add(usr)
+    session.commit()
+
+    return RedirectResponse(url="/user", status_code=303)
 
 
 if __name__ == "__main__":

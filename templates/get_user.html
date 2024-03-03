@@ -12,19 +12,21 @@
     {% include '_navbar.html' %}
 
     <div class="container mt-5">
-        <h1>Welcome, {{ usr.name|default(usr.email)|default(usr.user_id) }}</h1>
-        <form action="/user" method="post" class="row">
+        <h1>Welcome, {% if usr.name %}{{ usr.name }}
+            {% elif usr.email %}{{ usr.email }}
+            {% else %}{{ usr.user_id }}{% endif %}</h1>
+        <form action="{{ request.url_for('user') }}" method="post" class="row">
           <div class="form-group col-md-4">
             <label for="displayName">Display Name:</label>
-            <input type="text" class="form-control" id="displayName" name="displayName" value="{{ usr.name|default('') }}">
+            <input type="text" class="form-control" id="displayName" name="display_name" value="{% if usr.display_name %}{{ usr.display_name }}{% endif %}">
           </div>
           <div class="form-group col-md-4">
             <label for="email">Email address:</label>
-            <input type="email" class="form-control" id="email" name="email" value="{{ usr.email|default('') }}">
+            <input type="email" class="form-control" id="email" name="email" value="{% if usr.email %}{{ usr.email }}{% endif %}">
           </div>
           <div class="form-group col-md-4">
             <label for="cellPhone">Cell Phone:</label>
-            <input type="tel" class="form-control" id="cellPhone" name="cellPhone" value="{{ usr.cell_phone|default('') }}">
+            <input type="tel" class="form-control" id="cellPhone" name="cell_phone" value="{% if usr.cell_phone %}{{ usr.cell_phone }}{% endif %}">
           </div>
           <div class="col-md-12">
             <button type="submit" class="btn btn-primary">Submit</button>
