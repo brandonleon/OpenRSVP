@@ -69,7 +69,7 @@ def pad_string(st: str, ln: int = 1) -> str:
 
 
 # Function to take a unix timestamp and return a string in the default format YYYY-MM-DD HH:MM.
-def format_timestamp(ts: int, frmt: str = "%Y-%m-%d %H:%M") -> str:
+def format_timestamp(ts: Union[int, str], frmt: str = "%Y-%m-%d %H:%M") -> str:
     """
     Converts a Unix timestamp to a formatted string.
 
@@ -83,6 +83,8 @@ def format_timestamp(ts: int, frmt: str = "%Y-%m-%d %H:%M") -> str:
     Returns:
         str: The formatted datetime string.
     """
+    if type(ts) is str and ts.isdigit():
+        ts = int(ts)
     return datetime.fromtimestamp(ts).strftime(frmt)
 
 

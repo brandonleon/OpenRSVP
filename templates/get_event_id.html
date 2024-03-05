@@ -18,8 +18,7 @@
       <div class="container m3-3">
         <h2>Event Details</h2>
         <p>
-          <strong>Start Time:</strong> {{ event.start_datetime | int |
-          format_timestamp }}
+          <strong>Start Time:</strong> {{ event.start_datetime | format_timestamp }}
         </p>
         {% if event.end_datetime %}
         <p>

@@ -7,7 +7,7 @@ from fastapi import FastAPI, Form, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP import create_tables, engine, Events, People
@@ -152,15 +152,31 @@ async def view_events(
     session: Session = Depends(get_session),
     offset: int = 0,
     limit: int = 10,
+    page: int = 1,
 ):
     user_id = get_user_id_from_cookie(request)
     usr = session.get(People, user_id) or {"user_id": user_id}
+    base_statement = select(Events).where(Events.user_id == user_id)
     statement = (
         select(Events).where(Events.user_id == user_id).offset(offset).limit(limit)
     )
     events = session.exec(statement).all()
+    # Get count of all events owned by the user
+
+    # Pagination dictionary
+    page = {
+        "total_items": (
+            total_items := session.exec(select(func.count(Events.secret_code))).one()
+        ),
+        "total_pages": int(total_items / limit) + 1,
+        "current": page,
+        "offset": offset,
+        "limit": limit,
+        "page": page,
+    }
     return templates.TemplateResponse(
-        "get_events.html", {"request": request, "events": events, "usr": usr}
+        "get_events.html",
+        {"request": request, "events": events, "usr": usr, "page": page},
     )
 
 
