@@ -1,18 +1,16 @@
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, Request, Depends
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
-from icecream import ic
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, Table, insert, select
+from sqlmodel import Session, select
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP import Config, create_tables, engine, Events, People
-from OpenRSVP.database import fetch_user
+from OpenRSVP import create_tables, engine, Events, People
 from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
@@ -25,8 +23,6 @@ from OpenRSVP.utils import (
 
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
-    session = Session(engine)
-
     # Does the database file exist?
     if not Path("events.db").exists():
         create_tables()
@@ -58,7 +54,7 @@ def get_session():
 
 
 @app.get("/", response_class=HTMLResponse, name="root")
-async def root(request: Request, response: Response):
+async def root(request: Request):
     template_response = templates.TemplateResponse(
         "get_index.html", {"request": request}
     )
@@ -79,7 +75,6 @@ async def event_root(request: Request):
 @app.post("/event/create", response_class=HTMLResponse, name="create_event")
 async def create_event(
     request: Request,
-    response: Response,
     secret_code: Optional[str] = Form(None),
     event_name: str = Form(...),
     event_details: Optional[str] = Form(None),
@@ -120,7 +115,7 @@ async def create_event(
             session.commit()
             session.refresh(new_event)
             break  # Exit the loop once the event is inserted.
-        except IntegrityError as e:
+        except IntegrityError:
             padding += 1
             session.rollback()
             continue  # Try again with a new padding.
@@ -151,6 +146,24 @@ async def view_event(
     return template_response
 
 
+@app.get("/events", response_class=HTMLResponse, name="events")
+async def view_events(
+    request: Request,
+    session: Session = Depends(get_session),
+    offset: int = 0,
+    limit: int = 10,
+):
+    user_id = get_user_id_from_cookie(request)
+    usr = session.get(People, user_id) or {"user_id": user_id}
+    statement = (
+        select(Events).where(Events.user_id == user_id).offset(offset).limit(limit)
+    )
+    events = session.exec(statement).all()
+    return templates.TemplateResponse(
+        "get_events.html", {"request": request, "events": events, "usr": usr}
+    )
+
+
 @app.post("/rsvp", response_class=HTMLResponse)
 async def rsvp(request: Request):
     return templates.TemplateResponse("rsvp.html", {"request": request})
@@ -169,7 +182,6 @@ async def user(
 @app.post("/user", response_class=HTMLResponse, name="user")
 async def update_user(
     request: Request,
-    response: Response,
     display_name: str = Form(None),
     email: str = Form(None),
     cell_phone: str = Form(None),

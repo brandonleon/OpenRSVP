@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link id="favicon" rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <title>OpenRSVP - Event Details</title>
+    {% include '_bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include '_navbar.html' %}
+    <div class="container mt-5">
+      {% for event in events %}
+        <div class="card mb-3">
+            <div class="card-header">
+            <h5 class="card-title"><a href="{{ request.url_for('root') }}event/{{ event.secret_code }}">{{ event.name }}</a></h5>
+            </div>
+            <div class="card-body">
+            <p class="card-text">{{ event.description }}</p>
+            <p class="card-text">
+                <small class="text-muted">Starts: {{ event.start_datetime }}</small>
+            </p>{% if event.ends %} <p class="card-text">
+                <small class="text-muted text-end">Ends: {{ event.ends }}</small>
+            </p>{% endif %}
+            {% if event.location %}<p class="card-text">
+                <small class="text-muted text-end">Location: {{ event.location }}</small>
+            </p>{% endif %}
+            </div>
+          </div>
+      {% endfor %}
+    </div>
+
+    {% include '_bootstrap_js.html' %}
+  </body>
+</html>
