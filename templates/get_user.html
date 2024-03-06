@@ -11,10 +11,10 @@
   <body>
     {% include '_navbar.html' %}
     <div class="alert alert-info alert-dismissible fade show" role="alert">
-      <h4 class="alert-heading">Quick Login!</h4>
-      <p>You can bookmark the Magic URL below for quick login in the future.</p>
-        <hr>
-        <p class="mb-0">Magic URL: <a href="{{ request.url_for('root') }}user/login/{{ usr.user_id }}">{{ request.url_for('root') }}user/login/{{ usr.user_id }}</a></p>
+      <h4 class="alert-heading">Login Information</h4>
+      <p>This application does not use passwords. Instead, you can log in using the Magic URL provided below. Please bookmark this URL for easy access in the future.</p>
+      <hr>
+      <p class="mb-0">Magic URL: <a href="{{ request.url_for('root') }}user/login/{{ usr.user_id }}">{{ request.url_for('root') }}user/login/{{ usr.user_id }}</a></p>
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     <div class="container mt-5">

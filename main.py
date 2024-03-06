@@ -10,7 +10,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select, func
 from starlette.staticfiles import StaticFiles
 
-from OpenRSVP import create_tables, engine, Events, People
+from OpenRSVP import (
+    create_tables,
+    engine,
+    Events,
+    People,
+    get_user_id_from_cookie,
+    set_user_id_cookie,
+)
 from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
@@ -212,8 +219,9 @@ async def update_user(
     user_id = get_user_id_from_cookie(request)
     usr = session.get(People, user_id)
 
-    # Strip all characters except digits from the cell_phone
-    cell_phone = "".join([c for c in cell_phone if c.isdigit()])
+    # Strip all characters except digits from the cell_phone, if present
+    if cell_phone:
+        cell_phone = "".join([c for c in cell_phone if c.isdigit()])
 
     for f, v in {
         "display_name": display_name,
@@ -229,8 +237,21 @@ async def update_user(
 
 
 @app.get("/user/login/{user_id}", response_class=HTMLResponse, name="user_login")
-async def user_login():
-    return RedirectResponse(url="/", status_code=303)
+async def user_login(
+    user_id: str,
+    response: Response,
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    #  Check if user_id exists in the database
+    if not session.get(People, user_id):
+        response.status_code = 404
+        return RedirectResponse(url="/", status_code=303)
+
+    set_user_id_cookie(
+        redirect_response := RedirectResponse(url="/", status_code=303), user_id
+    )
+    return redirect_response
 
 
 if __name__ == "__main__":
