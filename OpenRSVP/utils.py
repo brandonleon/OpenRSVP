@@ -11,7 +11,7 @@ from bleach import clean
 from markdown import markdown
 
 from OpenRSVP.database import fetch_config, fetch_user, insert_user, update_user
-from OpenRSVP.models import People, Config, engine
+from OpenRSVP.models import People, Config, engine, Events
 from sqlmodel import Session, select
 
 
@@ -240,3 +240,40 @@ def set_user_id_cookie(response, user_id: str) -> starlette:
         update_user(user_id, "last_login", str(datetime.now().timestamp()))
 
     return response
+
+
+def generate_fake_data():
+    """
+    Generates fake data for testing purposes.
+
+    This function generates fake data for testing purposes. It creates a new user with a random UUID,
+    and sets the user's display name, email, and cell phone number to random strings.
+    """
+    with Session(engine) as session:
+        for _ in range(5):
+            new_user = People(
+                user_id=str(uuid4()),
+                display_name=str(uuid4()),
+                email=str(uuid4()),
+                cell_phone=str(uuid4()),
+                last_login=datetime.now().timestamp(),
+                created=datetime.now().timestamp(),
+                updated=datetime.now().timestamp(),
+                role="user",
+            )
+            session.add(new_user)
+        for _ in range(100):
+            new_event = Events(
+                active=True,
+                secret_code=str(uuid4()),
+                user_id=str(uuid4()),
+                name=str(uuid4()),
+                virtual=False,
+                location=str(uuid4()),
+                details=str(uuid4()),
+                created=datetime.now().timestamp(),
+                start_datetime=datetime.now().timestamp(),
+                end_datetime=datetime.now().timestamp(),
+            )
+            session.add(new_event)
+        session.commit()
