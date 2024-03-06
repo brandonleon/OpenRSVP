@@ -223,13 +223,19 @@ async def update_user(
     if cell_phone:
         cell_phone = "".join([c for c in cell_phone if c.isdigit()])
 
+    is_updated = False
+
     for f, v in {
         "display_name": display_name,
         "email": email,
         "cell_phone": cell_phone,
     }.items():
-        if v:
+        if v and getattr(usr, f) != v:
             setattr(usr, f, v)
+            is_updated = True
+
+    if is_updated:
+        usr.updated = datetime.now().timestamp()
     session.add(usr)
     session.commit()
 
