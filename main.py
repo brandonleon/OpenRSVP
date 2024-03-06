@@ -174,6 +174,7 @@ async def view_events(
         "limit": limit,
         "page": page,
     }
+
     return templates.TemplateResponse(
         "get_events.html",
         {"request": request, "events": events, "usr": usr, "page": page},

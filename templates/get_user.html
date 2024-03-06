@@ -12,7 +12,7 @@
     {% include '_navbar.html' %}
 
     <div class="container mt-5">
-        <h1>Welcome, {% if usr.name %}{{ usr.name }}
+        <h1>Welcome, {% if usr.display_name %}{{ usr.display_name }}
             {% elif usr.email %}{{ usr.email }}
             {% else %}{{ usr.user_id }}{% endif %}</h1>
         <form action="{{ request.url_for('user') }}" method="post" class="row">
