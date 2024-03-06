@@ -9,10 +9,13 @@ engine = create_engine(f"sqlite:///{DATABASE_FILE.resolve()}")
 
 
 class Events(SQLModel, table=True):
-    active: int = Field(default=1)
+    active: bool = Field(default=True)
     secret_code: str = Field(primary_key=True, index=True)
-    name: str
     user_id: str = Field(index=True)
+    name: str
+    virtual: bool = Field(default=False)
+    url: Optional[str]
+    location: Optional[str]
     details: Optional[str]
     start_datetime: int = Field(index=True)
     end_datetime: Optional[int]
