@@ -191,3 +191,51 @@ def get_or_set_user_id_cookie(request, response) -> starlette:
         update_user(user_id, "last_login", str(datetime.now().timestamp()))
 
     return response
+
+
+def get_user_id_cookie(request) -> Union[str, None]:
+    """
+    Fetches the user's ID from the request's cookies, if present.
+
+    Args:
+        request (Request): The input request object.
+
+    Returns:
+        Union[str, None]: The user's ID if present, otherwise None.
+    """
+    return request.cookies.get("user_id", None)
+
+
+def set_user_id_cookie(response, user_id: str) -> starlette:
+    """
+    Sets the user's ID in the response's cookies.
+
+    Args:
+        response (Response): The input response object.
+        user_id (str): The user's ID.
+
+    Returns:
+        starlette: The updated response object.
+    """
+    with Session(engine) as session:
+        user_expire_time = session.get(Config, "user_expire_time").value
+
+    # Set or update the cookie with the user_id
+    response.set_cookie(
+        key="user_id",
+        value=user_id,
+        httponly=True,
+        max_age=user_expire_time,  # max age accepts seconds
+        # expires=datetime.now() + timedelta(seconds=user_expire_time), # expires accepts a datetime object
+    )
+
+    with Session(engine) as session:
+        user = session.get(People, user_id)
+        user_id = user.user_id if user else user_id
+
+    if not fetch_user(user_id):
+        insert_user(user_id)
+    else:
+        update_user(user_id, "last_login", str(datetime.now().timestamp()))
+
+    return response
