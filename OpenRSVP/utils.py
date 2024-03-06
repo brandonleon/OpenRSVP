@@ -158,6 +158,7 @@ def get_or_set_user_id_cookie(request, response) -> starlette:
     Fetches the user's ID from the request's cookies,
     if the cookie is not present, generates a new UUID and sets it in the cookies.
     If the user's ID is present in the cookies, updates the max_age of the cookie.
+    TODO: Migrate away from this function to use get_user_id_from_cookie and set_user_id_cookie.
 
     Args:
         request (Request): The input request object.
