@@ -158,7 +158,11 @@ async def view_events(
     usr = session.get(People, user_id) or {"user_id": user_id}
     base_statement = select(Events).where(Events.user_id == user_id)
     statement = (
-        select(Events).where(Events.user_id == user_id).offset(offset).limit(limit)
+        select(Events)
+        .where(Events.user_id == user_id)
+        .order_by(Events.start_datetime)
+        .offset(offset)
+        .limit(limit)
     )
     events = session.exec(statement).all()
     # Get count of all events owned by the user
@@ -222,6 +226,11 @@ async def update_user(
     session.commit()
 
     return RedirectResponse(url="/user", status_code=303)
+
+
+@app.get("/user/login/{user_id}", response_class=HTMLResponse, name="user_login")
+async def user_login():
+    return RedirectResponse(url="/", status_code=303)
 
 
 if __name__ == "__main__":
