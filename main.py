@@ -115,6 +115,7 @@ async def create_event(
                 name=event_name,
                 user_id=user_id,
                 event_details=event_details,
+                created=datetime.now().timestamp(),
                 start_datetime=start_datetime,
                 end_datetime=end_datetime,
             )
@@ -130,7 +131,7 @@ async def create_event(
     return RedirectResponse(url=f"/event/{code}", status_code=303)
 
 
-@app.get("/event/{event_id}", response_class=HTMLResponse)
+@app.get("/event/{event_id}", response_class=HTMLResponse, name="event_id")
 async def view_event(
     request: Request,
     response: Response,

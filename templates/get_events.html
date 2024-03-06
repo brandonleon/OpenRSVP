@@ -20,7 +20,7 @@
       <div class="card mb-3">
         <div class="card-header">
           <h5 class="card-title">
-            <a href="{{ request.url_for('root') }}event/{{ event.secret_code }}"
+            <a href="{{ request.url_for('event_id', event_id = event.secret_code) }}"
               >{{ event.name }}</a
             >
           </h5>

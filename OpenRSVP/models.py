@@ -17,6 +17,7 @@ class Events(SQLModel, table=True):
     url: Optional[str]
     location: Optional[str]
     details: Optional[str]
+    created: int
     start_datetime: int = Field(index=True)
     end_datetime: Optional[int]
 
@@ -36,6 +37,7 @@ class People(SQLModel, table=True):
 
 class RSVP(SQLModel, table=True):
     rsvp_id: str = Field(primary_key=True, default=uuid4())
+    created: int
     user_id: str
     event_id: str
     rsvp_status: str
