@@ -62,12 +62,7 @@ def get_session():
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request):
-    template_response = templates.TemplateResponse(
-        "get_index.html", {"request": request}
-    )
-    template_response = get_or_set_user_id_cookie(request, template_response)
-
-    return template_response
+    return templates.TemplateResponse("get_index.html", {"request": request})
 
 
 @app.get("/event/create", response_class=HTMLResponse)
@@ -221,8 +216,7 @@ async def update_user(
     usr = session.get(People, user_id)
 
     # Strip all characters except digits from the cell_phone, if present
-    if cell_phone:
-        cell_phone = "".join([c for c in cell_phone if c.isdigit()])
+    cell_phone = "".join([c for c in cell_phone if c.isdigit()]) if cell_phone else None
 
     is_updated = False
 
@@ -235,8 +229,7 @@ async def update_user(
             setattr(usr, f, v)
             is_updated = True
 
-    if is_updated:
-        usr.updated = datetime.now().timestamp()
+    usr.updated = datetime.now().timestamp() if is_updated else usr.updated
     session.add(usr)
     session.commit()
 
