@@ -50,6 +50,7 @@
 
     <nav aria-label="Page navigation example">
       <ul class="pagination justify-content-center">
+        {% if page.current != 1 %}
         <li class="page-item">
           <a
             class="page-link{% if page.current == 1 %} disabled{% endif %}"
@@ -81,9 +82,11 @@
             href="{{ request.url_for('events') }}?page={{ page.current - 1 }}">{{ page.current - 1 }}</a>
         </li>
         {% endif %}
+        {% endif %}
         <li class="page-item">
           <a class="page-link disabled" href="#">{{ page.current }}</a>
         </li>
+        {% if page.current != page.total_pages %}
         {% if page.current + 1 <= page.total_pages %}
         <li class="page-item">
           <a
@@ -112,6 +115,7 @@
             class="page-link{% if page.current == page.total_pages %} disabled{% endif %}"
             href="{{ request.url_for('events') }}?page={{ page.total_pages }}">{{ page.total_pages }}</a>
         </li>
+        {% endif %}
       </ul>
     </nav>
     {% include '_bootstrap_js.html' %}
