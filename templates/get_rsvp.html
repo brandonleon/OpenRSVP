@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link id="favicon" rel="icon" type="image/x-icon" href="/favicon.ico">
+    <title>OpenRSVP</title>
+    {% include '_bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include '_navbar.html' %}
+
+    <div class="container mt-5">
+      <h1>RSVP Page</h1>
+      <p>User ID: {{ user_id }}</p>
+      <p>Event ID:{{ event_id }}</p>
+    </div>
+
+    {% include '_bootstrap_js.html' %}
+  </body>
+</html>

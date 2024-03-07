@@ -28,6 +28,15 @@
 
         <strong>Details:</strong>
         {{ event.details | sanitize_markdown | safe }} {% endif %}
+
+        <div class="mt-4">
+          <a
+            class="btn btn-primary"
+            href="{{ request.url_for('rsvp', event_id=event.secret_code, user_id=usr.user_id) }}"
+            role="button"
+            >RSVP</a
+          >
+        </div>
       </div>
       {% else %}
 
