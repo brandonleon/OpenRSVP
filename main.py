@@ -2,19 +2,21 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
-from fastapi import FastAPI, Form, Request, Depends
+from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select, func
+from sqlmodel import Session, func, select
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP import (
-    create_tables,
-    engine,
+    RSVP,
     Events,
     People,
+    create_tables,
+    engine,
     get_user_id_from_cookie,
     set_user_id_cookie,
 )
@@ -22,9 +24,9 @@ from OpenRSVP.utils import (
     format_code_to_alphanumeric,
     format_timestamp,
     get_or_set_user_id_cookie,
+    get_user_id_from_cookie,
     pad_string,
     sanitize_markdown,
-    get_user_id_from_cookie,
 )
 
 

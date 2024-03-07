@@ -15,8 +15,32 @@
       <h1>RSVP Page</h1>
       <p>User ID: {{ user_id }}</p>
       <p>Event ID:{{ event_id }}</p>
+      <div class="row">
+        <div class="col">
+          <form>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="rsvp" id="rsvpYes" value="yes">
+              <label class="form-check-label" for="rsvpYes">
+                Yes
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="rsvp" id="rsvpNo" value="no">
+              <label class="form-check-label" for="rsvpNo">
+                No
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="rsvp" id="rsvpMaybe" value="maybe">
+              <label class="form-check-label" for="rsvpMaybe">
+                Maybe
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
     </div>
-
     {% include '_bootstrap_js.html' %}
   </body>
 </html>
