@@ -93,6 +93,10 @@ async def create_event(
     start_datetime = int(
         datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M").timestamp()
     )
+    active = (
+        1 if start_datetime > datetime.now().timestamp() else 0
+    )  # Active if the event is in the future.
+
     if end_date is None or end_time is None:
         end_datetime = None
     else:
@@ -107,7 +111,7 @@ async def create_event(
         try:
             code = pad_string(secret_code, padding)
             new_event = Events(
-                active=1,  # TODO: Active if the event is in the future.
+                active=active,
                 secret_code=code,
                 name=event_name,
                 user_id=user_id,
