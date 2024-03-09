@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -64,19 +63,23 @@ def get_session():
 
 @app.get("/", response_class=HTMLResponse, name="root")
 async def root(request: Request):
-    return templates.TemplateResponse("get_index.html", {"request": request})
+    user_id = get_user_id_from_cookie(request)
+    return templates.TemplateResponse(
+        "get_index.html", {"request": request, "user_id": user_id}
+    )
 
 
 @app.get("/event/create", response_class=HTMLResponse)
 async def event_root(request: Request):
-    template_response = templates.TemplateResponse(
-        "event_create.html", {"request": request}
-    )
-    user_id = get_user_id_from_cookie(request)
-    if user_id is None or user_id == "None":
-        template_response = set_user_id_cookie(template_response, str(uuid4()))
-    else:
+    if user_id := get_user_id_from_cookie(request):
+        template_response = templates.TemplateResponse(
+            "event_create.html", {"request": request, "user_id": user_id}
+        )
         template_response = set_user_id_cookie(template_response, user_id)
+    else:
+        template_response = templates.TemplateResponse(
+            "get_index.html", {"request": request, "user_id": user_id}
+        )
     return template_response
 
 
