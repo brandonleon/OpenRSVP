@@ -72,7 +72,11 @@ async def event_root(request: Request):
     template_response = templates.TemplateResponse(
         "event_create.html", {"request": request}
     )
-    template_response = get_or_set_user_id_cookie(request, template_response)
+    user_id = get_user_id_from_cookie(request)
+    if user_id is None or user_id == "None":
+        template_response = set_user_id_cookie(template_response, str(uuid4()))
+    else:
+        template_response = set_user_id_cookie(request, user_id)
     return template_response
 
 
