@@ -76,7 +76,7 @@ async def event_root(request: Request):
     if user_id is None or user_id == "None":
         template_response = set_user_id_cookie(template_response, str(uuid4()))
     else:
-        template_response = set_user_id_cookie(request, user_id)
+        template_response = set_user_id_cookie(template_response, user_id)
     return template_response
 
 
@@ -224,7 +224,9 @@ async def user(
 ):
     user_id = get_user_id_from_cookie(request)
     if usr := session.get(People, user_id):
-        return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
+        return templates.TemplateResponse(
+            "get_user.html", {"request": request, "usr": usr}
+        )
     else:
         return RedirectResponse(url="/", status_code=303)
 
