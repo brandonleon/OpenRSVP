@@ -223,8 +223,10 @@ async def user(
     session: Session = Depends(get_session),
 ):
     user_id = get_user_id_from_cookie(request)
-    usr = session.get(People, user_id) or {"user_id": user_id}
-    return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
+    if usr := session.get(People, user_id):
+        return templates.TemplateResponse("get_user.html", {"request": request, "usr": usr})
+    else:
+        return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/user", response_class=HTMLResponse, name="user")
