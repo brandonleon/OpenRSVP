@@ -59,6 +59,7 @@ def create_tables(engine_=engine):
         session.add(
             Config(key="event_expire_time", value=str(60 * 60 * 24 * 90))
         )  # 90 days
+        session.add(Config(key="secret_code_length", value=str(12)))  # 12 characters
         session.commit()
 
 

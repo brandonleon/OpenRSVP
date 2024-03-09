@@ -165,7 +165,6 @@ async def view_events(
 ):
     user_id = get_user_id_from_cookie(request)
     usr = session.get(People, user_id) or {"user_id": user_id}
-    base_statement = select(Events).where(Events.user_id == user_id)
     statement = (
         select(Events)
         .where(Events.user_id == user_id)
@@ -199,8 +198,6 @@ async def rsvp(
     request: Request,
     event_id: str,
     user_id: str,
-    session: Session = Depends(get_session),
-    response: Response = None,
 ):
     cookie_user_id = get_user_id_from_cookie(request)
     template_response = templates.TemplateResponse(
@@ -263,7 +260,6 @@ async def update_user(
 async def user_login(
     user_id: str,
     response: Response,
-    request: Request,
     session: Session = Depends(get_session),
 ):
     #  Check if user_id exists in the database
