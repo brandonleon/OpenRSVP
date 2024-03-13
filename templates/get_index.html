@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link id="favicon" rel="icon" type="image/x-icon" href="{{ request.url_for('root') }}static/favicon.ico">
     <title>OpenRSVP</title>
-    {% include '_bootstrap_css.html' %}
+    {% include 'components/bootstrap_css.html' %}
   </head>
 
   <body>
-    {% include '_navbar.html' %}
+    {% include 'components/navbar.html' %}
 
     <div class="container mt-5">
       <h1>Welcome to OpenRSVP</h1>
@@ -57,6 +57,6 @@
       </div>
     </div>
 
-    {% include '_bootstrap_js.html' %}
+    {% include 'components/bootstrap_js.html' %}
   </body>
 </html>

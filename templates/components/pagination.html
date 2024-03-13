@@ -1,0 +1,83 @@
+{% if page.total_pages > 1 %}
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+      {% if page.current != 1 %}
+      <li class="page-item">
+        <a
+          class="page-link{% if page.current == 1 %} disabled{% endif %}"
+          href="{{ request.url_for('events') }}?page=1" tabindex="-1"
+          data-bs-toggle="tooltip" data-bs-title="First Page">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-double-left" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M8.354 1.646a.5.5 0 0 1 0 .708L2.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+            <path fill-rule="evenodd" d="M12.354 1.646a.5.5 0 0 1 0 .708L6.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+          </svg>
+        </a>
+      </li>
+      <li class="page-item">
+        <a
+          class="page-link{% if page.current == 1 %} disabled{% endif %}"
+          href="{{ request.url_for('events') }}?page={{ page.current - 1 }}" tabindex="-1"
+          data-bs-toggle="tooltip" data-bs-title="Previous Page">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+          </svg>
+        </a>
+      </li>
+      {% if page.current > 2 %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ request.url_for('events') }}?page={{ page.current - 2 }}">{{ page.current - 2 }}</a>
+      </li>
+      {% endif %}
+      {% if page.current > 1 %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ request.url_for('events') }}?page={{ page.current - 1 }}">{{ page.current - 1 }}</a>
+      </li>
+      {% endif %}
+      {% endif %}
+      <li class="page-item">
+        <a class="page-link disabled" href="#">{{ page.current }}</a>
+      </li>
+      {% if page.current != page.total_pages %}
+      {% if page.current + 1 <= page.total_pages %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ request.url_for('events') }}?page={{ page.current + 1 }}">{{ page.current + 1 }}</a>
+      </li>
+      {% endif %}
+      {% if page.current + 2 <= page.total_pages %}
+      <li class="page-item">
+        <a
+          class="page-link"
+          href="{{ request.url_for('events') }}?page={{ page.current + 2 }}">{{ page.current + 2 }}</a>
+      </li>
+      {% endif %}
+      <li class="page-item">
+        <a
+          class="page-link{% if page.current == page.total_pages %} disabled{% endif %}"
+          href="{{ request.url_for('events') }}?page={{ page.current + 1 }}"
+          data-bs-toggle="tooltip" data-bs-title="Next Page">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </a>
+      </li>
+      <li class="page-item">
+        <a
+          class="page-link{% if page.current == page.total_pages %} disabled{% endif %}"
+          href="{{ request.url_for('events') }}?page={{ page.total_pages }}"
+          data-bs-toggle="tooltip" data-bs-title="Last Page">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-double-right" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M3.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L9.293 8 3.646 2.354a.5.5 0 0 1 0-.708"/>
+            <path fill-rule="evenodd" d="M7.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L13.293 8 7.646 2.354a.5.5 0 0 1 0-.708"/>
+          </svg>
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}

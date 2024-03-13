@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link id="favicon" rel="icon" type="image/x-icon" href="{{ request.url_for('root') }}static/favicon.ico">
     <title>OpenRSVP - Event Creation</title>
-    {% include '_bootstrap_css.html' %}
+    {% include 'components/bootstrap_css.html' %}
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css"
@@ -13,7 +13,7 @@
   </head>
 
   <body>
-    {% include '_navbar.html' %}
+    {% include 'components/navbar.html' %}
     <div class="container mt-5">
       <h1 class="mb-4">Create a New Event</h1>
       <form action="{{ request.url_for('create_event') }}" method="POST">
@@ -116,7 +116,7 @@
       </form>
     </div>
 
-    {% include '_bootstrap_js.html' %}
+    {% include 'components/bootstrap_js.html' %}
     <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
     <script>
       var simplemde = new SimpleMDE();
