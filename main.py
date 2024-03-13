@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -70,16 +71,28 @@ async def root(request: Request):
 
 
 @app.get("/event/create", response_class=HTMLResponse)
-async def event_root(request: Request):
-    if user_id := get_user_id_from_cookie(request):
-        template_response = templates.TemplateResponse(
-            "event_create.html", {"request": request, "user_id": user_id}
+async def event_root(
+    request: Request,
+    session: Session = Depends(get_session),
+):
+    template_response = templates.TemplateResponse(
+        "get_event.html", {"request": request, "user_id": None}
+    )
+    user_id = get_user_id_from_cookie(request)
+    if user_id is None or user_id == "None":
+        user_id = str(uuid4())
+        new_user = People(
+            user_id=user_id,
+            created=datetime.now().timestamp(),
+            updated=datetime.now().timestamp(),
+            last_login=datetime.now().timestamp(),
+            role="user",
         )
-        template_response = set_user_id_cookie(template_response, user_id)
-    else:
-        template_response = templates.TemplateResponse(
-            "get_index.html", {"request": request, "user_id": user_id}
-        )
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user)
+    template_response = set_user_id_cookie(template_response, user_id)
+    template_response.context["user_id"] = user_id
     return template_response
 
 
