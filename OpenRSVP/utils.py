@@ -2,6 +2,7 @@
 This module contains utility functions that are used throughout the application.
 """
 
+import re
 from datetime import datetime
 from typing import Union
 from uuid import uuid4
@@ -9,10 +10,10 @@ from uuid import uuid4
 import starlette
 from bleach import clean
 from markdown import markdown
+from sqlmodel import Session, select
 
 from OpenRSVP.database import fetch_config, fetch_user, insert_user, update_user
-from OpenRSVP.models import People, Config, engine, Events
-from sqlmodel import Session, select
+from OpenRSVP.models import Config, Events, People, engine
 
 
 def format_code_to_alphanumeric(st: str = None, ln: int = 12) -> str:
@@ -277,3 +278,14 @@ def generate_fake_data():
             )
             session.add(new_event)
         session.commit()
+
+
+def is_valid_what3words_address(address):
+    """
+    Validates a what3words address.
+    https://what3words.com/
+    :param address:
+    :return: True if the address is valid, False otherwise.
+    """
+    pattern = r"^[a-zA-Z]+\.[a-zA-Z]+\.[a-zA-Z]+$"
+    return bool(re.match(pattern, address))

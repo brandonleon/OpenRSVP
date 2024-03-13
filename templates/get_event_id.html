@@ -24,10 +24,18 @@
         <p>
           <strong>End Time:</strong> {{ event.end_datetime | int | format_timestamp }}
         </p>
-        {% endif %} {% if event.details %}
+        {% endif %}
 
+        {% if event.details %}
         <strong>Details:</strong>
-        {{ event.details | sanitize_markdown | safe }} {% endif %}
+        {{ event.details | sanitize_markdown | safe }}
+        {% endif %}
+
+
+        {% if event.location %}
+        {% include '_w3w.html' %}
+        {% endif %}
+
 
         <div class="mt-4">
           <a
