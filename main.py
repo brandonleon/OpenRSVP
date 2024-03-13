@@ -129,7 +129,7 @@ async def create_event(
     padding = 0
     while True:
         try:
-            code = pad_string(secret_code, padding)
+            code = pad_string(code, padding)
             new_event = Events(
                 active=active,
                 secret_code=code,
