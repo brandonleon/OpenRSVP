@@ -3,14 +3,14 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
 from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
 
-from OpenRSVP import Events, People, engine
+from OpenRSVP import Events, People
 from OpenRSVP.utils import (
     get_user_id_from_cookie,
     format_timestamp,
@@ -19,6 +19,7 @@ from OpenRSVP.utils import (
     pad_string,
     format_code_to_alphanumeric,
     get_or_set_user_id_cookie,
+    get_session,
 )
 
 router = APIRouter()
@@ -29,11 +30,6 @@ templates = Jinja2Templates(directory=Path("templates"))
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
-
-
-def get_session():
-    with Session(engine) as session:
-        yield session
 
 
 @router.get("/events", response_class=HTMLResponse, name="events")

@@ -278,3 +278,8 @@ def generate_fake_data():
             )
             session.add(new_event)
         session.commit()
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
