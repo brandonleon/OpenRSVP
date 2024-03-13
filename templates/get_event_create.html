@@ -85,21 +85,25 @@
             <input class="form-check-input" type="radio" name="event_type" id="virtual" value="virtual">
             <label class="form-check-label" for="virtual">Virtual</label>
           </div>
+
           <div class="form-check">
             <input class="form-check-input" type="radio" name="event_type" id="in_person" value="in_person" checked>
             <label class="form-check-label" for="in_person">In-person</label>
           </div>
 
-          <label for="url" class="form-label">URL</label>
-          <input type="text" class="form-control" id="url" name="url" placeholder="Enter URL" />
+          <div id="url_field">
+              <label for="url" class="form-label">URL:</label>
+              <input type="text" class="form-control" id="url" name="url" placeholder="Enter URL" pattern="https?://\S+" title="Please enter a valid URL starting with 'http://' or 'https://'">
+          </div>
 
           <div id="location_field">
-            <label for="location" class="form-label">What 3 Words Location: <small><a href="https://what3words.com/" target="_blank">(Find your What3Words address)</a></small></label>
-              <input type="text" class="form-control" id="location" name="location" placeholder="Enter your What3Words address">
+              <label for="location" class="form-label">What 3 Words Location: <small><br/><a href="https://what3words.com/" target="_blank">(Find a What3Words address)</a></small></label>
+              <input type="text" class="form-control" id="location" name="location" placeholder="Enter your What3Words address" pattern="^(\/{3})?[a-zA-Z0-9.]{3,}\.[a-zA-Z0-9.]{3,}\.[a-zA-Z0-9.]{3,}$" title="Please enter a valid What3Words address in the format: word.word.word">
           </div>
+
         </div>
         <div class="mb-3">
-          <label for="secret_code" class="form-label">Secret Link</label>
+          <label for="secret_code" class="form-label">Secret Link:</label>
           <input
             type="text"
             class="form-control"

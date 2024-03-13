@@ -76,7 +76,7 @@ async def event_root(
     session: Session = Depends(get_session),
 ):
     template_response = templates.TemplateResponse(
-        "get_event.html", {"request": request, "user_id": None}
+        "get_event_create.html", {"request": request, "user_id": None}
     )
     user_id = get_user_id_from_cookie(request)
     if user_id is None or user_id == "None":
@@ -104,6 +104,8 @@ async def create_event(
     event_details: Optional[str] = Form(None),
     start_date: str = Form(...),
     start_time: str = Form(...),
+    url: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
     end_date: Optional[str] = Form(None),
     end_time: Optional[str] = Form(None),
     session: Session = Depends(get_session),
@@ -134,6 +136,8 @@ async def create_event(
                 active=active,
                 secret_code=code,
                 name=event_name,
+                url=url,
+                location=location,
                 user_id=user_id,
                 event_details=event_details,
                 created=datetime.now().timestamp(),

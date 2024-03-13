@@ -278,14 +278,3 @@ def generate_fake_data():
             )
             session.add(new_event)
         session.commit()
-
-
-def is_valid_what3words_address(address):
-    """
-    Validates a what3words address.
-    https://what3words.com/
-    :param address:
-    :return: True if the address is valid, False otherwise.
-    """
-    pattern = r"^[a-zA-Z]+\.[a-zA-Z]+\.[a-zA-Z]+$"
-    return bool(re.match(pattern, address))
