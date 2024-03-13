@@ -263,9 +263,6 @@ async def update_user(
     user_id = get_user_id_from_cookie(request)
     usr = session.get(People, user_id)
 
-    # Strip all characters except digits from the cell_phone, if present
-    cell_phone = "".join([c for c in cell_phone if c.isdigit()]) if cell_phone else None
-
     is_updated = False
 
     for f, v in {
@@ -273,11 +270,14 @@ async def update_user(
         "email": email,
         "cell_phone": cell_phone,
     }.items():
-        if v and getattr(usr, f) != v:
+        if getattr(usr, f) != v:
             setattr(usr, f, v)
             is_updated = True
 
     usr.updated = datetime.now().timestamp() if is_updated else usr.updated
+    # Format the display name and email
+    usr.display_name = display_name.title() if usr.display_name else usr.display_name
+    usr.email = email.lower() if usr.email else usr.email
     session.add(usr)
     session.commit()
 

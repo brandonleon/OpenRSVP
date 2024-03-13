@@ -36,11 +36,11 @@
             </div>
             <div class="form-group col-md-4">
               <label for="email">Email address:</label>
-              <input type="email" class="form-control" id="email" name="email" value="{% if usr.email %}{{ usr.email }}{% endif %}">
+              <input type="email" class="form-control" id="email" name="email" value="{% if usr.email %}{{ usr.email }}{% endif %}" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
             </div>
             <div class="form-group col-md-4">
               <label for="cellPhone">Cell Phone:</label>
-              <input type="tel" class="form-control" id="cellPhone" name="cell_phone" value="{% if usr.cell_phone %}{{ usr.cell_phone }}{% endif %}">
+              <input type="tel" class="form-control" id="cellPhone" name="cell_phone" value="{% if usr.cell_phone %}{{ usr.cell_phone }}{% endif %}" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" title="Enter a valid US phone number in the format XXX-XXX-XXXX">
             </div>
             <div class="col-md-12"><br />
               <button type="submit" class="btn btn-primary">Submit</button>
