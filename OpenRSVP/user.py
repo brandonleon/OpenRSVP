@@ -26,7 +26,7 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-@router.get("/user", response_class=HTMLResponse, name="user")
+@router.get("/", response_class=HTMLResponse, name="user")
 async def user(
     request: Request,
     session: Session = Depends(get_session),
@@ -40,7 +40,7 @@ async def user(
         return RedirectResponse(url="/", status_code=303)
 
 
-@router.post("/user", response_class=HTMLResponse, name="user")
+@router.post("/", response_class=HTMLResponse, name="user")
 async def update_user(
     request: Request,
     display_name: str = Form(None),
@@ -73,7 +73,7 @@ async def update_user(
     return RedirectResponse(url="/user", status_code=303)
 
 
-@router.get("/user/login/{user_id}", response_class=HTMLResponse, name="user_login")
+@router.get("login/{user_id}", response_class=HTMLResponse, name="user_login")
 async def user_login(
     user_id: str,
     response: Response,

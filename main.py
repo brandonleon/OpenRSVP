@@ -16,7 +16,7 @@ from OpenRSVP.utils import (
 )
 
 from OpenRSVP.events import router as events_router
-from OpenRSVP.users import router as users_router
+from OpenRSVP.user import router as user_router
 from OpenRSVP.rsvp import router as rsvp_router
 
 
@@ -38,9 +38,9 @@ async def lifespan(app_: FastAPI):
 
 # Initialize the FastAPI app
 app = FastAPI(lifespan=lifespan)
-app.include_router(events_router)
-app.include_router(users_router)
-app.include_router(rsvp_router)
+app.include_router(events_router, prefix="/events")
+app.include_router(user_router, prefix="/user")
+app.include_router(rsvp_router, prefix="/rsvp")
 
 # Templates
 templates = Jinja2Templates(directory=Path("templates"))

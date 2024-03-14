@@ -22,7 +22,7 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-@router.get("/rsvp/{event_id}/{user_id}", response_class=HTMLResponse, name="rsvp")
+@router.get("/{event_id}/{user_id}", response_class=HTMLResponse, name="rsvp")
 async def rsvp(
     request: Request,
     event_id: str,

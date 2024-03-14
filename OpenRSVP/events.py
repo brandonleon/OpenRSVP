@@ -32,7 +32,7 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-@router.get("/events", response_class=HTMLResponse, name="events")
+@router.get("/", response_class=HTMLResponse, name="events")
 async def view_events(
     request: Request,
     session: Session = Depends(get_session),
