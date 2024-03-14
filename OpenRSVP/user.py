@@ -73,7 +73,7 @@ async def update_user(
     return RedirectResponse(url="/user", status_code=303)
 
 
-@router.get("login/{user_id}", response_class=HTMLResponse, name="user_login")
+@router.get("/login/{user_id}", response_class=HTMLResponse, name="user_login")
 async def user_login(
     user_id: str,
     response: Response,
