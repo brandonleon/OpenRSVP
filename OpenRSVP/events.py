@@ -36,7 +36,6 @@ templates.env.filters["sanitize_markdown"] = sanitize_markdown
 async def view_events(
     request: Request,
     session: Session = Depends(get_session),
-    offset: int = 0,
     limit: int = 10,
     page: int = 1,
 ):
@@ -46,21 +45,24 @@ async def view_events(
         select(Events)
         .where(Events.user_id == user_id)
         .order_by(Events.start_datetime)
-        .offset(offset)
+        .offset((page - 1) * limit)
         .limit(limit)
     )
     events = session.exec(statement).all()
     # Get count of all events owned by the user
 
     # Pagination dictionary
+    total_items = session.exec(
+        select(func.count(Events.secret_code)).where(Events.user_id == user_id)
+    ).one()
+    total_pages = total_items // limit
+    if total_items % limit > 0:
+        total_pages += 1
+
     page = {
-        "total_items": (
-            total_items := session.exec(select(func.count(Events.secret_code))).one()
-        ),
-        "total_pages": int(total_items / limit) + 1,
+        "total_items": total_items,
+        "total_pages": total_pages,
         "current": page,
-        "offset": offset,
-        "limit": limit,
         "page": page,
     }
 
