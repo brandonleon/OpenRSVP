@@ -32,7 +32,7 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-@router.get("/", response_class=HTMLResponse, name="events")
+@router.get("/mine", response_class=HTMLResponse, name="events")
 async def view_events(
     request: Request,
     session: Session = Depends(get_session),
@@ -70,7 +70,7 @@ async def view_events(
     )
 
 
-@router.get("/event/create", response_class=HTMLResponse)
+@router.get("/create", response_class=HTMLResponse)
 async def event_root(
     request: Request,
     session: Session = Depends(get_session),
@@ -96,7 +96,7 @@ async def event_root(
     return template_response
 
 
-@router.post("/event/create", response_class=HTMLResponse, name="create_event")
+@router.post("/create", response_class=HTMLResponse, name="create_event")
 async def create_event(
     request: Request,
     secret_code: Optional[str] = Form(None),
@@ -153,10 +153,10 @@ async def create_event(
             session.rollback()
             continue  # Try again with a new padding.
 
-    return RedirectResponse(url=f"/event/{code}", status_code=303)
+    return RedirectResponse(f"/events/{code}", status_code=303)
 
 
-@router.get("/event/{event_id}", response_class=HTMLResponse, name="event_id")
+@router.get("/{event_id}", response_class=HTMLResponse, name="event_by_id")
 async def view_event(
     request: Request,
     response: Response,
