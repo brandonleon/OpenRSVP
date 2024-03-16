@@ -157,7 +157,9 @@ async def create_event(
             padding += 1
             session.rollback()
             continue  # Try again with a new padding.
-    return RedirectResponse(f"{router.prefix}/{code}", status_code=303)
+    return RedirectResponse(
+        router.url_path_for("event_by_id", event_id=code), status_code=303
+    )
 
 
 @router.get("/{event_id}", response_class=HTMLResponse, name="event_by_id")
