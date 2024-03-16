@@ -12,7 +12,7 @@ from OpenRSVP.utils import (
     set_user_id_cookie,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/rsvp")
 
 # Templates
 templates = Jinja2Templates(directory=Path("templates"))

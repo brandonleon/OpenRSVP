@@ -16,7 +16,7 @@ from OpenRSVP.utils import (
     get_session,
 )
 
-router = APIRouter()
+router = APIRouter(prefix="/user")
 
 # Templates
 templates = Jinja2Templates(directory=Path("templates"))
