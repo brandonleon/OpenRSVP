@@ -66,7 +66,12 @@ async def view_events(
 
     return templates.TemplateResponse(
         "get_events.html",
-        {"request": request, "events": events, "usr": usr, "page": page},
+        {
+            "request": request,
+            "events": events,
+            "usr": usr,
+            "page": page,
+        },
     )
 
 

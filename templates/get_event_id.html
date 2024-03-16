@@ -31,7 +31,7 @@
         {{ event.details | sanitize_markdown | safe }}
         {% endif %}
 
-        {% include 'components/w3w.html' %}
+        {% set w3w_size = 'large' %}{% include 'components/w3w.html' %}
 
         <div class="mt-4">
           <a

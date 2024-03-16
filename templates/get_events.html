@@ -38,9 +38,7 @@
           </p>
           {% endif %} {% if event.location %}
           <p class="card-text">
-            <small class="text-muted text-end"
-              >Location: {{ event.location }}</small
-            >
+            {% set w3w_size = 'small' %}{% include 'components/w3w.html' %}
           </p>
           {% endif %}
         </div>
