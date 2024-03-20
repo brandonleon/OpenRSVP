@@ -1,0 +1,31 @@
+  <!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link id="favicon" rel="icon" type="image/x-icon" href="{{ request.url_for('root') }}static/favicon.ico">
+      <title>OpenRSVP</title>
+      {% include 'components/bootstrap_css.html' %}
+    </head>
+
+    <body>
+      {% include 'components/navbar.html' %}
+
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col">
+          <h1>Create a New User</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <p>
+            This is a placeholder paragraph. Once the user creation functionality is implemented, this paragraph will be replaced with relevant content.
+          </p>
+        </div>
+      </div>
+    </div>
+
+      {% include 'components/bootstrap_js.html' %}
+    </body>
+  </html>
