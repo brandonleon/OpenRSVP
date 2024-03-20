@@ -33,7 +33,6 @@ async def lifespan(app_: FastAPI):
     # Static files (CSS, JS, etc.)
     app_.mount("/static", StaticFiles(directory=static_dir), name="static")
     yield
-    print("Shutting down...")
 
 
 # Initialize the FastAPI app
