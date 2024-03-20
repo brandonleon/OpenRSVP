@@ -88,3 +88,8 @@ async def user_login(
         redirect_response := RedirectResponse(url="/", status_code=303), user_id
     )
     return redirect_response
+
+
+@router.get("/create", response_class=HTMLResponse, name="user_create")
+async def user_create(request: Request):
+    return templates.TemplateResponse("user_create.html", {"request": request})

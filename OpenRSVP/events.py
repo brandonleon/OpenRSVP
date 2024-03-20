@@ -86,18 +86,7 @@ async def event_root(
         "get_event_create.html", {"request": request, "user_id": None}
     )
     user_id = get_user_id_from_cookie(request)
-    if user_id is None or user_id == "None":
-        user_id = str(uuid4())
-        new_user = People(
-            user_id=user_id,
-            created=datetime.now().timestamp(),
-            updated=datetime.now().timestamp(),
-            last_login=datetime.now().timestamp(),
-            role="user",
-        )
-        session.add(new_user)
-        session.commit()
-        session.refresh(new_user)
+
     template_response = set_user_id_cookie(template_response, user_id)
     template_response.context["user_id"] = user_id
     return template_response
