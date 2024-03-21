@@ -42,7 +42,7 @@ app.include_router(user_router)
 app.include_router(rsvp_router)
 
 # Templates
-templates = Jinja2Templates(directory=Path("templates"))
+templates = Jinja2Templates(directory=f"{Path('templates').resolve()}")
 
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
@@ -55,6 +55,11 @@ async def root(request: Request):
     return templates.TemplateResponse(
         "get_index.html", {"request": request, "user_id": user_id}
     )
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return {"file": "favicon.ico"}
 
 
 if __name__ == "__main__":

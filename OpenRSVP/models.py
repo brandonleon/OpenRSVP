@@ -27,7 +27,7 @@ class People(SQLModel, table=True):
     display_name: Optional[str]
     email: Optional[str] = Field(index=True)
     salt: Optional[str]
-    password: Optional[str]
+    pass_hash: Optional[str]
     cell_phone: Optional[str]
     last_login: int
     created: int

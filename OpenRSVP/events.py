@@ -25,7 +25,7 @@ from OpenRSVP.utils import (
 router = APIRouter(prefix="/events")
 
 # Templates
-templates = Jinja2Templates(directory=Path("templates"))
+templates = Jinja2Templates(directory=f"{Path('templates').resolve()}")
 
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp

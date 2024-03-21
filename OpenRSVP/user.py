@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi import Depends, Form, Request, Cookie, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from sqlmodel import Session
 from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
@@ -19,11 +19,32 @@ from OpenRSVP.utils import (
 router = APIRouter(prefix="/user")
 
 # Templates
-templates = Jinja2Templates(directory=Path("templates"))
+templates = Jinja2Templates(directory=f"{Path('templates').resolve()}")
 
 # functions to be used in templates as filters
 templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
+
+
+def get_current_session(request: Request):
+    if session_id := request.cookies.get("session_id"):
+        return session_id
+    else:
+        raise HTTPException(
+            status_code=303, headers={"Location": router.url_path_for("user_login")}
+        )
+
+
+@router.get("/me")
+async def get_user_me(
+    request: Request, current_user: str = Depends(get_current_session)
+):
+    return f"Hello {current_user}"
+
+
+@router.get("/login", response_class=HTMLResponse, name="user_login")
+async def login(response: Response):
+    return "Login page..."
 
 
 @router.get("/", response_class=HTMLResponse, name="user")
