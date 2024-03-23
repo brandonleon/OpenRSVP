@@ -1,13 +1,15 @@
 from datetime import datetime
 from pathlib import Path
 
+from icecream import ic
+
 from fastapi import Depends, Form, Request, Cookie, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
 
-from OpenRSVP import People
+from OpenRSVP import People, UserSession
 from OpenRSVP.utils import (
     get_user_id_from_cookie,
     format_timestamp,
@@ -39,12 +41,36 @@ def get_current_session(request: Request):
 async def get_user_me(
     request: Request, current_user: str = Depends(get_current_session)
 ):
-    return f"Hello {current_user}"
+    return "Hello"
 
 
 @router.get("/login", response_class=HTMLResponse, name="user_login")
-async def login(response: Response):
-    return "Login page..."
+async def login(response: Response, request: Request):
+    return templates.TemplateResponse("user_login.html", {"request": request})
+
+
+@router.post("/login", response_class=HTMLResponse, name="user_login")
+async def login(
+    response: Response,
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    session: Session = Depends(get_session),
+):
+    # Check if the user exists
+    user_ = session.exec(select(People).where(People.email == email)).first()
+    if not ic(user_):
+        response.status_code = 404
+        return "User not found..."
+    response = RedirectResponse(url="/", status_code=303)
+    return response
+
+
+@router.get("/logout", response_class=HTMLResponse, name="user_logout")
+async def logout(response: Response):
+    response = RedirectResponse(url="/", status_code=303)
+    response.delete_cookie("session_id")
+    return response
 
 
 @router.get("/", response_class=HTMLResponse, name="user")

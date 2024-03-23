@@ -48,6 +48,15 @@ class Config(SQLModel, table=True):
     value: str
 
 
+class UserSession(SQLModel, table=True):
+    session_id: int = Field(primary_key=True, default=uuid4())
+    user_id: str = Field(foreign_key="people.user_id")
+    login_time: int
+    logout_time: Optional[int]
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+
+
 def create_tables(engine_=engine):
     SQLModel.metadata.create_all(engine_)
 
