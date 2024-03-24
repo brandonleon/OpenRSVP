@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from typing import Union
 from uuid import uuid4
+from hashlib import sha512
 
 import starlette
 from bleach import clean
@@ -283,3 +284,15 @@ def generate_fake_data():
 def get_session():
     with Session(engine) as session:
         yield session
+
+
+def get_password_hash(user_id: str, password: str, salt: str):
+    """
+    Return the password hash for the given user_id, password, and salt
+    :param user_id: The user_id from the database
+    :param password: The password from the form
+    :param salt: The user salt from the database
+    :return: A sha256 hash of the user_id, password, and salt
+    """
+    hash_string = f"{user_id}:{password}:{salt}".encode()
+    return sha512(hash_string).hexdigest()

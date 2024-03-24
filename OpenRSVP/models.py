@@ -62,6 +62,15 @@ class Tokens(SQLModel, table=True):
     updated_at: int = Field(default_factory=lambda: datetime.now())
 
 
+class UserSession(SQLModel, table=True):
+    session_id: int = Field(primary_key=True, default=uuid4())
+    user_id: str = Field(foreign_key="people.user_id")
+    login_time: int
+    expire_time: int
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+
+
 def create_tables(engine_=engine):
     SQLModel.metadata.create_all(engine_)
 

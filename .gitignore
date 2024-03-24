@@ -238,3 +238,4 @@ fabric.properties
 
 # Operating System Files
 .DS_Store
+*.pyc
