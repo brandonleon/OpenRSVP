@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 from uuid import uuid4
@@ -46,6 +47,19 @@ class RSVP(SQLModel, table=True):
 class Config(SQLModel, table=True):
     key: str = Field(primary_key=True)
     value: str
+
+
+class Tokens(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int
+    token: str
+    token_type: str  # Magic Link, Password Reset, API Key, etc.
+    created_at: int = Field(default_factory=lambda: datetime.now())
+    key_expire_time: int = Field(
+        default_factory=lambda: int((datetime.now() + timedelta(days=60)).timestamp()),
+        index=True,
+    )
+    updated_at: int = Field(default_factory=lambda: datetime.now())
 
 
 def create_tables(engine_=engine):
