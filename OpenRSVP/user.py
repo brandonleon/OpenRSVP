@@ -1,4 +1,5 @@
 from datetime import datetime
+from hashlib import sha512
 from pathlib import Path
 
 from icecream import ic
@@ -16,6 +17,7 @@ from OpenRSVP.utils import (
     sanitize_markdown,
     set_user_id_cookie,
     get_session,
+    get_password_hash,
 )
 
 router = APIRouter(prefix="/user")
@@ -59,11 +61,17 @@ async def login(
 ):
     # Check if the user exists
     user_ = session.exec(select(People).where(People.email == email)).first()
-    if not ic(user_):
+    if not user_:
         response.status_code = 404
         return "User not found..."
+    # Check if the password hash is correct
+    if user_.pass_hash != ic(get_password_hash(user_.user_id, password, user_.salt)):
+        response.status_code = 401
+        return "Incorrect password..."
+
     response = RedirectResponse(url="/", status_code=303)
-    return response
+    # for debugging, construct the password hash
+    return "Success!"
 
 
 @router.get("/logout", response_class=HTMLResponse, name="user_logout")
