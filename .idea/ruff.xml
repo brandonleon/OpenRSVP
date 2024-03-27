@@ -3,7 +3,6 @@
   <component name="RuffConfigService">
     <option name="alwaysUseGlobalRuff" value="true" />
     <option name="globalRuffExecutablePath" value="$USER_HOME$/.local/bin/ruff" />
-    <option name="globalRuffLspExecutablePath" value="$USER_HOME$/.local/bin/ruff" />
     <option name="runRuffOnSave" value="true" />
   </component>
 </project>
