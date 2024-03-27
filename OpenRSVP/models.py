@@ -12,7 +12,7 @@ engine = create_engine(f"sqlite:///{DATABASE_FILE.resolve()}")
 class Events(SQLModel, table=True):
     active: bool = Field(default=True)
     secret_code: str = Field(primary_key=True, index=True)
-    user_id: str = Field(index=True)
+    user_id: str = Field(index=True, foreign_key="people.user_id")
     name: str
     virtual: bool = Field(default=False)
     url: Optional[str]
@@ -24,7 +24,7 @@ class Events(SQLModel, table=True):
 
 
 class People(SQLModel, table=True):
-    user_id: str = Field(primary_key=True, index=True, default=uuid4())
+    user_id: str = Field(primary_key=True, index=True, default=lambda: str(uuid4()))
     display_name: Optional[str]
     email: Optional[str] = Field(index=True)
     salt: Optional[str]
@@ -37,7 +37,7 @@ class People(SQLModel, table=True):
 
 
 class RSVP(SQLModel, table=True):
-    rsvp_id: str = Field(primary_key=True, default=uuid4())
+    rsvp_id: str = Field(primary_key=True, default=lambda: str(uuid4()))
     created: int
     user_id: str
     event_id: str
@@ -74,7 +74,7 @@ class UserSession(SQLModel, table=True):
         ip_address (Optional[str]): The IP address from which the user logged in. This can be useful for security and auditing purposes.
         user_agent (Optional[str]): Information about the user's browser and operating system. This can also be useful for security and auditing purposes.
     """
-    session_id: str = Field(primary_key=True, default=str(uuid4()))
+    session_id: str = Field(primary_key=True, default=lambda: str(uuid4()))
     user_id: str = Field(foreign_key="people.user_id")
     login_time: int
     expire_time: int

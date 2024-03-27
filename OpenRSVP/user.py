@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Dict
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -27,9 +28,12 @@ templates.env.filters["format_timestamp"] = format_timestamp
 templates.env.filters["sanitize_markdown"] = sanitize_markdown
 
 
-def get_current_session(request: Request):
+def get_current_session(request: Request) -> dict[str, str]:
     if session_id := request.cookies.get("session_id"):
-        return session_id
+        with Session(engine) as session:
+            user_session = session.get(UserSession, session_id)
+            user_ = session.get(People, user_session.user_id)
+        return {"session_id": session_id, "user_id": user_.user_id}
     else:
         raise HTTPException(
             status_code=status.HTTP_303_SEE_OTHER,
@@ -51,11 +55,10 @@ def set_session_cookie(response, session_id: str):
 
 @router.get("/me")
 async def get_user_me(
-    request: Request, current_user: str = Depends(get_current_session),
+    request: Request, current_user: Dict[str, str] = Depends(get_current_session),
     session: Session = Depends(get_session),
 ):
-    user_session = session.get(UserSession, current_user)
-    usr = session.get(People, user_session.user_id)
+    usr = session.get(People, current_user["user_id"])
     return templates.TemplateResponse("user_me.html", {"request": request, "usr": usr})
 
 
