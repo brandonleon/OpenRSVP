@@ -51,9 +51,12 @@ def set_session_cookie(response, session_id: str):
 
 @router.get("/me")
 async def get_user_me(
-    request: Request, current_user: str = Depends(get_current_session)
+    request: Request, current_user: str = Depends(get_current_session),
+    session: Session = Depends(get_session),
 ):
-    return "Hello"
+    user_session = session.get(UserSession, current_user)
+    usr = session.get(People, user_session.user_id)
+    return templates.TemplateResponse("user_me.html", {"request": request, "usr": usr})
 
 
 @router.get("/login", response_class=HTMLResponse, name="user_login")
