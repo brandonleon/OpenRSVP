@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -7,10 +7,15 @@ from icecream import ic
 from sqlmodel import Session, select
 from starlette.templating import Jinja2Templates
 
-from OpenRSVP import People
-from OpenRSVP.utils import (format_timestamp, get_password_hash, get_session,
-                            get_user_id_from_cookie, sanitize_markdown,
-                            set_user_id_cookie)
+from OpenRSVP import People, UserSession, Config, engine
+from OpenRSVP.utils import (
+    format_timestamp,
+    get_password_hash,
+    get_session,
+    get_user_id_from_cookie,
+    sanitize_markdown,
+    set_user_id_cookie,
+)
 
 router = APIRouter(prefix="/user")
 
@@ -27,8 +32,21 @@ def get_current_session(request: Request):
         return session_id
     else:
         raise HTTPException(
-            status_code=303, headers={"Location": router.url_path_for("user_login")}
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": router.url_path_for("user_login")},
         )
+
+
+def set_session_cookie(response, session_id: str):
+    with Session(engine) as session:
+        user_expire_time = session.get(Config, "user_expire_time")
+    ic(user_expire_time)
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        max_age=user_expire_time)  # max age accepts seconds
+    return response
 
 
 @router.get("/me")
@@ -54,16 +72,23 @@ async def post_login(
     # Check if the user exists
     user_ = session.exec(select(People).where(People.email == email)).first()
     if not user_:
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return "User not found..."
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
     # Check if the password hash is correct
     if user_.pass_hash != ic(get_password_hash(user_.user_id, password, user_.salt)):
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return "Incorrect password..."
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-    response = RedirectResponse(url="/", status_code=303)
-    # for debugging, construct the password hash
-    return "Success!"
+    # Create a new session.
+    new_session = UserSession(user_id=user_.user_id,
+                              login_time=datetime.now().timestamp(),
+                              expire_time = datetime.now() + timedelta(days=60),
+                              ip_address=request.client.host,
+                              user_agent=request.headers["User-Agent"])
+    session.add(new_session)
+    session.commit()
+    session.refresh(new_session)
+    response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    response = set_session_cookie(response, new_session.session_id)
+    return response
 
 
 @router.get("/logout", response_class=HTMLResponse, name="user_logout")
