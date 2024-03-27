@@ -63,7 +63,18 @@ class Tokens(SQLModel, table=True):
 
 
 class UserSession(SQLModel, table=True):
-    session_id: int = Field(primary_key=True, default=uuid4())
+    """
+    Represents a user session in the application.
+
+    Attributes:
+        session_id (str): The unique identifier for the session. This is the primary key.
+        user_id (str): The ID of the user who owns the session. This is a foreign key referencing the user's ID in the People table.
+        login_time (int): The timestamp when the user logged in.
+        expire_time (int): The timestamp when the session expires.
+        ip_address (Optional[str]): The IP address from which the user logged in. This can be useful for security and auditing purposes.
+        user_agent (Optional[str]): Information about the user's browser and operating system. This can also be useful for security and auditing purposes.
+    """
+    session_id: str = Field(primary_key=True, default=str(uuid4()))
     user_id: str = Field(foreign_key="people.user_id")
     login_time: int
     expire_time: int
