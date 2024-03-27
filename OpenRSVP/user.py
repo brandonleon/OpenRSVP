@@ -1,24 +1,16 @@
 from datetime import datetime
-from hashlib import sha512
 from pathlib import Path
 
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from icecream import ic
-
-from fastapi import Depends, Form, Request, Cookie, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, Response, JSONResponse
 from sqlmodel import Session, select
-from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
 
-from OpenRSVP import People, UserSession
-from OpenRSVP.utils import (
-    get_user_id_from_cookie,
-    format_timestamp,
-    sanitize_markdown,
-    set_user_id_cookie,
-    get_session,
-    get_password_hash,
-)
+from OpenRSVP import People
+from OpenRSVP.utils import (format_timestamp, get_password_hash, get_session,
+                            get_user_id_from_cookie, sanitize_markdown,
+                            set_user_id_cookie)
 
 router = APIRouter(prefix="/user")
 
@@ -52,7 +44,7 @@ async def login(response: Response, request: Request):
 
 
 @router.post("/login", response_class=HTMLResponse, name="user_login")
-async def login(
+async def post_login(
     response: Response,
     request: Request,
     email: str = Form(...),
@@ -62,11 +54,11 @@ async def login(
     # Check if the user exists
     user_ = session.exec(select(People).where(People.email == email)).first()
     if not user_:
-        response.status_code = 404
+        response.status_code = status.HTTP_401_UNAUTHORIZED
         return "User not found..."
     # Check if the password hash is correct
     if user_.pass_hash != ic(get_password_hash(user_.user_id, password, user_.salt)):
-        response.status_code = 401
+        response.status_code = status.HTTP_401_UNAUTHORIZED
         return "Incorrect password..."
 
     response = RedirectResponse(url="/", status_code=303)
@@ -76,7 +68,7 @@ async def login(
 
 @router.get("/logout", response_class=HTMLResponse, name="user_logout")
 async def logout(response: Response):
-    response = RedirectResponse(url="/", status_code=303)
+    response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie("session_id")
     return response
 
@@ -92,7 +84,7 @@ async def user(
             "get_user.html", {"request": request, "usr": usr}
         )
     else:
-        return RedirectResponse(url="/", status_code=303)
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/", response_class=HTMLResponse, name="user")
@@ -125,7 +117,7 @@ async def update_user(
     session.add(usr)
     session.commit()
 
-    return RedirectResponse(url="/user", status_code=303)
+    return RedirectResponse(url="/user", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/login/{user_id}", response_class=HTMLResponse, name="user_login")
@@ -137,7 +129,7 @@ async def user_login(
     #  Check if user_id exists in the database
     if not session.get(People, user_id):
         response.status_code = 404
-        return RedirectResponse(url="/", status_code=303)
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
     set_user_id_cookie(
         redirect_response := RedirectResponse(url="/", status_code=303), user_id
