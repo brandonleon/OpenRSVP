@@ -5,7 +5,7 @@
     <option name="pathToExecutable" value="$USER_HOME$/.local/bin/black" />
     <option name="sdkName" value="Poetry (OpenRSVP)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Poetry (OpenRSVP)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.12 (OpenRSVP)" project-jdk-type="Python SDK" />
   <component name="PythonCompatibilityInspectionAdvertiser">
     <option name="version" value="3" />
   </component>
