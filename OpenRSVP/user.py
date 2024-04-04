@@ -63,13 +63,12 @@ async def get_user_me(
 
 
 @router.get("/login", response_class=HTMLResponse, name="user_login")
-async def login(response: Response, request: Request):
+async def login(request: Request):
     return templates.TemplateResponse("user_login.html", {"request": request})
 
 
 @router.post("/login", response_class=HTMLResponse, name="user_login")
 async def post_login(
-    response: Response,
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
@@ -109,7 +108,7 @@ async def post_login(
 
 
 @router.get("/logout", response_class=HTMLResponse, name="user_logout")
-async def logout(response: Response, request: Request,
+async def logout(request: Request,
                  session: Session = Depends(get_session)):
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     session_id = request.cookies.get("session_id")
@@ -196,8 +195,6 @@ async def user_create(request: Request):
 
 @router.post("/create", response_class=HTMLResponse, name="user_create")
 async def post_user_create(
-    response: Response,
-    request: Request,
     display_name: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
