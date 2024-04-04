@@ -3,15 +3,15 @@ from pathlib import Path
 from typing import Optional
 from uuid import uuid4
 
-from sqlmodel import Field, SQLModel, create_engine, Session
+from sqlmodel import Field, Session, SQLModel, create_engine
 
 DATABASE_FILE = Path("events.db")
 engine = create_engine(f"sqlite:///{DATABASE_FILE.resolve()}")
 
 
 class Events(SQLModel, table=True):
-    active: bool = Field(default=True)
     secret_code: str = Field(primary_key=True, index=True)
+    active: bool = Field(default=True)
     user_id: str = Field(index=True, foreign_key="people.user_id")
     name: str
     virtual: bool = Field(default=False)
@@ -24,23 +24,24 @@ class Events(SQLModel, table=True):
 
 
 class People(SQLModel, table=True):
-    user_id: str = Field(primary_key=True, index=True, default=lambda: str(uuid4()))
+    user_id: str = Field(primary_key=True, index=True, default=str(uuid4()))
+    active: bool = Field(default=False, index=True)
     display_name: Optional[str]
     email: Optional[str] = Field(index=True)
     salt: Optional[str]
     pass_hash: Optional[str]
     cell_phone: Optional[str]
-    last_login: int
-    created: int
-    updated: int
+    last_login: int = Field(default=datetime.now().timestamp())
+    created: int = Field(default=datetime.now().timestamp())
+    updated: int = Field(default=datetime.now().timestamp())
     role: str = Field(default="user", index=True)
 
 
 class RSVP(SQLModel, table=True):
-    rsvp_id: str = Field(primary_key=True, default=lambda: str(uuid4()))
+    rsvp_id: str = Field(primary_key=True, default=str(uuid4()))
     created: int
-    user_id: str
-    event_id: str
+    user_id: str = Field(foreign_key="people.user_id", index=True)
+    event_id: str = Field(foreign_key="events.secret_code", index=True)
     rsvp_status: str
 
 
@@ -51,15 +52,15 @@ class Config(SQLModel, table=True):
 
 class Tokens(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int
+    user_id: int = Field(foreign_key="people.user_id")
     token: str
     token_type: str  # Magic Link, Password Reset, API Key, etc.
-    created_at: int = Field(default_factory=lambda: datetime.now())
+    created_at: int = Field(default=datetime.now())
     key_expire_time: int = Field(
-        default_factory=lambda: int((datetime.now() + timedelta(days=60)).timestamp()),
+        default=int((datetime.now() + timedelta(days=60)).timestamp()),
         index=True,
     )
-    updated_at: int = Field(default_factory=lambda: datetime.now())
+    updated_at: int = Field(default=datetime.now())
 
 
 class UserSession(SQLModel, table=True):
@@ -74,7 +75,7 @@ class UserSession(SQLModel, table=True):
         ip_address (Optional[str]): The IP address from which the user logged in. This can be useful for security and auditing purposes.
         user_agent (Optional[str]): Information about the user's browser and operating system. This can also be useful for security and auditing purposes.
     """
-    session_id: str = Field(primary_key=True, default=lambda: str(uuid4()))
+    session_id: str = Field(primary_key=True, default=str(uuid4()))
     user_id: str = Field(foreign_key="people.user_id")
     login_time: int
     expire_time: int
