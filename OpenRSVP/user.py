@@ -86,7 +86,7 @@ async def post_login(
     new_session = UserSession(
         user_id=user_.user_id,
         login_time=datetime.now().timestamp(),
-        expire_time=datetime.now() + timedelta(days=60),
+        expire_time=(datetime.now() + timedelta(days=60)).timestamp(),
         ip_address=request.client.host,
         user_agent=request.headers["User-Agent"],
     )
