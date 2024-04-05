@@ -103,7 +103,7 @@ async def create_event(
     location: Optional[str] = Form(None),
     end_date: Optional[str] = Form(None),
     end_time: Optional[str] = Form(None),
-        session: Session = Depends(get_session),
+    session: Session = Depends(get_session),
 ):
     code = format_code_to_alphanumeric(secret_code)
 

@@ -45,10 +45,8 @@ def set_session_cookie(response, session_id: str):
     with Session(engine) as session:
         user_expire_time = session.get(Config, "user_expire_time").value
     response.set_cookie(
-        key="session_id",
-        value=session_id,
-        httponly=True,
-        max_age=user_expire_time)  # max age accepts seconds
+        key="session_id", value=session_id, httponly=True, max_age=user_expire_time
+    )  # max age accepts seconds
     return response
 
 
@@ -93,7 +91,7 @@ async def post_login(
     session.add(new_session)
     session.commit()
     session.refresh(new_session)
-    
+
     # Update user's last login time
     statement = select(People).where(People.user_id == user_.user_id)
     results = session.exec(statement)
@@ -101,15 +99,14 @@ async def post_login(
     usr.last_login = datetime.now().timestamp()
     session.add(usr)
     session.commit()
-    
+
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     response = set_session_cookie(response, new_session.session_id)
     return response
 
 
 @router.get("/logout", response_class=HTMLResponse, name="user_logout")
-async def logout(request: Request,
-                 session: Session = Depends(get_session)):
+async def logout(request: Request, session: Session = Depends(get_session)):
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     session_id = request.cookies.get("session_id")
 
@@ -119,7 +116,7 @@ async def logout(request: Request,
     user_session = results.one()
     session.delete(user_session)
     session.commit()
-    
+
     response.delete_cookie("session_id")
     return response
 
@@ -207,12 +204,12 @@ async def post_user_create(
         email=email.lower(),
         salt=salt,
         cell_phone=cell_phone,
-        role="user"
+        role="user",
     )
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
-    
+
     new_user.pass_hash = get_password_hash(new_user.user_id, password, new_user.salt)
     session.add(new_user)
     session.commit()

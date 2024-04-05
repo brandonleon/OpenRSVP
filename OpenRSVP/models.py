@@ -75,6 +75,7 @@ class UserSession(SQLModel, table=True):
         ip_address (Optional[str]): The IP address from which the user logged in. This can be useful for security and auditing purposes.
         user_agent (Optional[str]): Information about the user's browser and operating system. This can also be useful for security and auditing purposes.
     """
+
     session_id: str = Field(primary_key=True, default=str(uuid4()))
     user_id: str = Field(foreign_key="people.user_id")
     login_time: int
