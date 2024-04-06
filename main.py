@@ -2,22 +2,21 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette.staticfiles import StaticFiles
 
 from OpenRSVP import (
     create_tables,
 )
+from OpenRSVP.events import router as events_router
+from OpenRSVP.rsvp import router as rsvp_router
+from OpenRSVP.user import router as user_router
 from OpenRSVP.utils import (
     format_timestamp,
     get_user_id_from_cookie,
     sanitize_markdown,
 )
-
-from OpenRSVP.events import router as events_router
-from OpenRSVP.user import router as user_router
-from OpenRSVP.rsvp import router as rsvp_router
 
 
 @asynccontextmanager
