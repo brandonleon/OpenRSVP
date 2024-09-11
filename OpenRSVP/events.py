@@ -2,23 +2,22 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
-from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
 
 from OpenRSVP import Events, People
 from OpenRSVP.utils import (
-    get_user_id_from_cookie,
-    format_timestamp,
-    sanitize_markdown,
-    set_user_id_cookie,
-    pad_string,
     format_code_to_alphanumeric,
+    format_timestamp,
     get_or_set_user_id_cookie,
     get_session,
+    get_user_id_from_cookie,
+    pad_string,
+    sanitize_markdown,
+    set_user_id_cookie,
 )
 
 router = APIRouter(prefix="/events")
@@ -39,6 +38,8 @@ async def view_events(
     page: int = 1,
 ):
     user_id = get_user_id_from_cookie(request)
+    if user_id is None:
+        return RedirectResponse(request.app.url_path_for("root"), status_code=303)
     usr = session.get(People, user_id) or {"user_id": user_id}
     statement = (
         select(Events)
