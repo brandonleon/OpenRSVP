@@ -86,7 +86,7 @@ async def event_root(
         "get_event_create.html", {"request": request, "user_id": None}
     )
     user_id = get_user_id_from_cookie(request)
-
+    
     template_response = set_user_id_cookie(template_response, user_id)
     template_response.context["user_id"] = user_id
     return template_response
