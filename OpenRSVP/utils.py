@@ -2,18 +2,17 @@
 This module contains utility functions that are used throughout the application.
 """
 
-import re
 from datetime import datetime
+from hashlib import sha512
 from typing import Union
 from uuid import uuid4
-from hashlib import sha512
 
 import starlette
 from bleach import clean
 from markdown import markdown
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from OpenRSVP.database import fetch_config, fetch_user, insert_user, update_user
+from OpenRSVP.database import fetch_user, insert_user, update_user
 from OpenRSVP.models import Config, Events, People, engine
 
 
@@ -152,7 +151,8 @@ def get_user_id_from_cookie(request) -> Union[str, None]:
     Returns:
         Union[str, None]: The user's ID if present, otherwise None.
     """
-    return user_id if (user_id := request.cookies.get("user_id")) else None
+    user_id = request.cookies.get("user_id")
+    return None if user_id == "None" else user_id
 
 
 def get_or_set_user_id_cookie(request, response) -> starlette:
