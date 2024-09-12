@@ -49,7 +49,6 @@ def set_session_cookie(response, session_id: str):
     )  # max age accepts seconds
     return response
 
-
 @router.get("/me")
 async def get_user_me(
     request: Request,
