@@ -338,7 +338,6 @@ dependencies = [
     { name = "markdown" },
     { name = "python-multipart" },
     { name = "sqlmodel" },
-    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -355,7 +354,6 @@ requires-dist = [
     { name = "markdown", specifier = ">=3.7" },
     { name = "python-multipart", specifier = ">=0.0.9" },
     { name = "sqlmodel", specifier = ">=0.0.22" },
-    { name = "uvicorn", specifier = ">=0.30.6" },
 ]
 
 [package.metadata.requires-dev]
