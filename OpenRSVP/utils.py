@@ -8,7 +8,7 @@ from typing import Union
 from uuid import uuid4
 
 import starlette
-from bleach import clean
+from nh3 import clean
 from markdown import markdown
 from sqlmodel import Session
 
