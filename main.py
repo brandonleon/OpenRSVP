@@ -18,6 +18,8 @@ from OpenRSVP.utils import (
     sanitize_markdown,
 )
 
+__version__ = '0.1.0'
+
 
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
