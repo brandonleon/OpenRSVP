@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP - Event Details</title>
+    {% include 'components/bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include 'components/navbar.html' %}
+    <div class="container mt-5">
+      {% if event %}
+      <h1>{{ event.name }}</h1>
+      <p>Here are the details for this event:</p>
+
+      <div class="container m3-3">
+        <h2>Event Details</h2>
+        <p>
+          <strong>Start Time:</strong> {{ event.start_datetime | format_timestamp }}
+        </p>
+        {% if event.end_datetime %}
+        <p>
+          <strong>End Time:</strong> {{ event.end_datetime | int | format_timestamp }}
+        </p>
+        {% endif %}
+
+        {% if event.details %}
+        <strong>Details:</strong>
+        {{ event.details | sanitize_markdown | safe }}
+        {% endif %}
+
+        {% set w3w_size = 'large' %}{% include 'components/w3w.html' %}
+
+        <div class="mt-4">
+          <a
+            class="btn btn-primary"
+            href="{{ request.url_for('rsvp', event_id=event.secret_code, user_id=usr.user_id) }}"
+            role="button"
+            >RSVP</a
+          >
+        </div>
+      </div>
+      {% else %}
+
+      <h1>Event Not Found</h1>
+      <p>Sorry, we couldn't find an event with that ID.</p>
+
+      {% endif %}
+
+      <div class="mt-4">
+        <a
+          class="btn btn-primary"
+          href="{{ request.url_for('root') }}"
+          role="button"
+          >Back to Home</a
+        >
+      </div>
+    </div>
+
+    {% include 'components/bootstrap_js.html' %}
+  </body>
+</html>

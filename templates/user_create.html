@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP</title>
+    {% include 'components/bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include 'components/navbar.html' %}
+
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col">
+          <h1>Create a New User</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+          <form action="/user/create" method="post">
+            <div class="mb-3">
+              <label for="displayName" class="form-label">Display Name</label>
+              <input
+                type="text"
+                class="form-control"
+                id="displayName"
+                name="display_name"
+                required
+              />
+            </div>
+            <div class="mb-3">
+              <label for="email" class="form-label">Email address</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                required
+              />
+            </div>
+            <div class="row">
+              <div class="col">
+                <div class="mb-3">
+                  <label for="password" class="form-label">Password</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="col">
+                <div class="mb-3">
+                  <label for="confirmPassword" class="form-label"
+                    >Confirm Password</label
+                  >
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="confirmPassword"
+                    name="confirm_password"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="cellPhone" class="form-label"
+                >Cell Phone (Optional)</label
+              >
+              <input
+                type="tel"
+                class="form-control"
+                id="cellPhone"
+                name="cell_phone"
+              />
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        $("form").on("submit", function (e) {
+          if ($("#password").val() !== $("#confirmPassword").val()) {
+            e.preventDefault();
+            alert("Please make sure your passwords match.");
+          }
+        });
+      });
+    </script>
+    {% include 'components/bootstrap_js.html' %}
+  </body>
+</html>

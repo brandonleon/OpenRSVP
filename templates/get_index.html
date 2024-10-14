@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP</title>
+    {% include 'components/bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include 'components/navbar.html' %}
+
+    <div class="container mt-5">
+      <h1>Welcome to OpenRSVP</h1>
+      <p>
+        OpenRSVP is an open-source event management service. Create and manage
+        events effortlessly.
+      </p>
+
+      <div class="mt-4">
+        <h2>Getting Started</h2>
+        <p>To create a new event, click the button below:</p>
+        <a class="btn btn-primary" href="{{ request.url_for('create_event') }}" role="button"
+          >Create New Event</a
+        >
+      </div>
+
+      <div class="mt-4">
+        <h2>Edit your RSVP</h2>
+        <p>
+          To edit your RSVP, please provide your email or user ID and click the
+          button below.
+        </p>
+        <form action="/rsvp" method="POST">
+          <div class="mb-3">
+            <label for="user" class="form-label">User</label>
+            <input
+              type="text"
+              class="form-control"
+              id="user"
+              placeholder="Enter email or user ID"
+              required
+            />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Edit RSVP</button>
+        </form>
+
+        <div class="mt-4">
+          <h2>About OpenRSVP</h2>
+          <p>
+            OpenRSVP is built with FastAPI and provides a simple and efficient
+            way to manage events and RSVPs.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    {% include 'components/bootstrap_js.html' %}
+  </body>
+</html>

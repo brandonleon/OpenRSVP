@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenRSVP - Event Details</title>
+    {% include 'components/bootstrap_css.html' %}
+  </head>
+
+  <body>
+    {% include 'components/navbar.html' %}
+    <div class="container mt-5">
+      {% include 'components/pagination.html' %}
+      {% for event in events %}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="card-title">
+            <a href="{{ request.url_for('event_by_id', event_id = event.secret_code) }}"
+              >{{ event.name }}</a
+            >
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="card-text">{{ event.description }}</p>
+          <p class="card-text">
+            <small class="text-muted"
+              >Starts: {{ event.start_datetime | format_timestamp }}</small
+            >
+          </p>
+          {% if event.ends %}
+          <p class="card-text">
+            <small class="text-muted text-end">Ends: {{ event.ends }}</small>
+          </p>
+          {% endif %} {% if event.location %}
+          <p class="card-text">
+            {% set w3w_size = 'small' %}{% include 'components/w3w.html' %}
+          </p>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% include 'components/pagination.html' %}
+    {% include 'components/bootstrap_js.html' %}
+    {% include 'components/popper_js.html' %}
+  </body>
+</html>
