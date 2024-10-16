@@ -14,6 +14,7 @@ dependencies = [
     "markdown>=3.7",
     "sqlmodel>=0.0.22",
     "nh3>=0.2.18",
+    "fastapi-users[sqlalchemy]>=13.0.0",
 ]
 
 [tool.uv]
