@@ -28,13 +28,14 @@ from .database import SessionLocal
 from .models import Channel, Event, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
-from .utils import humanize_time, duration_between
+from .utils import duration_between, get_repo_url, humanize_time
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="OpenRSVP", version="0.1")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["app_version"] = app.version
+templates.env.globals["repo_url"] = get_repo_url()
 templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 

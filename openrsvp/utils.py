@@ -1,7 +1,9 @@
 """Utility helpers for OpenRSVP."""
 from __future__ import annotations
 
+from configparser import ConfigParser
 from datetime import datetime
+from pathlib import Path
 import re
 import unicodedata
 
@@ -70,3 +72,35 @@ def duration_between(start: datetime | None, end: datetime | None) -> str:
     if not parts:
         parts.append("<1m")
     return " ".join(parts)
+
+
+def get_repo_url(config_path: Path | None = None) -> str | None:
+    """Return the repository URL derived from the local Git config.
+
+    Prefers the origin remote. SSH-style GitHub URLs are converted to HTTPS and
+    trailing ``.git`` suffixes are stripped for cleaner links.
+    """
+
+    config_path = config_path or Path(__file__).resolve().parent.parent / ".git" / "config"
+    if not config_path.is_file():
+        return None
+
+    parser = ConfigParser()
+    parser.read(config_path)
+
+    section = 'remote "origin"'
+    if not parser.has_section(section):
+        return None
+
+    raw_url = parser.get(section, "url", fallback=None)
+    if not raw_url:
+        return None
+
+    cleaned = raw_url.strip()
+    if cleaned.startswith("git@github.com:"):
+        cleaned = f"https://github.com/{cleaned.removeprefix('git@github.com:')}"
+    cleaned = cleaned.rstrip("/")
+    if cleaned.endswith(".git"):
+        cleaned = cleaned[:-4]
+
+    return cleaned or None
