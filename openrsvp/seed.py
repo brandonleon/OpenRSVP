@@ -1,4 +1,5 @@
 """Development helpers for populating fake channels and events."""
+
 from __future__ import annotations
 
 import random
@@ -7,7 +8,13 @@ from datetime import datetime, timedelta
 from faker import Faker
 from sqlalchemy.orm import Session
 
-from .crud import CHANNEL_VISIBILITIES, create_event, create_rsvp, ensure_channel, get_channel_by_slug
+from .crud import (
+    CHANNEL_VISIBILITIES,
+    create_event,
+    create_rsvp,
+    ensure_channel,
+    get_channel_by_slug,
+)
 from .database import get_session
 from .models import Channel, Event
 from .storage import init_db

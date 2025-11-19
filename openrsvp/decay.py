@@ -14,8 +14,16 @@ from .models import Channel, Event
 SECONDS_PER_DAY = 60 * 60 * 24
 
 
+def _ensure_aware(dt: datetime) -> datetime:
+    """Return a timezone aware dtetime (UTC) for arithmetic operations."""
+
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def _elapsed_days(reference: datetime, now: datetime) -> float:
-    delta = now - reference
+    delta = _ensure_aware(now) - _ensure_aware(reference)
     return max(delta.total_seconds() / SECONDS_PER_DAY, 0.0)
 
 

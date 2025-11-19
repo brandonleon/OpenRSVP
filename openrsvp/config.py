@@ -1,4 +1,5 @@
 """Global configuration for OpenRSVP."""
+
 from __future__ import annotations
 
 import os

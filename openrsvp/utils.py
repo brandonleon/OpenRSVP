@@ -1,4 +1,5 @@
 """Utility helpers for OpenRSVP."""
+
 from __future__ import annotations
 
 from configparser import ConfigParser
@@ -12,7 +13,11 @@ _slug_invalid = re.compile(r"[^a-z0-9]+")
 
 def slugify(value: str) -> str:
     """Return a canonical slug suitable for URLs."""
-    value = unicodedata.normalize("NFKD", value or "").encode("ascii", "ignore").decode("ascii")
+    value = (
+        unicodedata.normalize("NFKD", value or "")
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
     value = value.strip().lower()
     value = _slug_invalid.sub("-", value)
     value = value.strip("-")
@@ -81,7 +86,9 @@ def get_repo_url(config_path: Path | None = None) -> str | None:
     trailing ``.git`` suffixes are stripped for cleaner links.
     """
 
-    config_path = config_path or Path(__file__).resolve().parent.parent / ".git" / "config"
+    config_path = (
+        config_path or Path(__file__).resolve().parent.parent / ".git" / "config"
+    )
     if not config_path.is_file():
         return None
 

@@ -1,4 +1,5 @@
 """CRUD helpers for events, RSVPs, and channels."""
+
 from __future__ import annotations
 
 import secrets

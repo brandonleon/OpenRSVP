@@ -1,4 +1,5 @@
 """Database initialization and helpers."""
+
 from __future__ import annotations
 
 import secrets
@@ -36,7 +37,9 @@ def ensure_root_token() -> str:
         if existing:
             return existing.value
         token = secrets.token_urlsafe(32)
-        meta = Meta(key=settings.root_token_key, value=token, updated_at=datetime.utcnow())
+        meta = Meta(
+            key=settings.root_token_key, value=token, updated_at=datetime.utcnow()
+        )
         session.merge(meta)
         return token
 
@@ -44,7 +47,9 @@ def ensure_root_token() -> str:
 def rotate_root_token() -> str:
     token = secrets.token_urlsafe(32)
     with get_session() as session:
-        meta = Meta(key=settings.root_token_key, value=token, updated_at=datetime.utcnow())
+        meta = Meta(
+            key=settings.root_token_key, value=token, updated_at=datetime.utcnow()
+        )
         session.merge(meta)
     return token
 

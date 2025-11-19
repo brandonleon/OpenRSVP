@@ -1,4 +1,5 @@
 """Typer CLI for OpenRSVP."""
+
 from __future__ import annotations
 
 import typer
@@ -56,7 +57,9 @@ def runserver(
 
 @app.command("seed-data")
 def seed_data(
-    channels: int = typer.Option(5, "--channels", min=0, help="Number of channels to create"),
+    channels: int = typer.Option(
+        5, "--channels", min=0, help="Number of channels to create"
+    ),
     max_events: int = typer.Option(
         3, "--max-events", min=1, help="Maximum events to assign to each channel"
     ),

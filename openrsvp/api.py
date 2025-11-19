@@ -1,4 +1,5 @@
 """FastAPI application for OpenRSVP."""
+
 from __future__ import annotations
 
 import logging
@@ -99,13 +100,19 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 async def validation_error_handler(request: Request, exc: RequestValidationError):
     if _wants_json(request):
         return JSONResponse({"detail": exc.errors()}, status_code=422)
-    return _render_error(request, 422, "Some of the fields were invalid. Please double-check and try again.")
+    return _render_error(
+        request,
+        422,
+        "Some of the fields were invalid. Please double-check and try again.",
+    )
 
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     """Gracefully handle unexpected errors."""
-    logger.exception("Unhandled error while processing %s %s", request.method, request.url.path)
+    logger.exception(
+        "Unhandled error while processing %s %s", request.method, request.url.path
+    )
     if _wants_json(request):
         return JSONResponse({"detail": "Internal server error"}, status_code=500)
     return _render_error(
@@ -193,7 +200,9 @@ def _paginate_events(db: Session, *, page: int, query: str | None):
     if clause is not None:
         count_stmt = count_stmt.where(clause)
     total_events = db.scalar(count_stmt) or 0
-    total_pages = max(1, (total_events + per_page - 1) // per_page) if total_events else 1
+    total_pages = (
+        max(1, (total_events + per_page - 1) // per_page) if total_events else 1
+    )
     page = max(1, min(page, total_pages)) if total_events else 1
     offset = (page - 1) * per_page if total_events else 0
     stmt = select(Event).order_by(Event.created_at.desc())
@@ -254,7 +263,9 @@ def _paginate_visible_events(
     for condition in filters:
         count_stmt = count_stmt.where(condition)
     total_events = db.scalar(count_stmt) or 0
-    total_pages = max(1, (total_events + per_page - 1) // per_page) if total_events else 1
+    total_pages = (
+        max(1, (total_events + per_page - 1) // per_page) if total_events else 1
+    )
     page = max(1, min(page, total_pages)) if total_events else 1
     offset = (page - 1) * per_page if total_events else 0
 
@@ -348,7 +359,9 @@ def submit_event(
     cleaned_channel_name = channel_name.strip() if channel_name else ""
     if cleaned_channel_name:
         try:
-            channel = ensure_channel(db, name=cleaned_channel_name, visibility=channel_visibility)
+            channel = ensure_channel(
+                db, name=cleaned_channel_name, visibility=channel_visibility
+            )
         except ValueError as exc:
             return templates.TemplateResponse(
                 "event_create.html",
@@ -455,7 +468,9 @@ def create_rsvp_view(
 
 
 @app.get("/e/{event_id}/rsvp/{rsvp_token}")
-def edit_rsvp(event_id: str, rsvp_token: str, request: Request, db: Session = Depends(get_db)):
+def edit_rsvp(
+    event_id: str, rsvp_token: str, request: Request, db: Session = Depends(get_db)
+):
     event = _ensure_event(db, event_id)
     rsvp = _ensure_rsvp(db, event, rsvp_token)
     return templates.TemplateResponse(
@@ -501,7 +516,9 @@ def save_rsvp(
 
 
 @app.get("/e/{event_id}/admin/{admin_token}")
-def event_admin(event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)):
+def event_admin(
+    event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
+):
     event = _ensure_event(db, event_id)
     if event.admin_token != admin_token:
         raise HTTPException(status_code=403, detail="Invalid admin token")
@@ -577,7 +594,9 @@ def save_event_admin(
 
 
 @app.post("/e/{event_id}/admin/{admin_token}/delete")
-def delete_event(event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)):
+def delete_event(
+    event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
+):
     event = _ensure_event(db, event_id)
     if event.admin_token != admin_token:
         raise HTTPException(status_code=403, detail="Invalid admin token")
@@ -654,7 +673,9 @@ def root_admin_events(
 
 
 @app.post("/admin/{root_token}/events/{event_id}/delete")
-def root_delete_event(root_token: str, event_id: str, request: Request, db: Session = Depends(get_db)):
+def root_delete_event(
+    root_token: str, event_id: str, request: Request, db: Session = Depends(get_db)
+):
     _require_root_access(root_token)
     event = _ensure_event(db, event_id)
     db.delete(event)
@@ -683,7 +704,12 @@ def channel_page(
     )
     return templates.TemplateResponse(
         "channel.html",
-        {"request": request, "channel": channel, "events": events, "pagination": pagination},
+        {
+            "request": request,
+            "channel": channel,
+            "events": events,
+            "pagination": pagination,
+        },
     )
 
 

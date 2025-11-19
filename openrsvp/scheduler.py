@@ -1,4 +1,5 @@
 """APScheduler integration."""
+
 from __future__ import annotations
 
 from apscheduler.schedulers.background import BackgroundScheduler
