@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -194,25 +195,18 @@ def _fetch_channels(db: Session, query: str | None):
     return channels
 
 
-def _paginate_events(db: Session, *, page: int, query: str | None):
-    per_page = ADMIN_EVENTS_PER_PAGE
-    clause = _event_search_clause(query)
-    count_stmt = select(func.count()).select_from(Event)
-    if clause is not None:
-        count_stmt = count_stmt.where(clause)
-    total_events = db.scalar(count_stmt) or 0
+def _build_pagination(
+    *,
+    page: int,
+    per_page: int,
+    total_events: int,
+    include_query: bool,
+    query: str | None,
+):
     total_pages = (
         max(1, (total_events + per_page - 1) // per_page) if total_events else 1
     )
     page = max(1, min(page, total_pages)) if total_events else 1
-    offset = (page - 1) * per_page if total_events else 0
-    stmt = select(Event).order_by(Event.created_at.desc())
-    if clause is not None:
-        stmt = stmt.where(clause)
-    stmt = stmt.offset(offset).limit(per_page)
-    events = db.scalars(stmt).all()
-    for event in events:
-        _ = list(event.rsvps)
     pagination = {
         "page": page,
         "per_page": per_page,
@@ -222,8 +216,50 @@ def _paginate_events(db: Session, *, page: int, query: str | None):
         "has_next": page < total_pages and total_events > 0,
         "prev_page": page - 1 if page > 1 else None,
         "next_page": page + 1 if page < total_pages and total_events > 0 else None,
-        "query": query or "",
     }
+    if include_query:
+        pagination["query"] = query or ""
+    return pagination
+
+
+def paginate_events(
+    db: Session,
+    *,
+    filters: Iterable | None,
+    order_by,
+    per_page: int,
+    page: int,
+    include_query: bool = False,
+    query: str | None = None,
+    include_rsvps: bool = False,
+):
+    filters = list(filters or [])
+    count_stmt = select(func.count()).select_from(Event)
+    for condition in filters:
+        count_stmt = count_stmt.where(condition)
+    total_events = db.scalar(count_stmt) or 0
+    pagination = _build_pagination(
+        page=page,
+        per_page=per_page,
+        total_events=total_events,
+        include_query=include_query,
+        query=query,
+    )
+    page_number = pagination["page"]
+    offset = (page_number - 1) * per_page if total_events else 0
+
+    stmt = select(Event)
+    if isinstance(order_by, (list, tuple)):
+        stmt = stmt.order_by(*order_by)
+    else:
+        stmt = stmt.order_by(order_by)
+    for condition in filters:
+        stmt = stmt.where(condition)
+    stmt = stmt.offset(offset).limit(per_page)
+    events = db.scalars(stmt).all()
+    if include_rsvps:
+        for event in events:
+            _ = list(event.rsvps)
     return events, pagination
 
 
@@ -260,32 +296,28 @@ def _paginate_visible_events(
         channel_id=channel_id,
         now=now,
     )
-    count_stmt = select(func.count()).select_from(Event)
-    for condition in filters:
-        count_stmt = count_stmt.where(condition)
-    total_events = db.scalar(count_stmt) or 0
-    total_pages = (
-        max(1, (total_events + per_page - 1) // per_page) if total_events else 1
+    return paginate_events(
+        db,
+        filters=filters,
+        order_by=Event.start_time.desc(),
+        per_page=per_page,
+        page=page,
     )
-    page = max(1, min(page, total_pages)) if total_events else 1
-    offset = (page - 1) * per_page if total_events else 0
 
-    stmt = select(Event).order_by(Event.start_time.desc())
-    for condition in filters:
-        stmt = stmt.where(condition)
-    stmt = stmt.offset(offset).limit(per_page)
-    events = db.scalars(stmt).all()
-    pagination = {
-        "page": page,
-        "per_page": per_page,
-        "total_pages": total_pages,
-        "total_events": total_events,
-        "has_prev": page > 1,
-        "has_next": page < total_pages and total_events > 0,
-        "prev_page": page - 1 if page > 1 else None,
-        "next_page": page + 1 if page < total_pages and total_events > 0 else None,
-    }
-    return events, pagination
+
+def _paginate_events(db: Session, *, page: int, query: str | None):
+    clause = _event_search_clause(query)
+    filters = [clause] if clause is not None else []
+    return paginate_events(
+        db,
+        filters=filters,
+        order_by=Event.created_at.desc(),
+        per_page=ADMIN_EVENTS_PER_PAGE,
+        page=page,
+        include_query=True,
+        query=query,
+        include_rsvps=True,
+    )
 
 
 @app.on_event("startup")
