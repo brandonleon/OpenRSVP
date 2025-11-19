@@ -40,7 +40,7 @@
           {% endif %}
         </div>
       </div>
-      <p class="mb-0 mt-2 text-muted">{{ event.description or 'No description provided.' }}</p>
+      <div class="mb-0 mt-2 text-muted small markdown-content">{{ (event.description or 'No description provided.') | markdown | safe }}</div>
     </a>
   {% endfor %}
   </div>

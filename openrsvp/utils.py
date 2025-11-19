@@ -5,10 +5,17 @@ from __future__ import annotations
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
+import html
 import re
 import unicodedata
 
+from markupsafe import Markup
+
 _slug_invalid = re.compile(r"[^a-z0-9]+")
+_link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_bold_pattern = re.compile(r"\*\*(.+?)\*\*")
+_italic_pattern = re.compile(r"(?<!\*)\*(?!\*)([^*]+?)(?<!\*)\*(?!\*)")
+_code_pattern = re.compile(r"`([^`]+)`")
 
 
 def slugify(value: str) -> str:
@@ -22,6 +29,101 @@ def slugify(value: str) -> str:
     value = _slug_invalid.sub("-", value)
     value = value.strip("-")
     return value
+
+
+def _sanitize_href(raw: str | None) -> str | None:
+    """Return a safe URL for anchors or ``None`` when unsafe."""
+
+    normalized = (raw or "").strip()
+    if not normalized:
+        return None
+    lowered = normalized.lower()
+    if lowered.startswith(("http://", "https://", "mailto:")) or normalized.startswith(
+        ("/", "#")
+    ):
+        return html.escape(normalized, quote=True)
+    return None
+
+
+def _render_inline(text: str) -> str:
+    """Render inline Markdown (emphasis, code, and links) into sanitized HTML."""
+
+    coded = _code_pattern.sub(lambda match: f"<code>{match.group(1)}</code>", text)
+    bolded = _bold_pattern.sub(lambda match: f"<strong>{match.group(1)}</strong>", coded)
+    emphasized = _italic_pattern.sub(lambda match: f"<em>{match.group(1)}</em>", bolded)
+
+    def replace_link(match: re.Match[str]) -> str:
+        href = _sanitize_href(html.unescape(match.group(2)))
+        if not href:
+            return match.group(0)
+        label = _render_inline(match.group(1))
+        return f'<a href="{href}" rel="nofollow noopener noreferrer">{label}</a>'
+
+    return _link_pattern.sub(replace_link, emphasized)
+
+
+def render_markdown(value: str | None) -> Markup:
+    """Convert Markdown text into sanitized HTML safe for templates."""
+
+    if not value:
+        return Markup("")
+
+    escaped = html.escape(value.strip())
+    if not escaped:
+        return Markup("")
+
+    lines = escaped.splitlines()
+    blocks: list[str] = []
+    list_items: list[str] = []
+    paragraph_parts: list[str] = []
+
+    def flush_paragraph() -> None:
+        if paragraph_parts:
+            paragraph = " ".join(paragraph_parts).strip()
+            if paragraph:
+                blocks.append(f"<p>{_render_inline(paragraph)}</p>")
+            paragraph_parts.clear()
+
+    def flush_list() -> None:
+        if list_items:
+            items = "".join(f"<li>{_render_inline(item)}</li>" for item in list_items)
+            blocks.append(f"<ul>{items}</ul>")
+            list_items.clear()
+
+    for raw_line in lines:
+        stripped = raw_line.strip()
+        if not stripped:
+            flush_paragraph()
+            flush_list()
+            continue
+
+        if stripped.startswith("#"):
+            flush_paragraph()
+            flush_list()
+            hashes = len(stripped) - len(stripped.lstrip("#"))
+            level = min(max(hashes, 1), 6)
+            content = stripped[hashes:].strip()
+            blocks.append(f"<h{level}>{_render_inline(content)}</h{level}>")
+            continue
+
+        if stripped.startswith(">"):
+            flush_paragraph()
+            flush_list()
+            content = stripped.lstrip(">").strip()
+            blocks.append(f"<blockquote>{_render_inline(content)}</blockquote>")
+            continue
+
+        if stripped.startswith(("- ", "* ")):
+            flush_paragraph()
+            list_items.append(stripped[2:].strip())
+            continue
+
+        paragraph_parts.append(stripped)
+
+    flush_paragraph()
+    flush_list()
+
+    return Markup("\n".join(blocks))
 
 
 def humanize_time(value: datetime | None, *, now: datetime | None = None) -> str:
