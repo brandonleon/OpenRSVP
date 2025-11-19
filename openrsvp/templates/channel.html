@@ -20,7 +20,7 @@
         <thead>
           <tr>
             <th scope="col">Event</th>
-            <th scope="col">Starts</th>
+            <th scope="col">Schedule</th>
             <th scope="col">Visibility</th>
             <th scope="col"></th>
           </tr>
@@ -29,7 +29,18 @@
           {% for event in events %}
           <tr>
             <td>{{ event.title }}</td>
-            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              <div
+                class="js-event-time"
+                data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+              >
+                <div class="fw-semibold js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
+                <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+                {% if event.end_time %}
+                <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
+                {% endif %}
+              </div>
+            </td>
             <td>
               {% if event.is_private %}
               <span class="badge bg-warning text-dark">Private</span>

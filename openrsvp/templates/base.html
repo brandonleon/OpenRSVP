@@ -30,7 +30,7 @@
     </nav>
     <main class="container mb-5 flex-grow-1">
       {% if message %}
-      <div class="alert alert-info">{{ message }}</div>
+      <div class="alert {{ message_class or 'alert-info' }}">{{ message }}</div>
       {% endif %}
       {% block content %}{% endblock %}
     </main>
@@ -42,5 +42,83 @@
     </footer>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        updateTimezoneInputs();
+        updateEventTimes();
+        setInterval(updateEventTimes, 60000);
+      });
+
+      document.addEventListener("htmx:afterSwap", () => {
+        updateEventTimes();
+      });
+
+      function updateTimezoneInputs() {
+        const offset = new Date().getTimezoneOffset();
+        document.querySelectorAll("[data-tz-input]").forEach((input) => {
+          input.value = offset;
+        });
+        document.querySelectorAll("[data-utc-input]").forEach((input) => {
+          const iso = input.getAttribute("data-utc-input");
+          if (!iso) return;
+          const date = new Date(iso);
+          if (Number.isNaN(date.getTime())) return;
+          input.value = formatLocalInput(date);
+        });
+      }
+
+      function updateEventTimes() {
+        document.querySelectorAll("[data-event-utc]").forEach((element) => {
+          const iso = element.getAttribute("data-event-utc");
+          if (!iso) return;
+          const date = new Date(iso);
+          if (Number.isNaN(date.getTime())) return;
+          const absoluteEl = element.querySelector(".js-event-absolute");
+          if (absoluteEl) {
+            absoluteEl.textContent = date.toLocaleString(undefined, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            });
+          }
+          const relativeEl = element.querySelector(".js-event-relative");
+          if (relativeEl) {
+            relativeEl.textContent = formatRelative(date);
+          }
+        });
+      }
+
+      function formatLocalInput(date) {
+        const pad = (value) => String(value).padStart(2, "0");
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      function formatRelative(targetDate) {
+        const now = new Date();
+        const seconds = Math.floor((targetDate.getTime() - now.getTime()) / 1000);
+        const past = seconds < 0;
+        const absSeconds = Math.abs(seconds);
+        const units = [
+          ["year", 365 * 24 * 3600],
+          ["month", 30 * 24 * 3600],
+          ["week", 7 * 24 * 3600],
+          ["day", 24 * 3600],
+          ["hour", 3600],
+          ["minute", 60],
+        ];
+        for (const [label, size] of units) {
+          const value = Math.floor(absSeconds / size);
+          if (value >= 1) {
+            const unit = value === 1 ? label : `${label}s`;
+            return past ? `${value} ${unit} ago` : `in ${value} ${unit}`;
+          }
+        }
+        return past ? "moments ago" : "in moments";
+      }
+    </script>
   </body>
 </html>

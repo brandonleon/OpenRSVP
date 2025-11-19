@@ -9,5 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
+# IDE settings
+.idea/
+
 # Local SQLite data
 data/

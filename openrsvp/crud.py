@@ -74,6 +74,7 @@ def create_event(
     title: str,
     description: str | None,
     start_time: datetime,
+    end_time: datetime | None,
     location: str | None,
     channel: Channel | None,
     is_private: bool = False,
@@ -84,6 +85,7 @@ def create_event(
         title=title,
         description=description,
         start_time=start_time,
+        end_time=end_time,
         location=location,
         score=100.0,
         channel=channel,
@@ -100,6 +102,7 @@ def update_event(
     title: str,
     description: str | None,
     start_time: datetime,
+    end_time: datetime | None,
     location: str | None,
     channel: Channel | None,
     is_private: bool,
@@ -107,6 +110,7 @@ def update_event(
     event.title = title
     event.description = description
     event.start_time = start_time
+    event.end_time = end_time
     event.location = location
     event.is_private = is_private
     event.channel = channel

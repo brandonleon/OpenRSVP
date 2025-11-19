@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import OperationalError
 
 from .config import settings
 from .database import engine, get_session
@@ -13,7 +14,20 @@ from .models import Base, Meta
 
 def init_db() -> None:
     Base.metadata.create_all(bind=engine)
+    ensure_schema_updates()
     ensure_root_token()
+
+
+def ensure_schema_updates() -> None:
+    """Perform lightweight schema updates for existing deployments."""
+    with engine.begin() as conn:
+        try:
+            result = conn.exec_driver_sql("PRAGMA table_info(events)")
+        except OperationalError:
+            return
+        columns = {row[1] for row in result}
+        if "end_time" not in columns:
+            conn.exec_driver_sql("ALTER TABLE events ADD COLUMN end_time DATETIME")
 
 
 def ensure_root_token() -> str:

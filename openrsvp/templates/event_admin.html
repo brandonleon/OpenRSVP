@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Event Admin: {{ event.title }} {% if event.is_private %}<span class="badge bg-warning text-dark">Private</span>{% endif %}</h2>
-{% if message %}<div class="alert alert-success">{{ message }}</div>{% endif %}
+{% if message %}<div class="alert {{ message_class or 'alert-success' }}">{{ message }}</div>{% endif %}
 <div class="row">
   <div class="col-lg-7 mb-4">
     <div class="card">
@@ -18,7 +18,26 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Start Time</label>
-            <input type="datetime-local" name="start_time" class="form-control" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" required>
+            <input
+              type="datetime-local"
+              name="start_time"
+              class="form-control"
+              value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+              data-utc-input="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+              required
+            >
+            <input type="hidden" name="timezone_offset_minutes" data-tz-input>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">End Time (optional)</label>
+            <input
+              type="datetime-local"
+              name="end_time"
+              class="form-control"
+              value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') if event.end_time else '' }}"
+              data-utc-input="{{ event.end_time.isoformat(timespec='seconds') + 'Z' if event.end_time else '' }}"
+            >
+            <div class="form-text">Leave blank if this event does not have a defined end.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Location</label>

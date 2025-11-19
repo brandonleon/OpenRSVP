@@ -28,12 +28,15 @@ from .database import SessionLocal
 from .models import Channel, Event, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
+from .utils import humanize_time, duration_between
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="OpenRSVP", version="0.1")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["app_version"] = app.version
+templates.env.filters["relative_time"] = humanize_time
+templates.env.filters["duration"] = duration_between
 
 ADMIN_EVENTS_PER_PAGE = 25
 EVENTS_PER_PAGE = 10
@@ -56,6 +59,15 @@ def _parse_datetime(raw: str) -> datetime:
         return datetime.fromisoformat(raw)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid datetime") from exc
+
+
+def _local_to_utc(dt: datetime, offset_minutes: int) -> datetime:
+    """Normalize a naive local datetime to UTC (still naive)."""
+    try:
+        offset = int(offset_minutes)
+    except (TypeError, ValueError):
+        offset = 0
+    return dt + timedelta(minutes=offset)
 
 
 def _wants_json(request: Request) -> bool:
@@ -327,6 +339,8 @@ def submit_event(
     channel_name: str | None = Form(None),
     channel_visibility: str = Form("public"),
     is_private: bool = Form(False),
+    end_time: str | None = Form(None),
+    timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
     channel = None
@@ -341,6 +355,24 @@ def submit_event(
                     "request": request,
                     "public_channels": get_public_channels(db),
                     "message": _channel_error_message(str(exc)),
+                    "message_class": "alert-danger",
+                },
+                status_code=400,
+            )
+    parsed_start = _parse_datetime(start_time)
+    normalized_start = _local_to_utc(parsed_start, timezone_offset_minutes)
+    normalized_end = None
+    if end_time:
+        parsed_end = _parse_datetime(end_time)
+        normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
+        if normalized_end <= normalized_start:
+            return templates.TemplateResponse(
+                "event_create.html",
+                {
+                    "request": request,
+                    "public_channels": get_public_channels(db),
+                    "message": "End time must be after the start time.",
+                    "message_class": "alert-danger",
                 },
                 status_code=400,
             )
@@ -348,7 +380,8 @@ def submit_event(
         db,
         title=title,
         description=description,
-        start_time=_parse_datetime(start_time),
+        start_time=normalized_start,
+        end_time=normalized_end,
         location=location,
         channel=channel,
         is_private=is_private,
@@ -461,6 +494,7 @@ def save_rsvp(
             "event": event,
             "rsvp": rsvp,
             "message": "RSVP updated",
+            "message_class": "alert-success",
         },
     )
 
@@ -491,17 +525,39 @@ def save_event_admin(
     start_time: str = Form(...),
     location: str | None = Form(None),
     is_private: bool = Form(False),
+    end_time: str | None = Form(None),
+    timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
     if event.admin_token != admin_token:
         raise HTTPException(status_code=403, detail="Invalid admin token")
+    parsed_start = _parse_datetime(start_time)
+    normalized_start = _local_to_utc(parsed_start, timezone_offset_minutes)
+    normalized_end = None
+    if end_time:
+        parsed_end = _parse_datetime(end_time)
+        normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
+        if normalized_end <= normalized_start:
+            rsvps = list(event.rsvps)
+            return templates.TemplateResponse(
+                "event_admin.html",
+                {
+                    "request": request,
+                    "event": event,
+                    "rsvps": rsvps,
+                    "message": "End time must be after the start time.",
+                    "message_class": "alert-danger",
+                },
+                status_code=400,
+            )
     update_event(
         db,
         event,
         title=title,
         description=description,
-        start_time=_parse_datetime(start_time),
+        start_time=normalized_start,
+        end_time=normalized_end,
         location=location,
         channel=event.channel,
         is_private=is_private,
@@ -514,6 +570,7 @@ def save_event_admin(
             "event": event,
             "rsvps": rsvps,
             "message": "Event updated",
+            "message_class": "alert-success",
         },
     )
 

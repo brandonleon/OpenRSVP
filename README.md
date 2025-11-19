@@ -13,6 +13,7 @@ container deployment requested in the specification.
 - Public/private channel system with dedicated listings at `/channel/<slug>` and
   a `/help` explainer
 - Typer CLI (`openrsvp`) for server management and token rotation
+- Optional end-time support for events with automatic timezone conversion
 
 ## Getting Started
 

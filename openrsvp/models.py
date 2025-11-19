@@ -36,6 +36,7 @@ class Event(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     start_time = Column(DateTime, nullable=False)
+    end_time = Column(DateTime, nullable=True)
     location = Column(String(255), nullable=True)
     score = Column(Float, default=100.0, nullable=False)
     created_at = Column(DateTime, default=_now, nullable=False)

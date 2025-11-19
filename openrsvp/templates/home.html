@@ -29,8 +29,15 @@
           <h5 class="mb-1">{{ event.title }}</h5>
           <small class="text-muted">{{ event.location or 'Location TBD' }}</small>
         </div>
-        <div class="text-end">
-          <span class="badge bg-light text-dark">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+        <div
+          class="text-end js-event-time"
+          data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+        >
+          <span class="badge bg-light text-dark js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+          <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+          {% if event.end_time %}
+          <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
+          {% endif %}
         </div>
       </div>
       <p class="mb-0 mt-2 text-muted">{{ event.description or 'No description provided.' }}</p>

@@ -12,7 +12,7 @@
       <thead>
         <tr>
           <th scope="col">Event</th>
-          <th scope="col">Start</th>
+          <th scope="col">Timeline</th>
           <th scope="col">Visibility</th>
           <th scope="col">Channel</th>
           <th scope="col">RSVPs</th>
@@ -37,7 +37,18 @@
               {% if event.location %}&middot; {{ event.location }}{% endif %}
             </div>
           </td>
-          <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>
+            <div
+              class="js-event-time"
+              data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+            >
+              <div class="js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
+              <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+              {% if event.end_time %}
+              <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
+              {% endif %}
+            </div>
+          </td>
           <td>
             <span class="badge {% if event.is_private %}bg-warning text-dark{% else %}bg-success{% endif %}">
               {{ 'Private' if event.is_private else 'Public' }}

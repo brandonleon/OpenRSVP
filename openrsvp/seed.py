@@ -119,6 +119,7 @@ def _create_event(
     max_rsvps: int,
 ) -> int:
     start_time = _random_start_time()
+    end_time = _maybe_end_time(start_time)
     description = "\n\n".join(fake.paragraphs(nb=2))
     location = fake.address().replace("\n", ", ")
     is_private = bool(channel and channel.visibility == "private")
@@ -129,6 +130,7 @@ def _create_event(
         title=_event_title(fake),
         description=description,
         start_time=start_time,
+        end_time=end_time,
         location=location,
         channel=channel,
         is_private=is_private,
@@ -147,6 +149,13 @@ def _event_title(fake: Faker) -> str:
     prefix = fake.city()
     event_type = random.choice(_event_types)
     return f"{prefix} {event_type}"
+
+
+def _maybe_end_time(start_time: datetime) -> datetime | None:
+    if random.random() < 0.3:
+        return None
+    duration_hours = random.randint(1, 6)
+    return start_time + timedelta(hours=duration_hours)
 
 
 def _create_rsvps(session: Session, fake: Faker, event: Event, max_rsvps: int) -> int:

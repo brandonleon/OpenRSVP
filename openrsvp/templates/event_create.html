@@ -20,6 +20,12 @@
           <div class="mb-3">
             <label class="form-label">Start Time</label>
             <input type="datetime-local" name="start_time" class="form-control" required>
+            <input type="hidden" name="timezone_offset_minutes" data-tz-input>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">End Time (optional)</label>
+            <input type="datetime-local" name="end_time" class="form-control">
+            <div class="form-text">Leave blank if the event does not have a scheduled end.</div>
           </div>
           <div class="mb-3">
             <label class="form-label">Location</label>
