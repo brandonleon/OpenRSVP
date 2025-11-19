@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="mb-4 text-center">
+      <h1 class="h3 mb-2">Create a New Event</h1>
+      <p class="text-muted mb-0">Fill out the details below to spin up a fresh RSVP page.</p>
+    </div>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <form method="post" action="/events" class="mt-1">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Start Time</label>
+            <input type="datetime-local" name="start_time" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" placeholder="Venue, city, or meeting link">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Channel Name</label>
+            <input type="text" name="channel_name" class="form-control" placeholder="Enter or pick a channel" list="public-channel-options">
+            <div class="form-text">Private channels never appear in this list—type them manually.</div>
+            <datalist id="public-channel-options">
+              {% for channel in public_channels %}
+              <option value="{{ channel.name }}"></option>
+              {% endfor %}
+            </datalist>
+          </div>
+          <div class="mb-3">
+            <label class="form-label d-block">Channel Visibility</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-public" value="public" checked>
+              <label class="form-check-label" for="channel-public">Public</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-private" value="private">
+              <label class="form-check-label" for="channel-private">Private</label>
+            </div>
+          </div>
+          <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" value="true" id="is-private" name="is_private">
+            <label class="form-check-label" for="is-private">Private event (only accessible via direct link)</label>
+          </div>
+          <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+            <a class="btn btn-outline-secondary" href="/">Cancel</a>
+            <button class="btn btn-primary" type="submit">Create Event</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

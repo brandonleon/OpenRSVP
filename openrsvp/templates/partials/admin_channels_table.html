@@ -1,0 +1,38 @@
+{% if channels %}
+  {% if channel_query %}
+    <p class="text-muted small mb-2">Filtered by "{{ channel_query }}"</p>
+  {% endif %}
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle mb-0">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Slug</th>
+          <th scope="col">Visibility</th>
+          <th scope="col">Score</th>
+          <th scope="col">Last Used</th>
+          <th scope="col">Events</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for channel in channels %}
+        {% set channel_url = request.url_for('channel_page', slug=channel.slug) %}
+        <tr>
+          <td><a href="{{ channel_url }}">{{ channel.name }}</a></td>
+          <td><code>{{ channel.slug }}</code></td>
+          <td>
+            <span class="badge {% if channel.visibility == 'private' %}bg-dark{% else %}bg-primary{% endif %}">
+              {{ channel.visibility }}
+            </span>
+          </td>
+          <td>{{ '%.2f'|format(channel.score) }}</td>
+          <td>{{ channel.last_used_at }}</td>
+          <td>{{ channel.events|length }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted mb-0">No channels found.</p>
+{% endif %}

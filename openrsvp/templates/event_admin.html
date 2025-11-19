@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Event Admin: {{ event.title }} {% if event.is_private %}<span class="badge bg-warning text-dark">Private</span>{% endif %}</h2>
+{% if message %}<div class="alert alert-success">{{ message }}</div>{% endif %}
+<div class="row">
+  <div class="col-lg-7 mb-4">
+    <div class="card">
+      <div class="card-body">
+        <h3 class="h5">Event Details</h3>
+        <form method="post" action="/e/{{ event.id }}/admin/{{ event.admin_token }}">
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ event.description or '' }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Start Time</label>
+            <input type="datetime-local" name="start_time" class="form-control" value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" value="{{ event.location or '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label d-block">Channel</label>
+            {% if event.channel %}
+            <div class="alert alert-secondary d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold">{{ event.channel.name }}</div>
+                <small class="text-muted text-uppercase">{{ event.channel.visibility }} channel</small>
+              </div>
+              <a class="btn btn-sm btn-outline-primary" href="/channel/{{ event.channel.slug }}">View channel</a>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">No channel assigned.</div>
+            {% endif %}
+          </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
+            <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
+          </div>
+          <button class="btn btn-primary" type="submit">Save Event</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-4">
+      <div class="card-body">
+        <h3 class="h5">RSVPs</h3>
+        {% if rsvps %}
+          <ul class="list-group mb-3">
+          {% for rsvp in rsvps %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between">
+                <span><strong>{{ rsvp.name }}</strong> · {{ rsvp.status }}</span>
+                <small>Guests: {{ rsvp.guest_count }}</small>
+              </div>
+              {% set rsvp_url = request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) %}
+              <details class="mt-2">
+                <summary>Reveal magic link</summary>
+                <a href="{{ rsvp_url }}">{{ rsvp_url }}</a>
+              </details>
+            </li>
+          {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted">No RSVPs yet.</p>
+        {% endif %}
+        <form method="post" action="/e/{{ event.id }}/admin/{{ event.admin_token }}/delete" onsubmit="return confirm('Delete event? This cannot be undone.');">
+          <button class="btn btn-outline-danger w-100" type="submit">Delete Event</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

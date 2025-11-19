@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-10 col-xl-8">
+    <h2>OpenRSVP Help</h2>
+    <p class="lead">Accountless events, magic links, and channel organization.</p>
+
+    <section class="mb-4">
+      <h3 class="h5">Creating Events</h3>
+      <ul>
+        <li>Channels are optional—events can stand alone or be grouped inside a <strong>channel</strong>. Pick a channel name that feels unique to your community if you want one.</li>
+        <li>Channel options appear as you type; selecting one reuses the existing channel. No login is required.</li>
+        <li>Private events remain hidden even when their channel is public.</li>
+      </ul>
+    </section>
+
+    <section class="mb-4">
+      <h3 class="h5">Public vs Private Channels</h3>
+      <p>Channels are lightweight collections of events:</p>
+      <ul>
+        <li><strong>Public channels</strong> show up on the homepage filter and have a public listing under <code>/channel/&lt;slug&gt;</code>.</li>
+        <li><strong>Private channels</strong> never appear in the UI. Only people who know the slug can view them.</li>
+        <li>Private channels do not make private events public—visibility is per-event.</li>
+      </ul>
+    </section>
+
+    <section class="mb-4">
+      <h3 class="h5">Naming Tips & Warnings</h3>
+      <ul>
+        <li>Channel slugs are derived from the name. Using common words like “party” or “friends” increases the odds of collisions.</li>
+        <li>We recommend including location or community hints (e.g., “san-diego-cigar-social”).</li>
+        <li>Private channels rely purely on the slug—treat them like a shared secret.</li>
+      </ul>
+    </section>
+
+    <section class="mb-4">
+      <h3 class="h5">Safety & Privacy</h3>
+      <ul>
+        <li>No accounts or emails are stored. Keep your magic links private.</li>
+        <li>RSVP tokens are shown once after submission—save them if you’ll need to edit later.</li>
+        <li>Stale events and channels decay automatically; keep them active by sharing and visiting.</li>
+      </ul>
+    </section>
+
+    <p class="text-muted">Need more? Reach out to the event owner directly—OpenRSVP never stores contact info.</p>
+  </div>
+</div>
+{% endblock %}

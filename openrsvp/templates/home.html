@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Latest Events</h1>
+    <p class="text-muted mb-0">Newest events first · {{ pagination.total_events }} total</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <form class="d-flex gap-2 align-items-center" method="get">
+      <label class="form-label mb-0 text-uppercase small fw-semibold">Jump to channel</label>
+      <select name="channel" class="form-select form-select-sm" style="min-width: 200px;">
+        <option value="">All public channels</option>
+        {% for channel in public_channels %}
+        <option value="{{ channel.slug }}">{{ channel.name }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-outline-secondary btn-sm" type="submit">View</button>
+    </form>
+    <a class="btn btn-primary" href="/event/create">Create New Event</a>
+  </div>
+</div>
+
+{% if events %}
+  <div class="list-group shadow-sm">
+  {% for event in events %}
+    <a href="/e/{{ event.id }}" class="list-group-item list-group-item-action py-3">
+      <div class="d-flex w-100 justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="mb-1">{{ event.title }}</h5>
+          <small class="text-muted">{{ event.location or 'Location TBD' }}</small>
+        </div>
+        <div class="text-end">
+          <span class="badge bg-light text-dark">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+      </div>
+      <p class="mb-0 mt-2 text-muted">{{ event.description or 'No description provided.' }}</p>
+    </a>
+  {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">No visible events yet. Create one!</p>
+{% endif %}
+
+{% if pagination.total_pages > 1 %}
+<nav class="mt-4" aria-label="Event pagination">
+  <ul class="pagination mb-0">
+    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ pagination.prev_page or pagination.page }}">Previous</a>
+    </li>
+    <li class="page-item disabled">
+      <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+    </li>
+    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ pagination.next_page or pagination.page }}">Next</a>
+    </li>
+  </ul>
+</nav>
+{% endif %}
+{% endblock %}

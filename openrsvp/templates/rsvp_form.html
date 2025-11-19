@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>RSVP for {{ event.title }}</h2>
+<form method="post" action="/e/{{ event.id }}/rsvp" class="mt-3">
+  <div class="mb-3">
+    <label class="form-label">Name</label>
+    <input type="text" name="name" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Pronouns</label>
+    <input type="text" name="pronouns" class="form-control" placeholder="Optional">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Status</label>
+    <select name="status" class="form-select" required>
+      <option value="yes">Yes</option>
+      <option value="no">No</option>
+      <option value="maybe">Maybe</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Guest Count</label>
+    <input type="number" name="guest_count" class="form-control" min="0" max="5" value="0">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Notes</label>
+    <textarea name="notes" class="form-control" rows="3" placeholder="Anything we should know"></textarea>
+  </div>
+  <button class="btn btn-primary" type="submit">Create RSVP</button>
+</form>
+{% endblock %}

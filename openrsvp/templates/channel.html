@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-lg-10 col-xl-8">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div>
+        <h2 class="mb-1">{{ channel.name }}</h2>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge {% if channel.visibility == 'private' %}bg-dark{% else %}bg-primary{% endif %}">
+            {{ channel.visibility | capitalize }} channel
+          </span>
+          <span class="text-muted small">Page {{ pagination.page }} · {{ pagination.total_events }} events</span>
+        </div>
+      </div>
+      <a class="btn btn-outline-secondary" href="/">Back to homepage</a>
+    </div>
+    {% if events %}
+    <div class="table-responsive shadow-sm">
+      <table class="table table-striped align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Event</th>
+            <th scope="col">Starts</th>
+            <th scope="col">Visibility</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in events %}
+          <tr>
+            <td>{{ event.title }}</td>
+            <td>{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              {% if event.is_private %}
+              <span class="badge bg-warning text-dark">Private</span>
+              {% else %}
+              <span class="badge bg-success">Public</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="/e/{{ event.id }}">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted">No events currently live in this channel.</p>
+    {% endif %}
+
+    {% if pagination.total_pages > 1 %}
+    <nav class="mt-4" aria-label="Channel pagination">
+      <ul class="pagination mb-0">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ pagination.prev_page or pagination.page }}">Previous</a>
+        </li>
+        <li class="page-item disabled">
+          <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+        </li>
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+          <a class="page-link" href="?page={{ pagination.next_page or pagination.page }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Root Admin Dashboard</h2>
+<div class="mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h3 class="h5 mb-0">Channels</h3>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <input
+        type="search"
+        name="q"
+        value="{{ channel_query }}"
+        class="form-control form-control-sm"
+        placeholder="Search channels"
+        hx-get="/admin/{{ root_token }}/channels"
+        hx-trigger="keyup changed delay:300ms, search"
+        hx-target="#channels-table-wrapper"
+        hx-indicator="#channels-search-indicator"
+        autocomplete="off"
+      >
+      <div id="channels-search-indicator" class="htmx-indicator spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+  <div id="channels-table-wrapper">
+    {% include "partials/admin_channels_table.html" %}
+  </div>
+</div>
+<div class="mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <h3 class="h5 mb-0">Events</h3>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <input
+        type="search"
+        name="q"
+        value="{{ events_query }}"
+        class="form-control form-control-sm"
+        placeholder="Search events"
+        hx-get="/admin/{{ root_token }}/events"
+        hx-trigger="keyup changed delay:300ms, search"
+        hx-target="#events-table-wrapper"
+        hx-indicator="#events-search-indicator"
+        hx-vals='{"page": 1}'
+        autocomplete="off"
+      >
+      <div id="events-search-indicator" class="htmx-indicator spinner-border spinner-border-sm text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  </div>
+  <div id="events-table-wrapper">
+    {% include "partials/admin_events_table.html" %}
+  </div>
+</div>
+{% endblock %}
