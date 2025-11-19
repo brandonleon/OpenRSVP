@@ -26,7 +26,11 @@ def get_channel_by_slug(session: Session, slug: str) -> Channel | None:
 
 
 def get_public_channels(session: Session) -> list[Channel]:
-    stmt = select(Channel).where(Channel.visibility == "public").order_by(Channel.name.asc())
+    stmt = (
+        select(Channel)
+        .where(Channel.visibility == "public")
+        .order_by(Channel.score.desc(), Channel.name.asc())
+    )
     return session.scalars(stmt).all()
 
 
