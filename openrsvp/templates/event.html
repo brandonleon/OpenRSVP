@@ -27,7 +27,11 @@
       <a href="/channel/{{ event.channel.slug }}" class="fw-semibold text-decoration-none">{{ event.channel.name }}</a>
     </div>
     {% endif %}
-    <p>{{ event.description or 'No description provided.' }}</p>
+    {% if event.description %}
+    <div class="mb-4 markdown-content">{{ event.description | markdown | safe }}</div>
+    {% else %}
+    <p class="text-muted">No description provided.</p>
+    {% endif %}
     <div class="mb-4">
       <a class="btn btn-success" href="/e/{{ event.id }}/rsvp">Submit RSVP</a>
     </div>
