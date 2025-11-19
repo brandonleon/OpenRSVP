@@ -388,6 +388,7 @@ def submit_event(
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
+    public_channels = get_public_channels(db)
     channel = None
     cleaned_channel_name = channel_name.strip() if channel_name else ""
     if cleaned_channel_name:
@@ -400,7 +401,7 @@ def submit_event(
                 "event_create.html",
                 {
                     "request": request,
-                    "public_channels": get_public_channels(db),
+                    "public_channels": public_channels,
                     "message": _channel_error_message(str(exc)),
                     "message_class": "alert-danger",
                 },
@@ -417,7 +418,7 @@ def submit_event(
                 "event_create.html",
                 {
                     "request": request,
-                    "public_channels": get_public_channels(db),
+                    "public_channels": public_channels,
                     "message": "End time must be after the start time.",
                     "message_class": "alert-danger",
                 },
@@ -439,6 +440,7 @@ def submit_event(
             "request": request,
             "event": event,
             "admin_link": f"/e/{event.id}/admin/{event.admin_token}",
+            "public_channels": public_channels,
         },
     )
 
