@@ -320,6 +320,39 @@ def paginate_events(
     return events, pagination
 
 
+def paginate_channels(
+    db: Session,
+    *,
+    query: str | None,
+    page: int,
+    per_page: int = ADMIN_EVENTS_PER_PAGE,
+    include_events: bool = True,
+):
+    clause = _channel_search_clause(query)
+    count_stmt = select(func.count()).select_from(Channel)
+    if clause is not None:
+        count_stmt = count_stmt.where(clause)
+    total_channels = db.scalar(count_stmt) or 0
+    pagination = _build_pagination(
+        page=page,
+        per_page=per_page,
+        total_events=total_channels,
+        include_query=True,
+        query=query,
+    )
+    page_number = pagination["page"]
+    offset = (page_number - 1) * per_page if total_channels else 0
+    stmt = select(Channel).order_by(Channel.name.asc())
+    if clause is not None:
+        stmt = stmt.where(clause)
+    stmt = stmt.offset(offset).limit(per_page)
+    channels = db.scalars(stmt).all()
+    if include_events:
+        for channel in channels:
+            _ = list(channel.events)
+    return channels, pagination
+
+
 def _visible_event_filters(
     *,
     include_private: bool,
@@ -806,10 +839,13 @@ def root_admin(
     root_token: str,
     request: Request,
     page: int = Query(1, ge=1),
+    channel_page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
 ):
     _require_root_access(root_token)
-    channels = _fetch_channels(db, query=None)
+    channels, channel_pagination = paginate_channels(
+        db, query=None, page=channel_page, include_events=True
+    )
     events, pagination = _paginate_events(db, page=page, query=None, include_rsvps=True)
     return templates.TemplateResponse(
         request,
@@ -820,6 +856,7 @@ def root_admin(
             "root_token": root_token,
             "channels": channels,
             "pagination": pagination,
+            "channel_pagination": channel_pagination,
             "channel_query": "",
             "events_query": "",
         },
@@ -831,10 +868,13 @@ def root_admin_channels(
     root_token: str,
     request: Request,
     q: str | None = Query(None),
+    page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
 ):
     _require_root_access(root_token)
-    channels = _fetch_channels(db, query=q)
+    channels, channel_pagination = paginate_channels(
+        db, query=q, page=page, include_events=True
+    )
     return templates.TemplateResponse(
         request,
         "partials/admin_channels_table.html",
@@ -842,6 +882,8 @@ def root_admin_channels(
             "request": request,
             "channels": channels,
             "channel_query": q or "",
+            "channel_pagination": channel_pagination,
+            "root_token": root_token,
         },
     )
 

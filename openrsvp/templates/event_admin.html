@@ -9,7 +9,10 @@
         <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}">
           <div class="mb-3">
             <label class="form-label">Title</label>
-            <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+            <div class="input-group">
+              <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+              <a class="btn btn-outline-secondary" href="/e/{{ event.id }}">View event</a>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label">Description</label>

@@ -1,5 +1,14 @@
 {% if channels %}
-  {% if channel_query %}
+  {% if channel_pagination %}
+    {% set start_index = ((channel_pagination.page - 1) * channel_pagination.per_page) + 1 %}
+    {% set end_index = start_index + channels|length - 1 %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+      <span class="text-muted small">Showing {{ start_index }}&ndash;{{ end_index }} of {{ channel_pagination.total_events }}</span>
+      {% if channel_query %}
+        <span class="badge bg-secondary text-uppercase">Filter: {{ channel_query }}</span>
+      {% endif %}
+    </div>
+  {% elif channel_query %}
     <p class="text-muted small mb-2">Filtered by "{{ channel_query }}"</p>
   {% endif %}
   <div class="table-responsive">
@@ -33,6 +42,39 @@
       </tbody>
     </table>
   </div>
+  {% if channel_pagination and channel_pagination.total_pages > 1 %}
+  <nav class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+    <span class="text-muted small">Page {{ channel_pagination.page }} of {{ channel_pagination.total_pages }}</span>
+    <div class="d-flex gap-2">
+      {% if channel_pagination.has_prev %}
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          hx-get="/admin/{{ root_token }}/channels?page={{ channel_pagination.prev_page }}{% if channel_query %}&q={{ channel_query | urlencode }}{% endif %}"
+          hx-target="#channels-table-wrapper"
+          hx-indicator="#channels-search-indicator"
+        >
+          Previous
+        </button>
+      {% else %}
+        <span class="btn btn-outline-secondary btn-sm disabled">Previous</span>
+      {% endif %}
+      {% if channel_pagination.has_next %}
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          hx-get="/admin/{{ root_token }}/channels?page={{ channel_pagination.next_page }}{% if channel_query %}&q={{ channel_query | urlencode }}{% endif %}"
+          hx-target="#channels-table-wrapper"
+          hx-indicator="#channels-search-indicator"
+        >
+          Next
+        </button>
+      {% else %}
+        <span class="btn btn-outline-secondary btn-sm disabled">Next</span>
+      {% endif %}
+    </div>
+  </nav>
+  {% endif %}
 {% else %}
   <p class="text-muted mb-0">No channels found.</p>
 {% endif %}
