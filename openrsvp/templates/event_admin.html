@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Event Admin: {{ event.title }} {% if event.is_private %}<span class="badge bg-warning text-dark">Private</span>{% endif %}</h2>
-{% if message %}<div class="alert {{ message_class or 'alert-success' }}">{{ message }}</div>{% endif %}
 <div class="row">
   <div class="col-lg-7 mb-4">
     <div class="card">

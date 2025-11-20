@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Manage RSVP for {{ event.title }}</h2>
-{% if message %}<div class="alert {{ message_class or 'alert-success' }}">{{ message }}</div>{% endif %}
 <form method="post" action="/e/{{ event.id }}/rsvp/{{ rsvp.rsvp_token }}" class="mt-3">
   <div class="mb-3">
     <label class="form-label">Name</label>
