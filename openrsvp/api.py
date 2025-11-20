@@ -6,7 +6,9 @@ import logging
 from collections.abc import Iterable
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from importlib.metadata import PackageNotFoundError, version as pkg_version
 from pathlib import Path
+import tomllib
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
@@ -45,6 +47,23 @@ from .utils import (
 # format (needed for downstream filtering like Loki).
 logger = logging.getLogger("uvicorn.error")
 
+
+def _load_app_version() -> str:
+    """Return the current package version, falling back to pyproject for dev runs."""
+    try:
+        return pkg_version("openrsvp")
+    except PackageNotFoundError:
+        pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        if pyproject_path.exists():
+            data = tomllib.loads(pyproject_path.read_text())
+            project = data.get("project") or {}
+            return str(project.get("version") or "dev")
+    return "dev"
+
+
+APP_VERSION = _load_app_version()
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
@@ -55,9 +74,9 @@ async def lifespan(_: FastAPI):
         stop_scheduler()
 
 
-app = FastAPI(title="OpenRSVP", version="0.1", lifespan=lifespan)
+app = FastAPI(title="OpenRSVP", version=APP_VERSION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-templates.env.globals["app_version"] = app.version
+templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["repo_url"] = get_repo_url()
 templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
