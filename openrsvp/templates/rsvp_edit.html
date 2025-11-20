@@ -28,4 +28,12 @@
   </div>
   <button class="btn btn-primary" type="submit">Save Changes</button>
 </form>
+<form
+  method="post"
+  action="/e/{{ event.id }}/rsvp/{{ rsvp.rsvp_token }}/delete"
+  class="mt-4"
+  onsubmit="return confirm('Delete your RSVP?');"
+>
+  <button class="btn btn-danger" type="submit">Delete My RSVP</button>
+</form>
 {% endblock %}
