@@ -6,7 +6,7 @@
     <div class="card">
       <div class="card-body">
         <h3 class="h5">Event Details</h3>
-        <form method="post" action="/e/{{ event.id }}/admin/{{ event.admin_token }}">
+        <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}">
           <div class="mb-3">
             <label class="form-label">Title</label>
             <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
@@ -94,26 +94,84 @@
     <div class="card mb-4">
       <div class="card-body">
         <h3 class="h5">RSVPs</h3>
+        <div class="d-flex flex-wrap gap-3 mb-3">
+          <div class="p-3 border rounded bg-light flex-grow-1" style="min-width: 180px;">
+            <div class="small text-uppercase text-muted fw-semibold">Yes</div>
+            <div class="h4 mb-0">{{ rsvp_stats.yes_total }}</div>
+            <div class="small text-muted">
+              {{ rsvp_stats.yes_count }} RSVP{% if rsvp_stats.yes_count != 1 %}s{% endif %}
+              + {{ rsvp_stats.yes_guest_count }} guest{% if rsvp_stats.yes_guest_count != 1 %}s{% endif %}
+            </div>
+          </div>
+          <div class="p-3 border rounded bg-light flex-grow-1" style="min-width: 150px;">
+            <div class="small text-uppercase text-muted fw-semibold">Maybe</div>
+            <div class="h4 mb-0">{{ rsvp_stats.maybe_count }}</div>
+            <div class="small text-muted">Considering it</div>
+          </div>
+          <div class="p-3 border rounded bg-light flex-grow-1" style="min-width: 150px;">
+            <div class="small text-uppercase text-muted fw-semibold">No</div>
+            <div class="h4 mb-0">{{ rsvp_stats.no_count }}</div>
+            <div class="small text-muted">Not attending</div>
+          </div>
+        </div>
         {% if rsvps %}
-          <ul class="list-group mb-3">
-          {% for rsvp in rsvps %}
-            <li class="list-group-item">
-              <div class="d-flex justify-content-between">
-                <span><strong>{{ rsvp.name }}</strong> · {{ rsvp.status }}</span>
-                <small>Guests: {{ rsvp.guest_count }}</small>
-              </div>
-              {% set rsvp_url = request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) %}
-              <details class="mt-2">
-                <summary>Reveal magic link</summary>
-                <a href="{{ rsvp_url }}">{{ rsvp_url }}</a>
-              </details>
-            </li>
-          {% endfor %}
-          </ul>
+          <div class="table-responsive">
+            <table class="table table-striped align-middle">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Pronouns</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Guest Count</th>
+                  <th scope="col">Notes</th>
+                  <th scope="col" class="text-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+              {% for rsvp in rsvps %}
+                {% set rsvp_url = request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) %}
+                {% set collapse_id = 'rsvp-link-' ~ rsvp.id %}
+                <tr>
+                  <td>{{ rsvp.name }}</td>
+                  <td>{{ rsvp.pronouns or '—' }}</td>
+                  <td class="text-capitalize">{{ rsvp.status }}</td>
+                  <td>{{ rsvp.guest_count }}</td>
+                  <td>{{ rsvp.notes or '—' }}</td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#{{ collapse_id }}"
+                        aria-expanded="false"
+                        aria-controls="{{ collapse_id }}"
+                      >
+                        Reveal Link
+                      </button>
+                      <form
+                        method="post"
+                        action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/delete"
+                        onsubmit="return confirm('Delete this RSVP?');"
+                      >
+                        <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                      </form>
+                    </div>
+                    <div class="collapse mt-2" id="{{ collapse_id }}">
+                      <div class="card card-body py-2">
+                        <a href="{{ rsvp_url }}">{{ rsvp_url }}</a>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
           <p class="text-muted">No RSVPs yet.</p>
         {% endif %}
-        <form method="post" action="/e/{{ event.id }}/admin/{{ event.admin_token }}/delete" onsubmit="return confirm('Delete event? This cannot be undone.');">
+        <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/delete" onsubmit="return confirm('Delete event? This cannot be undone.');">
           <button class="btn btn-outline-danger w-100" type="submit">Delete Event</button>
         </form>
       </div>

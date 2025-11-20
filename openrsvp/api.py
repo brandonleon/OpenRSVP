@@ -16,6 +16,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from urllib.parse import urlencode
 
 from .config import settings
 from .crud import (
@@ -185,6 +186,14 @@ def _ensure_rsvp(db: Session, event: Event, token: str) -> RSVP:
     if not rsvp:
         raise HTTPException(status_code=404, detail="RSVP not found")
     return rsvp
+
+
+def _require_admin_or_root(event: Event, admin_token: str) -> None:
+    if admin_token == event.admin_token:
+        return
+    stored_root = fetch_root_token()
+    if admin_token != stored_root:
+        raise HTTPException(status_code=403, detail="Invalid admin token")
 
 
 def _require_root_access(root_token: str) -> None:
@@ -496,10 +505,18 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
         touch_channel(event.channel)
         db.add(event.channel)
     rsvps = list(event.rsvps)
+    message = request.query_params.get("message")
+    message_class = request.query_params.get("message_class")
     return templates.TemplateResponse(
         request,
         "event.html",
-        {"request": request, "event": event, "rsvps": rsvps},
+        {
+            "request": request,
+            "event": event,
+            "rsvps": rsvps,
+            "message": message,
+            "message_class": message_class,
+        },
     )
 
 
@@ -591,15 +608,39 @@ def save_rsvp(
     )
 
 
+@app.post("/e/{event_id}/rsvp/{rsvp_token}/delete")
+def delete_rsvp_self(
+    event_id: str, rsvp_token: str, request: Request, db: Session = Depends(get_db)
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _ensure_rsvp(db, event, rsvp_token)
+    db.delete(rsvp)
+    db.commit()
+    params = urlencode(
+        {"message": "Your RSVP has been deleted.", "message_class": "alert-success"}
+    )
+    return RedirectResponse(url=f"/e/{event.id}?{params}", status_code=303)
+
+
 @app.get("/e/{event_id}/admin/{admin_token}")
 def event_admin(
     event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
 ):
     event = _ensure_event(db, event_id)
-    if event.admin_token != admin_token:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
+    _require_admin_or_root(event, admin_token)
     rsvps = list(event.rsvps)
+    yes_rsvps = [r for r in rsvps if r.status == "yes"]
+    yes_guest_count = sum(r.guest_count for r in yes_rsvps)
+    rsvp_stats = {
+        "yes_count": len(yes_rsvps),
+        "yes_guest_count": yes_guest_count,
+        "yes_total": len(yes_rsvps) + yes_guest_count,
+        "maybe_count": sum(1 for r in rsvps if r.status == "maybe"),
+        "no_count": sum(1 for r in rsvps if r.status == "no"),
+    }
     public_channels = get_public_channels(db)
+    message = request.query_params.get("message")
+    message_class = request.query_params.get("message_class")
     return templates.TemplateResponse(
         request,
         "event_admin.html",
@@ -607,8 +648,32 @@ def event_admin(
             "request": request,
             "event": event,
             "rsvps": rsvps,
+            "rsvp_stats": rsvp_stats,
             "public_channels": public_channels,
+            "admin_token": admin_token,
+            "message": message,
+            "message_class": message_class,
         },
+    )
+
+
+@app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_id}/delete")
+def delete_rsvp_admin(
+    event_id: str,
+    admin_token: str,
+    rsvp_id: str,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_or_root(event, admin_token)
+    rsvp = db.get(RSVP, rsvp_id)
+    if not rsvp or rsvp.event_id != event.id:
+        raise HTTPException(status_code=404, detail="RSVP not found")
+    db.delete(rsvp)
+    db.commit()
+    params = urlencode({"message": "RSVP removed.", "message_class": "alert-success"})
+    return RedirectResponse(
+        url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
 
 
@@ -629,8 +694,7 @@ def save_event_admin(
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
-    if event.admin_token != admin_token:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
+    _require_admin_or_root(event, admin_token)
     parsed_start = _parse_datetime(start_time)
     normalized_start = _local_to_utc(parsed_start, timezone_offset_minutes)
     normalized_end = None
@@ -648,6 +712,7 @@ def save_event_admin(
                     "event": event,
                     "rsvps": rsvps,
                     "public_channels": public_channels,
+                    "admin_token": admin_token,
                     "message": "End time must be after the start time.",
                     "message_class": "alert-danger",
                 },
@@ -671,6 +736,7 @@ def save_event_admin(
                     "event": event,
                     "rsvps": rsvps,
                     "public_channels": public_channels,
+                    "admin_token": admin_token,
                     "message": _channel_error_message(str(exc)),
                     "message_class": "alert-danger",
                 },
@@ -698,6 +764,7 @@ def save_event_admin(
             "event": event,
             "rsvps": rsvps,
             "public_channels": public_channels,
+            "admin_token": admin_token,
             "message": "Event updated",
             "message_class": "alert-success",
         },
@@ -709,8 +776,7 @@ def delete_event(
     event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
 ):
     event = _ensure_event(db, event_id)
-    if event.admin_token != admin_token:
-        raise HTTPException(status_code=403, detail="Invalid admin token")
+    _require_admin_or_root(event, admin_token)
     db.delete(event)
     return templates.TemplateResponse(
         request, "event_deleted.html", {"request": request, "event_id": event_id}
