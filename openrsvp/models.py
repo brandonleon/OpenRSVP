@@ -17,6 +17,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import declarative_base, relationship
 
+from .utils import utcnow
+
 Base = declarative_base()
 
 
@@ -25,7 +27,7 @@ def _uuid() -> str:
 
 
 def _now() -> datetime:
-    return datetime.utcnow()
+    return utcnow()
 
 
 class Meta(Base):
@@ -68,7 +70,6 @@ class RSVP(Base):
     status = Column(String(16), nullable=False, default="yes")
     guest_count = Column(Integer, default=0, nullable=False)
     notes = Column(Text)
-    score = Column(Float, default=100.0, nullable=False)
     created_at = Column(DateTime, default=_now, nullable=False)
     last_modified = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 

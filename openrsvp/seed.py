@@ -18,7 +18,7 @@ from .crud import (
 from .database import get_session
 from .models import Channel, Event
 from .storage import init_db
-from .utils import slugify
+from .utils import slugify, utcnow
 
 _channel_suffixes = [
     "Social Club",
@@ -146,7 +146,7 @@ def _create_event(
 
 
 def _random_start_time() -> datetime:
-    now = datetime.utcnow()
+    now = utcnow()
     day_offset = random.randint(-7, 30)
     minute_offset = random.randint(0, 23 * 60)
     return now + timedelta(days=day_offset, minutes=minute_offset)

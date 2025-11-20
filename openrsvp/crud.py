@@ -9,13 +9,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import Channel, Event, RSVP
-from .utils import slugify
+from .utils import slugify, utcnow
 
 CHANNEL_VISIBILITIES = {"public", "private"}
 
 
 def _now() -> datetime:
-    return datetime.utcnow()
+    return utcnow()
 
 
 def get_channel_by_slug(session: Session, slug: str) -> Channel | None:
@@ -143,7 +143,6 @@ def create_rsvp(
         pronouns=pronouns,
         guest_count=guest_count or 0,
         notes=notes,
-        score=100.0,
     )
     session.add(rsvp)
     session.flush()
