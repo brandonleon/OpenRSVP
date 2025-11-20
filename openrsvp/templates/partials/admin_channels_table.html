@@ -25,7 +25,11 @@
       </thead>
       <tbody>
         {% for channel in channels %}
+        {% if channel.visibility == 'private' %}
+        {% set channel_url = request.url_for('channel_page_private', slug=channel.slug) %}
+        {% else %}
         {% set channel_url = request.url_for('channel_page', slug=channel.slug) %}
+        {% endif %}
         <tr>
           <td><a href="{{ channel_url }}">{{ channel.name }}</a></td>
           <td><code>{{ channel.slug }}</code></td>

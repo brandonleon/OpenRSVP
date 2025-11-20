@@ -106,3 +106,54 @@ def test_event_admin_can_change_and_remove_channel(client):
     assert event.channel is None
     assert event.is_private is False
     session.close()
+
+
+def test_channel_routes_respect_visibility(client):
+    session = database.SessionLocal()
+    public_channel = ensure_channel(session, name="Public Lounge", visibility="public")
+    private_channel = ensure_channel(session, name="Secret Cellar", visibility="private")
+    session.commit()
+
+    public_response = client.get(f"/channel/{public_channel.slug}")
+    assert public_response.status_code == 200
+    assert f"{public_channel.name}" in public_response.text
+
+    public_on_private_route = client.get(f"/channel/p/{public_channel.slug}")
+    assert public_on_private_route.status_code == 404
+
+    private_response = client.get(f"/channel/p/{private_channel.slug}")
+    assert private_response.status_code == 200
+    assert f"{private_channel.name}" in private_response.text
+
+    private_on_public_route = client.get(f"/channel/{private_channel.slug}")
+    assert private_on_public_route.status_code == 404
+
+    session.close()
+
+
+def test_public_event_in_private_channel_hides_channel_on_event_page(client):
+    session = database.SessionLocal()
+    channel = ensure_channel(session, name="Hidden Den", visibility="private")
+    start = utcnow().replace(microsecond=0)
+    event = create_event(
+        session,
+        title="Open Jam",
+        description="Music night",
+        start_time=start,
+        end_time=None,
+        location="Basement",
+        channel=channel,
+        is_private=False,
+    )
+    session.commit()
+
+    event_page = client.get(f"/e/{event.id}")
+    assert event_page.status_code == 200
+    assert "Open Jam" in event_page.text
+    assert "Hidden Den" not in event_page.text
+
+    admin_page = client.get(f"/e/{event.id}/admin/{event.admin_token}")
+    assert admin_page.status_code == 200
+    assert "Hidden Den" in admin_page.text
+
+    session.close()

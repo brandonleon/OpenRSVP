@@ -45,17 +45,34 @@
           <div class="mb-3">
             <label class="form-label d-block">Channel Visibility</label>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-public" value="public" checked>
+              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-public" value="public" data-channel-visibility="create-channel" checked>
               <label class="form-check-label" for="channel-public">Public</label>
             </div>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-private" value="private">
+              <input class="form-check-input" type="radio" name="channel_visibility" id="channel-private" value="private" data-channel-visibility="create-channel">
               <label class="form-check-label" for="channel-private">Private</label>
+            </div>
+          </div>
+          <div class="alert alert-warning d-none" role="alert" data-channel-alert="create-channel">
+            <div class="fw-semibold">Private channels rely on link secrecy.</div>
+            <div class="small mb-0">
+              Pick a distinctive slug (group-city-venue-date), share only with trusted people, and copy the link exactly—there is no login or recovery. Inactive channels can purge automatically.
             </div>
           </div>
           <div class="form-check form-switch mb-4">
             <input class="form-check-input" type="checkbox" value="true" id="is-private" name="is_private">
             <label class="form-check-label" for="is-private">Private event (only accessible via direct link)</label>
+          </div>
+          <div
+            class="alert alert-info d-none"
+            role="alert"
+            data-channel-event-alert="create-channel"
+            data-event-private-toggle="#is-private"
+          >
+            <div class="fw-semibold">Private channel: event set to private by default.</div>
+            <div class="small mb-0">
+              We automatically mark the event private to match the channel. You can switch it back to public if you prefer; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
+            </div>
           </div>
           <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
             <a class="btn btn-outline-secondary" href="/">Cancel</a>

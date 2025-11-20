@@ -17,14 +17,16 @@
       <div>Duration: {{ event.start_time|duration(event.end_time) }}</div>
       {% endif %}
     </div>
-    {% if event.channel %}
+    {% if event.channel and not (not event.is_private and event.channel.visibility == 'private') %}
     <div class="mb-3">
       {% if event.channel.visibility == 'private' %}
+      {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
       <span class="badge bg-dark me-2">Private Channel</span>
       {% else %}
+      {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
       <span class="badge bg-primary me-2">Public Channel</span>
       {% endif %}
-      <a href="/channel/{{ event.channel.slug }}" class="fw-semibold text-decoration-none">{{ event.channel.name }}</a>
+      <a href="{{ channel_url }}" class="fw-semibold text-decoration-none">{{ event.channel.name }}</a>
     </div>
     {% endif %}
     {% if event.description %}

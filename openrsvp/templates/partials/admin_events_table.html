@@ -26,7 +26,11 @@
         {% set admin_url = request.url_for('event_admin', event_id=event.id, admin_token=event.admin_token) %}
         {% set event_url = request.url_for('event_page', event_id=event.id) %}
         {% if event.channel %}
+        {% if event.channel.visibility == 'private' %}
+        {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
+        {% else %}
         {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
+        {% endif %}
         {% else %}
         {% set channel_url = None %}
         {% endif %}

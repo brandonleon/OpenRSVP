@@ -421,6 +421,10 @@ def homepage(
         slug_channel = get_channel_by_slug(db, channel)
         if not slug_channel:
             raise HTTPException(status_code=404, detail="Channel not found")
+        if slug_channel.visibility == "private":
+            return RedirectResponse(
+                url=f"/channel/p/{slug_channel.slug}", status_code=303
+            )
         return RedirectResponse(url=f"/channel/{slug_channel.slug}", status_code=303)
     events, pagination = _paginate_visible_events(
         db,
@@ -926,16 +930,13 @@ def root_delete_event(
     return RedirectResponse(url=f"/admin/{root_token}", status_code=303)
 
 
-@app.get("/channel/{slug}")
-def channel_page(
-    slug: str,
+def _render_channel_page(
     request: Request,
-    page: int = Query(1, ge=1),
-    db: Session = Depends(get_db),
+    db: Session,
+    *,
+    channel: Channel,
+    page: int,
 ):
-    channel = get_channel_by_slug(db, slug)
-    if not channel:
-        raise HTTPException(status_code=404, detail="Channel not found")
     touch_channel(channel)
     db.add(channel)
     include_private = channel.visibility == "private"
@@ -956,6 +957,32 @@ def channel_page(
             "pagination": pagination,
         },
     )
+
+
+@app.get("/channel/{slug}")
+def channel_page(
+    slug: str,
+    request: Request,
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    channel = get_channel_by_slug(db, slug)
+    if not channel or channel.visibility != "public":
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return _render_channel_page(request, db, channel=channel, page=page)
+
+
+@app.get("/channel/p/{slug}")
+def channel_page_private(
+    slug: str,
+    request: Request,
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    channel = get_channel_by_slug(db, slug)
+    if not channel or channel.visibility != "private":
+        raise HTTPException(status_code=404, detail="Channel not found")
+    return _render_channel_page(request, db, channel=channel, page=page)
 
 
 @app.get("/help")

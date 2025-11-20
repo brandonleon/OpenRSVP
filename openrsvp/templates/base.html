@@ -57,11 +57,15 @@
       document.addEventListener("DOMContentLoaded", () => {
         updateTimezoneInputs();
         updateEventTimes();
+        initChannelVisibilityAlerts();
+        initChannelEventAlerts();
         setInterval(updateEventTimes, 60000);
       });
 
       document.addEventListener("htmx:afterSwap", () => {
         updateEventTimes();
+        initChannelVisibilityAlerts();
+        initChannelEventAlerts();
       });
 
       function updateTimezoneInputs() {
@@ -129,6 +133,55 @@
           }
         }
         return past ? "moments ago" : "in moments";
+      }
+
+      function initChannelVisibilityAlerts() {
+        document.querySelectorAll("[data-channel-alert]").forEach((alert) => {
+          const group = alert.getAttribute("data-channel-alert");
+          if (!group) return;
+          const inputs = document.querySelectorAll(`[data-channel-visibility='${group}']`);
+          if (!inputs.length) return;
+          const toggle = () => {
+            const active = Array.from(inputs).some(
+              (input) => input.checked && input.value === "private",
+            );
+            alert.classList.toggle("d-none", !active);
+          };
+          inputs.forEach((input) => input.addEventListener("change", toggle));
+          toggle();
+        });
+      }
+
+      function initChannelEventAlerts() {
+        document.querySelectorAll("[data-channel-event-alert]").forEach((alert) => {
+          const group = alert.getAttribute("data-channel-event-alert");
+          const toggleSelector = alert.getAttribute("data-event-private-toggle");
+          if (!group || !toggleSelector) return;
+          const visibilityInputs = document.querySelectorAll(
+            `[data-channel-visibility='${group}']`,
+          );
+          const privateToggle = document.querySelector(toggleSelector);
+          if (!visibilityInputs.length || !privateToggle) return;
+          let userOverride = false;
+          const update = () => {
+            const channelIsPrivate = Array.from(visibilityInputs).some(
+              (input) => input.checked && input.value === "private",
+            );
+            const eventIsPrivate = privateToggle.checked;
+            if (channelIsPrivate && !eventIsPrivate && !userOverride) {
+              privateToggle.checked = true;
+            }
+            const shouldShow = channelIsPrivate;
+            alert.classList.toggle("d-none", !shouldShow);
+            userOverride = false;
+          };
+          visibilityInputs.forEach((input) => input.addEventListener("change", () => update()));
+          privateToggle.addEventListener("change", () => {
+            userOverride = true;
+            update();
+          });
+          update();
+        });
       }
     </script>
   </body>

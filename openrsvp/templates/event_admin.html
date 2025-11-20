@@ -59,7 +59,12 @@
                 placeholder="Pick or type a channel"
               >
               {% if event.channel %}
-              <a class="btn btn-outline-primary" href="/channel/{{ event.channel.slug }}">View channel</a>
+              {% if event.channel.visibility == 'private' %}
+              {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
+              {% else %}
+              {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
+              {% endif %}
+              <a class="btn btn-outline-primary" href="{{ channel_url }}">View channel</a>
               {% endif %}
             </div>
             <div class="form-text">Private channels never appear in this list—type them manually.</div>
@@ -76,12 +81,29 @@
             <label class="form-label d-block">Channel Visibility</label>
             {% set current_visibility = event.channel.visibility if event.channel else 'public' %}
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-public" value="public" {% if current_visibility == 'public' %}checked{% endif %}>
+              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-public" value="public" data-channel-visibility="admin-channel" {% if current_visibility == 'public' %}checked{% endif %}>
               <label class="form-check-label" for="admin-channel-public">Public</label>
             </div>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-private" value="private" {% if current_visibility == 'private' %}checked{% endif %}>
+              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-private" value="private" data-channel-visibility="admin-channel" {% if current_visibility == 'private' %}checked{% endif %}>
               <label class="form-check-label" for="admin-channel-private">Private</label>
+            </div>
+          </div>
+          <div class="alert alert-warning {% if current_visibility != 'private' %}d-none{% endif %}" role="alert" data-channel-alert="admin-channel">
+            <div class="fw-semibold">Private channels rely on link secrecy.</div>
+            <div class="small mb-0">
+              Use a distinctive slug, share it only with trusted people, and keep the full link—there is no login or recovery. Inactive private channels can purge automatically.
+            </div>
+          </div>
+          <div
+            class="alert alert-info {% if current_visibility != 'private' %}d-none{% endif %}"
+            role="alert"
+            data-channel-event-alert="admin-channel"
+            data-event-private-toggle="#admin-private"
+          >
+            <div class="fw-semibold">Private channel: event set to private by default.</div>
+            <div class="small mb-0">
+              We set the event to private when the channel is private. You can switch it back to public if needed; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
             </div>
           </div>
           <div class="form-check form-switch mb-3">
