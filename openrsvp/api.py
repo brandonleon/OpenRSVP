@@ -362,7 +362,7 @@ def _paginate_visible_events(
     )
 
 
-def _paginate_events(db: Session, *, page: int, query: str | None):
+def _paginate_events(db: Session, *, page: int, query: str | None, include_rsvps: bool = False):
     clause = _event_search_clause(query)
     filters = [clause] if clause is not None else []
     return paginate_events(
@@ -373,7 +373,7 @@ def _paginate_events(db: Session, *, page: int, query: str | None):
         page=page,
         include_query=True,
         query=query,
-        include_rsvps=True,
+        include_rsvps=include_rsvps,
     )
 
 
@@ -771,6 +771,24 @@ def save_event_admin(
     )
 
 
+@app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_token}/delete")
+def delete_rsvp_admin(
+    event_id: str,
+    admin_token: str,
+    rsvp_token: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    if event.admin_token != admin_token:
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+    rsvp = _ensure_rsvp(db, event, rsvp_token)
+    db.delete(rsvp)
+    return RedirectResponse(
+        url=f"/e/{event.id}/admin/{event.admin_token}", status_code=303
+    )
+
+
 @app.post("/e/{event_id}/admin/{admin_token}/delete")
 def delete_event(
     event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
@@ -792,7 +810,7 @@ def root_admin(
 ):
     _require_root_access(root_token)
     channels = _fetch_channels(db, query=None)
-    events, pagination = _paginate_events(db, page=page, query=None)
+    events, pagination = _paginate_events(db, page=page, query=None, include_rsvps=True)
     return templates.TemplateResponse(
         request,
         "root_admin.html",
@@ -837,7 +855,12 @@ def root_admin_events(
     db: Session = Depends(get_db),
 ):
     _require_root_access(root_token)
-    events, pagination = _paginate_events(db, page=page, query=q)
+    events, pagination = _paginate_events(
+        db,
+        page=page,
+        query=q,
+        include_rsvps=True,
+    )
     return templates.TemplateResponse(
         request,
         "partials/admin_events_table.html",

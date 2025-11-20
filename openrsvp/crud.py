@@ -135,11 +135,14 @@ def create_rsvp(
     guest_count: int | None,
     notes: str | None,
 ) -> RSVP:
+    normalized_status = (status or "").strip().lower() or "yes"
+    if normalized_status not in {"yes", "no", "maybe"}:
+        normalized_status = "maybe"
     rsvp = RSVP(
         event=event,
         rsvp_token=secrets.token_urlsafe(32),
         name=name,
-        status=status,
+        status=normalized_status,
         pronouns=pronouns,
         guest_count=guest_count or 0,
         notes=notes,
@@ -159,8 +162,11 @@ def update_rsvp(
     guest_count: int | None,
     notes: str | None,
 ) -> RSVP:
+    normalized_status = (status or "").strip().lower() or "yes"
+    if normalized_status not in {"yes", "no", "maybe"}:
+        normalized_status = "maybe"
     rsvp.name = name
-    rsvp.status = status
+    rsvp.status = normalized_status
     rsvp.pronouns = pronouns
     rsvp.guest_count = min(max(guest_count or 0, 0), 5)
     rsvp.notes = notes

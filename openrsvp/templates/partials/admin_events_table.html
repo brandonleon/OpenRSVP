@@ -15,7 +15,8 @@
           <th scope="col">Timeline</th>
           <th scope="col">Visibility</th>
           <th scope="col">Channel</th>
-          <th scope="col">RSVPs</th>
+          <th scope="col">Yes</th>
+          <th scope="col">Maybe</th>
           <th scope="col">Score</th>
           <th scope="col">Actions</th>
         </tr>
@@ -29,6 +30,16 @@
         {% else %}
         {% set channel_url = None %}
         {% endif %}
+        {% set totals = namespace(yes=0, maybe=0) %}
+        {% for rsvp in event.rsvps %}
+          {% set status = (rsvp.status or '').lower() %}
+          {% set party_size = (rsvp.guest_count or 0) + 1 %}
+          {% if status == 'yes' %}
+            {% set totals.yes = totals.yes + party_size %}
+          {% elif status == 'maybe' %}
+            {% set totals.maybe = totals.maybe + party_size %}
+          {% endif %}
+        {% endfor %}
         <tr>
           <td>
             <div class="fw-semibold">{{ event.title }}</div>
@@ -61,7 +72,8 @@
               <span class="text-muted">&mdash;</span>
             {% endif %}
           </td>
-          <td>{{ event.rsvps|length }}</td>
+          <td>{{ totals.yes }}</td>
+          <td>{{ totals.maybe }}</td>
           <td>{{ '%.2f'|format(event.score) }}</td>
           <td>
             <div class="d-flex flex-wrap gap-2">
