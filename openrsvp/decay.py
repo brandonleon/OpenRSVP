@@ -11,7 +11,8 @@ from .config import settings
 from .database import engine, get_session
 from .models import Channel, Event
 
-logger = logging.getLogger(__name__)
+# Use uvicorn's error logger so decay messages show up with level prefixes.
+logger = logging.getLogger("uvicorn.error")
 
 DECAY_BATCH_SIZE = 200
 
@@ -45,6 +46,13 @@ def run_decay_cycle() -> dict:
     }
     now = datetime.now(timezone.utc)
     decay_cutoff = now - timedelta(days=settings.delete_after_days)
+
+    logger.info(
+        "Decay cycle started (decay_factor=%.4f, delete_threshold=%.4f, delete_after_days=%d)",
+        settings.decay_factor,
+        settings.delete_threshold,
+        settings.delete_after_days,
+    )
 
     with get_session() as session:
         active_events_filter = or_(
@@ -84,27 +92,34 @@ def run_decay_cycle() -> dict:
                 elapsed_days = _elapsed_days(last_touch, now)
                 if elapsed_days <= 0:
                     continue
+                previous_score = event.score
                 event.score = event.score * math.pow(
                     settings.decay_factor, elapsed_days
                 )
                 event.last_modified = now
                 session.add(event)
+                logger.info(
+                    "Decayed event %s (%s): score %.4f -> %.4f after %.2f days",
+                    event.id,
+                    event.title,
+                    previous_score,
+                    event.score,
+                    elapsed_days,
+                )
                 stats["events_updated"] += 1
-                for rsvp in list(event.rsvps):
-                    rsvp_elapsed = _elapsed_days(
-                        rsvp.last_modified or rsvp.created_at, now
-                    )
-                    if rsvp_elapsed > 0:
-                        rsvp.score = rsvp.score * math.pow(
-                            settings.decay_factor, rsvp_elapsed
-                        )
-                        rsvp.last_modified = now
-                        session.add(rsvp)
+                # RSVPs inherit lifecycle from their event; we avoid per-RSVP decay to reduce churn.
                 age_days = _elapsed_days(event.created_at, now)
                 if (
                     event.score <= settings.delete_threshold
                     and age_days >= settings.delete_after_days
                 ):
+                    logger.info(
+                        "Deleting event %s (%s): score %.4f age %.2f days",
+                        event.id,
+                        event.title,
+                        event.score,
+                        age_days,
+                    )
                     session.delete(event)
                     stats["events_deleted"] += 1
 
@@ -131,6 +146,11 @@ def run_decay_cycle() -> dict:
             if not deletion_batch:
                 break
             for event in deletion_batch:
+                logger.info(
+                    "Deleting event %s (%s) below threshold with no prior decay pass",
+                    event.id,
+                    event.title,
+                )
                 session.delete(event)
                 stats["events_deleted"] += 1
             last_event_seen = (deletion_batch[-1].created_at, deletion_batch[-1].id)
@@ -175,12 +195,27 @@ def run_decay_cycle() -> dict:
                 elapsed_days = _elapsed_days(last_touch, now)
                 if elapsed_days <= 0:
                     continue
+                previous_score = channel.score
                 channel.score = channel.score * math.pow(
                     settings.decay_factor, elapsed_days
                 )
                 session.add(channel)
+                logger.info(
+                    "Decayed channel %s (%s): score %.4f -> %.4f after %.2f days",
+                    channel.id,
+                    channel.name,
+                    previous_score,
+                    channel.score,
+                    elapsed_days,
+                )
                 stats["channels_updated"] += 1
                 if channel.score <= settings.delete_threshold and not channel.events:
+                    logger.info(
+                        "Deleting channel %s (%s): score %.4f (empty)",
+                        channel.id,
+                        channel.name,
+                        channel.score,
+                    )
                     session.delete(channel)
                     stats["channels_deleted"] += 1
 
@@ -208,6 +243,11 @@ def run_decay_cycle() -> dict:
                 break
             for channel in deletion_batch:
                 if channel.score <= settings.delete_threshold and not channel.events:
+                    logger.info(
+                        "Deleting channel %s (%s) below threshold (empty)",
+                        channel.id,
+                        channel.name,
+                    )
                     session.delete(channel)
                     stats["channels_deleted"] += 1
             last_channel_seen = (

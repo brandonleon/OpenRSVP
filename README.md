@@ -60,6 +60,19 @@ FastAPI and the decay scheduler.
 For guidance and safety tips, share `http://localhost:8000/help` (or the
 deployed host) with event creators.
 
+## Manual Decay & Vacuum
+
+The Typer CLI exposes the decay cycle so you can trigger cleanup jobs outside
+of the scheduler:
+
+```bash
+openrsvp decay          # decay without vacuum
+openrsvp decay --vacuum # decay followed by SQLite VACUUM
+```
+
+`--vacuum` is useful after large data churn or manual deletions, since VACUUM
+reclaims disk space at the cost of briefly locking the database.
+
 ## Generating Fake Data
 
 For local testing you can seed the SQLite database with synthetic channels,

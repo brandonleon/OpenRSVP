@@ -6,7 +6,7 @@ import typer
 import uvicorn
 
 from .config import settings
-from .decay import run_decay_cycle
+from .decay import run_decay_cycle, vacuum_database
 from .scheduler import start_scheduler, stop_scheduler
 from .seed import seed_fake_data
 from .storage import fetch_root_token, init_db, rotate_root_token
@@ -31,11 +31,20 @@ def rotate_admin_token() -> None:
 
 
 @app.command("decay")
-def decay() -> None:
+def decay(
+    vacuum: bool = typer.Option(
+        False,
+        "--vacuum",
+        help="Run SQLite VACUUM after decay completes",
+    )
+) -> None:
     """Run the decay cycle manually."""
     init_db()
     stats = run_decay_cycle()
     typer.echo(f"Decay complete: {stats}")
+    if vacuum:
+        vacuum_database()
+        typer.echo("Database vacuum complete.")
 
 
 @app.command("runserver")
