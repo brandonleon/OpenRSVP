@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from configparser import ConfigParser
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 import html
 import re
@@ -16,6 +16,12 @@ _link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _bold_pattern = re.compile(r"\*\*(.+?)\*\*")
 _italic_pattern = re.compile(r"(?<!\*)\*(?!\*)([^*]+?)(?<!\*)\*(?!\*)")
 _code_pattern = re.compile(r"`([^`]+)`")
+
+
+def utcnow() -> datetime:
+    """Return a naive UTC datetime."""
+
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def slugify(value: str) -> str:
@@ -106,10 +112,13 @@ def render_markdown(value: str | None) -> Markup:
             blocks.append(f"<h{level}>{_render_inline(content)}</h{level}>")
             continue
 
-        if stripped.startswith(">"):
+        normalized_line = stripped
+        if stripped.startswith("&gt;"):
+            normalized_line = f">{stripped[4:]}"
+        if normalized_line.startswith(">"):
             flush_paragraph()
             flush_list()
-            content = stripped.lstrip(">").strip()
+            content = normalized_line.lstrip(">").strip()
             blocks.append(f"<blockquote>{_render_inline(content)}</blockquote>")
             continue
 
@@ -130,7 +139,7 @@ def humanize_time(value: datetime | None, *, now: datetime | None = None) -> str
     """Return a friendly string such as 'in 2 weeks' or '3 hours ago'."""
     if not value:
         return ""
-    now = now or datetime.utcnow()
+    now = now or utcnow()
     delta_seconds = (value - now).total_seconds()
     past = delta_seconds < 0
     seconds = abs(delta_seconds)

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -30,11 +32,29 @@ from .database import SessionLocal
 from .models import Channel, Event, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
-from .utils import duration_between, get_repo_url, humanize_time, render_markdown
+from .utils import (
+    duration_between,
+    get_repo_url,
+    humanize_time,
+    render_markdown,
+    utcnow,
+)
 
-logger = logging.getLogger(__name__)
+# Use uvicorn's error logger so messages get the level prefix in the default log
+# format (needed for downstream filtering like Loki).
+logger = logging.getLogger("uvicorn.error")
 
-app = FastAPI(title="OpenRSVP", version="0.1")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    start_scheduler()
+    try:
+        yield
+    finally:
+        stop_scheduler()
+
+
+app = FastAPI(title="OpenRSVP", version="0.1", lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 templates.env.globals["app_version"] = app.version
 templates.env.globals["repo_url"] = get_repo_url()
@@ -86,7 +106,9 @@ def _render_error(request: Request, status_code: int, message: str | None):
         "message": None,
         "error_message": message or "Something went wrong.",
     }
-    return templates.TemplateResponse("error.html", context, status_code=status_code)
+    return templates.TemplateResponse(
+        request, "error.html", context, status_code=status_code
+    )
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -96,6 +118,32 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
     detail = exc.detail if isinstance(exc.detail, str) else "Something went wrong."
     return _render_error(request, exc.status_code, detail)
+
+
+@app.exception_handler(OperationalError)
+async def operational_error_handler(request: Request, exc: OperationalError):
+    raw = str(exc.orig) if getattr(exc, "orig", None) else str(exc)
+    lower = raw.lower()
+    if "database is locked" in lower:
+        logger.error(
+            "SQLite database is locked while handling %s %s",
+            request.method,
+            request.url.path,
+        )
+        detail = "The database is busy at the moment. Please wait a few seconds and try again."
+        status = 503
+    else:
+        logger.error(
+            "Operational database error on %s %s: %s",
+            request.method,
+            request.url.path,
+            raw,
+        )
+        detail = "We hit a database issue. Please try again."
+        status = 500
+    if _wants_json(request):
+        return JSONResponse({"detail": detail}, status_code=status)
+    return _render_error(request, status, detail)
 
 
 @app.exception_handler(RequestValidationError)
@@ -290,7 +338,7 @@ def _paginate_visible_events(
     page: int,
     per_page: int = EVENTS_PER_PAGE,
 ):
-    now = datetime.utcnow()
+    now = utcnow()
     filters = _visible_event_filters(
         include_private=include_private,
         channel_id=channel_id,
@@ -320,17 +368,6 @@ def _paginate_events(db: Session, *, page: int, query: str | None):
     )
 
 
-@app.on_event("startup")
-def on_startup() -> None:
-    init_db()
-    start_scheduler()
-
-
-@app.on_event("shutdown")
-def on_shutdown() -> None:
-    stop_scheduler()
-
-
 @app.get("/")
 def homepage(
     request: Request,
@@ -352,6 +389,7 @@ def homepage(
     )
     public_channels = get_public_channels(db)
     return templates.TemplateResponse(
+        request,
         "home.html",
         {
             "request": request,
@@ -366,6 +404,7 @@ def homepage(
 def event_create_page(request: Request, db: Session = Depends(get_db)):
     public_channels = get_public_channels(db)
     return templates.TemplateResponse(
+        request,
         "event_create.html",
         {
             "request": request,
@@ -398,6 +437,7 @@ def submit_event(
             )
         except ValueError as exc:
             return templates.TemplateResponse(
+                request,
                 "event_create.html",
                 {
                     "request": request,
@@ -415,6 +455,7 @@ def submit_event(
         normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
         if normalized_end <= normalized_start:
             return templates.TemplateResponse(
+                request,
                 "event_create.html",
                 {
                     "request": request,
@@ -435,6 +476,7 @@ def submit_event(
         is_private=is_private,
     )
     return templates.TemplateResponse(
+        request,
         "event_created.html",
         {
             "request": request,
@@ -448,13 +490,14 @@ def submit_event(
 @app.get("/e/{event_id}")
 def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
-    event.last_accessed = datetime.utcnow()
+    event.last_accessed = utcnow()
     db.add(event)
     if event.channel:
         touch_channel(event.channel)
         db.add(event.channel)
     rsvps = list(event.rsvps)
     return templates.TemplateResponse(
+        request,
         "event.html",
         {"request": request, "event": event, "rsvps": rsvps},
     )
@@ -463,10 +506,7 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
 @app.get("/e/{event_id}/rsvp")
 def rsvp_form(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
-    return templates.TemplateResponse(
-        "rsvp_form.html",
-        {"request": request, "event": event},
-    )
+    return templates.TemplateResponse(request, "rsvp_form.html", {"request": request, "event": event})
 
 
 @app.post("/e/{event_id}/rsvp")
@@ -492,6 +532,7 @@ def create_rsvp_view(
         notes=notes,
     )
     return templates.TemplateResponse(
+        request,
         "rsvp_created.html",
         {
             "request": request,
@@ -509,8 +550,7 @@ def edit_rsvp(
     event = _ensure_event(db, event_id)
     rsvp = _ensure_rsvp(db, event, rsvp_token)
     return templates.TemplateResponse(
-        "rsvp_edit.html",
-        {"request": request, "event": event, "rsvp": rsvp},
+        request, "rsvp_edit.html", {"request": request, "event": event, "rsvp": rsvp}
     )
 
 
@@ -539,6 +579,7 @@ def save_rsvp(
         notes=notes,
     )
     return templates.TemplateResponse(
+        request,
         "rsvp_edit.html",
         {
             "request": request,
@@ -558,12 +599,15 @@ def event_admin(
     if event.admin_token != admin_token:
         raise HTTPException(status_code=403, detail="Invalid admin token")
     rsvps = list(event.rsvps)
+    public_channels = get_public_channels(db)
     return templates.TemplateResponse(
+        request,
         "event_admin.html",
         {
             "request": request,
             "event": event,
             "rsvps": rsvps,
+            "public_channels": public_channels,
         },
     )
 
@@ -577,6 +621,8 @@ def save_event_admin(
     description: str | None = Form(None),
     start_time: str = Form(...),
     location: str | None = Form(None),
+    channel_name: str | None = Form(None),
+    channel_visibility: str = Form("public"),
     is_private: bool = Form(False),
     end_time: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
@@ -593,18 +639,46 @@ def save_event_admin(
         normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
         if normalized_end <= normalized_start:
             rsvps = list(event.rsvps)
+            public_channels = get_public_channels(db)
             return templates.TemplateResponse(
+                request,
                 "event_admin.html",
                 {
                     "request": request,
                     "event": event,
                     "rsvps": rsvps,
+                    "public_channels": public_channels,
                     "message": "End time must be after the start time.",
                     "message_class": "alert-danger",
                 },
                 status_code=400,
             )
-    update_event(
+    cleaned_channel_name = channel_name.strip() if channel_name else ""
+    public_channels = get_public_channels(db)
+    channel = event.channel
+    if cleaned_channel_name:
+        try:
+            channel = ensure_channel(
+                db, name=cleaned_channel_name, visibility=channel_visibility
+            )
+        except ValueError as exc:
+            rsvps = list(event.rsvps)
+            return templates.TemplateResponse(
+                request,
+                "event_admin.html",
+                {
+                    "request": request,
+                    "event": event,
+                    "rsvps": rsvps,
+                    "public_channels": public_channels,
+                    "message": _channel_error_message(str(exc)),
+                    "message_class": "alert-danger",
+                },
+                status_code=400,
+            )
+    else:
+        channel = None
+    event = update_event(
         db,
         event,
         title=title,
@@ -612,16 +686,18 @@ def save_event_admin(
         start_time=normalized_start,
         end_time=normalized_end,
         location=location,
-        channel=event.channel,
+        channel=channel,
         is_private=is_private,
     )
     rsvps = list(event.rsvps)
     return templates.TemplateResponse(
+        request,
         "event_admin.html",
         {
             "request": request,
             "event": event,
             "rsvps": rsvps,
+            "public_channels": public_channels,
             "message": "Event updated",
             "message_class": "alert-success",
         },
@@ -637,8 +713,7 @@ def delete_event(
         raise HTTPException(status_code=403, detail="Invalid admin token")
     db.delete(event)
     return templates.TemplateResponse(
-        "event_deleted.html",
-        {"request": request, "event_id": event_id},
+        request, "event_deleted.html", {"request": request, "event_id": event_id}
     )
 
 
@@ -653,6 +728,7 @@ def root_admin(
     channels = _fetch_channels(db, query=None)
     events, pagination = _paginate_events(db, page=page, query=None)
     return templates.TemplateResponse(
+        request,
         "root_admin.html",
         {
             "request": request,
@@ -676,6 +752,7 @@ def root_admin_channels(
     _require_root_access(root_token)
     channels = _fetch_channels(db, query=q)
     return templates.TemplateResponse(
+        request,
         "partials/admin_channels_table.html",
         {
             "request": request,
@@ -696,6 +773,7 @@ def root_admin_events(
     _require_root_access(root_token)
     events, pagination = _paginate_events(db, page=page, query=q)
     return templates.TemplateResponse(
+        request,
         "partials/admin_events_table.html",
         {
             "request": request,
@@ -738,6 +816,7 @@ def channel_page(
         per_page=EVENTS_PER_PAGE,
     )
     return templates.TemplateResponse(
+        request,
         "channel.html",
         {
             "request": request,
@@ -750,4 +829,4 @@ def channel_page(
 
 @app.get("/help")
 def help_page(request: Request):
-    return templates.TemplateResponse("help.html", {"request": request})
+    return templates.TemplateResponse(request, "help.html", {"request": request})
