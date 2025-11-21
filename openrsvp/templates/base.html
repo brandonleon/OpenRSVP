@@ -6,14 +6,20 @@
     <title>{{ title or "OpenRSVP" }}</title>
     <script>
       (() => {
+        const THEMES = ["latte", "mocha", "frappe", "macchiato"];
+        const STORAGE_KEY = "openrsvp-theme";
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+        const fallback = prefersDark.matches ? "mocha" : "latte";
+        let theme = fallback;
         try {
-          const savedTheme = localStorage.getItem("openrsvp-theme");
-          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          const theme = savedTheme || (prefersDark ? "dark" : "light");
-          document.documentElement.dataset.theme = theme;
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved && THEMES.includes(saved)) {
+            theme = saved;
+          }
         } catch (error) {
-          document.documentElement.dataset.theme = "light";
+          theme = fallback;
         }
+        document.documentElement.dataset.theme = theme;
       })();
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +28,32 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
       :root {
+        color-scheme: light;
+        --bg: #f4f4f7;
+        --bg-soft: #e6e9ef;
+        --surface: #ffffff;
+        --surface-muted: #e6e9ef;
+        --surface-strong: #dce0e8;
+        --surface-hover: #f3f4f7;
+        --border-soft: #ccd0da;
+        --text: #4c4f69;
+        --text-muted: #6c6f85;
+        --accent: #1e66f5;
+        --accent-strong: #8839ef;
+        --accent-soft: rgba(30, 102, 245, 0.14);
+        --nav-1: #1e66f5;
+        --nav-2: #8839ef;
+        --nav-3: #dc8a78;
+        --hero-1: #1e66f5;
+        --hero-2: #8839ef;
+        --hero-3: #4c4f69;
+        --shadow-strong: rgba(17, 17, 27, 0.16);
+        --input-bg: #ffffff;
+        --input-border: #cdd0da;
+        --badge-soft-fg: #4c4f69;
+      }
+
+      [data-theme="latte"] {
         color-scheme: light;
         --bg: #eff1f5;
         --bg-soft: #e6e9ef;
@@ -47,7 +79,7 @@
         --badge-soft-fg: #4c4f69;
       }
 
-      [data-theme="dark"] {
+      [data-theme="mocha"] {
         color-scheme: dark;
         --bg: #11111b;
         --bg-soft: #181825;
@@ -71,6 +103,58 @@
         --input-bg: #181825;
         --input-border: #45475a;
         --badge-soft-fg: #cdd6f4;
+      }
+
+      [data-theme="frappe"] {
+        color-scheme: dark;
+        --bg: #232634;
+        --bg-soft: #292c3c;
+        --surface: #303446;
+        --surface-muted: #292c3c;
+        --surface-strong: #414559;
+        --surface-hover: #34384a;
+        --border-soft: #51576d;
+        --text: #c6d0f5;
+        --text-muted: #a5adce;
+        --accent: #8caaee;
+        --accent-strong: #ca9ee6;
+        --accent-soft: rgba(140, 170, 238, 0.2);
+        --nav-1: #232634;
+        --nav-2: #292c3c;
+        --nav-3: #303446;
+        --hero-1: #303446;
+        --hero-2: #292c3c;
+        --hero-3: #1f2232;
+        --shadow-strong: rgba(0, 0, 0, 0.3);
+        --input-bg: #292c3c;
+        --input-border: #51576d;
+        --badge-soft-fg: #c6d0f5;
+      }
+
+      [data-theme="macchiato"] {
+        color-scheme: dark;
+        --bg: #181926;
+        --bg-soft: #1e2030;
+        --surface: #24273a;
+        --surface-muted: #1e2030;
+        --surface-strong: #363a4f;
+        --surface-hover: #2a2f45;
+        --border-soft: #494d64;
+        --text: #cad3f5;
+        --text-muted: #a5adcb;
+        --accent: #8aadf4;
+        --accent-strong: #c6a0f6;
+        --accent-soft: rgba(138, 173, 244, 0.18);
+        --nav-1: #181926;
+        --nav-2: #1e2030;
+        --nav-3: #24273a;
+        --hero-1: #24273a;
+        --hero-2: #1e2030;
+        --hero-3: #161724;
+        --shadow-strong: rgba(0, 0, 0, 0.32);
+        --input-bg: #1e2030;
+        --input-border: #494d64;
+        --badge-soft-fg: #cad3f5;
       }
 
       body {
@@ -99,6 +183,10 @@
         background: var(--surface);
         border-color: var(--border-soft);
         box-shadow: 0 8px 32px var(--shadow-strong);
+        --bs-dropdown-link-color: var(--text);
+        --bs-dropdown-link-hover-color: var(--text);
+        --bs-dropdown-link-hover-bg: var(--surface-hover);
+        --bs-dropdown-link-active-bg: var(--accent-soft);
       }
 
       .hero-panel {
@@ -164,6 +252,19 @@
         border-top-color: var(--border-soft);
       }
 
+      .list-group-item-action:hover,
+      .list-group-item-action:focus {
+        background: var(--surface-hover);
+        color: var(--text);
+        border-color: var(--border-soft);
+      }
+
+      .list-group-item-action:active {
+        background: var(--surface-strong);
+        color: var(--text);
+        border-color: var(--border-soft);
+      }
+
       .form-control,
       .form-select {
         background: var(--input-bg);
@@ -177,8 +278,12 @@
         box-shadow: 0 0 0 0.2rem rgba(30, 102, 245, 0.15);
       }
 
-      [data-theme="dark"] .form-control:focus,
-      [data-theme="dark"] .form-select:focus {
+      [data-theme="mocha"] .form-control:focus,
+      [data-theme="frappe"] .form-control:focus,
+      [data-theme="macchiato"] .form-control:focus,
+      [data-theme="mocha"] .form-select:focus,
+      [data-theme="frappe"] .form-select:focus,
+      [data-theme="macchiato"] .form-select:focus {
         box-shadow: 0 0 0 0.2rem rgba(137, 180, 250, 0.18);
       }
 
@@ -236,6 +341,16 @@
         border-color: var(--accent);
       }
 
+      .dropdown-item.theme-option {
+        border-radius: 0.75rem;
+      }
+
+      .dropdown-item.theme-option.active,
+      .dropdown-item.theme-option:active {
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+
       footer.bg-dark {
         background: linear-gradient(135deg, var(--hero-3), var(--nav-2));
         color: #fff;
@@ -264,18 +379,28 @@
               <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="preferencesMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="d-none d-md-inline">Preferences</span>
                 <span class="d-md-none">Prefs</span>
-                <span class="badge badge-soft text-uppercase small" id="theme-badge">Light</span>
+                <span class="badge badge-soft text-uppercase small" id="theme-badge">Latte</span>
               </a>
-              <div class="dropdown-menu dropdown-menu-end p-3 shadow-lg border-0" aria-labelledby="preferencesMenu">
-                <div class="d-flex align-items-center justify-content-between gap-3">
-                  <div>
-                    <div class="fw-semibold">Theme</div>
-                    <div class="text-muted small">Catppuccin Latte / Mocha</div>
-                  </div>
-                  <div class="form-check form-switch mb-0">
-                    <input class="form-check-input" type="checkbox" role="switch" id="theme-toggle">
-                    <label class="form-check-label small" for="theme-toggle" id="theme-label">Dark</label>
-                  </div>
+              <div class="dropdown-menu dropdown-menu-end p-3 shadow-lg border-0" aria-labelledby="preferencesMenu" style="min-width: 240px;">
+                <div class="fw-semibold mb-2">Theme</div>
+                <div class="text-muted small mb-3">Catppuccin palettes (light + dark)</div>
+                <div class="d-flex flex-column gap-1">
+                  <button type="button" class="dropdown-item theme-option d-flex justify-content-between align-items-center" data-theme-option="latte">
+                    <span>Latte</span>
+                    <span class="badge bg-light text-dark">Light</span>
+                  </button>
+                  <button type="button" class="dropdown-item theme-option d-flex justify-content-between align-items-center" data-theme-option="mocha">
+                    <span>Mocha</span>
+                    <span class="badge bg-secondary">Dark</span>
+                  </button>
+                  <button type="button" class="dropdown-item theme-option d-flex justify-content-between align-items-center" data-theme-option="frappe">
+                    <span>Frapp&eacute;</span>
+                    <span class="badge bg-secondary">Dark</span>
+                  </button>
+                  <button type="button" class="dropdown-item theme-option d-flex justify-content-between align-items-center" data-theme-option="macchiato">
+                    <span>Macchiato</span>
+                    <span class="badge bg-secondary">Dark</span>
+                  </button>
                 </div>
               </div>
             </li>
@@ -310,10 +435,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       const THEME_STORAGE_KEY = "openrsvp-theme";
+      const THEME_OPTIONS = ["latte", "mocha", "frappe", "macchiato"];
 
       function safeGetStoredTheme() {
         try {
-          return localStorage.getItem(THEME_STORAGE_KEY);
+          const value = localStorage.getItem(THEME_STORAGE_KEY);
+          return THEME_OPTIONS.includes(value) ? value : null;
         } catch (error) {
           return null;
         }
@@ -327,8 +454,12 @@
         }
       }
 
+      function getSystemTheme() {
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "mocha" : "latte";
+      }
+
       function applyTheme(theme, persist = true) {
-        const normalized = theme === "dark" ? "dark" : "light";
+        const normalized = THEME_OPTIONS.includes(theme) ? theme : getSystemTheme();
         document.documentElement.dataset.theme = normalized;
         if (persist) {
           safeSetStoredTheme(normalized);
@@ -337,40 +468,41 @@
       }
 
       function updateThemeControls(theme) {
-        const toggle = document.getElementById("theme-toggle");
         const badge = document.getElementById("theme-badge");
-        const label = document.getElementById("theme-label");
-        if (toggle) {
-          toggle.checked = theme === "dark";
-        }
+        const formatted = theme ? `${theme.charAt(0).toUpperCase()}${theme.slice(1)}` : "";
         if (badge) {
-          badge.textContent = theme === "dark" ? "Dark" : "Light";
+          badge.textContent = formatted;
         }
-        if (label) {
-          label.textContent = theme === "dark" ? "Dark" : "Light";
-        }
+
+        document.querySelectorAll("[data-theme-option]").forEach((option) => {
+          const value = option.getAttribute("data-theme-option");
+          const active = value === theme;
+          option.classList.toggle("active", active);
+          option.setAttribute("aria-pressed", active ? "true" : "false");
+        });
       }
 
-      function initThemeToggle() {
+      function initThemeControls() {
         const savedTheme = safeGetStoredTheme();
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
-        const systemTheme = prefersDark.matches ? "dark" : "light";
+        const systemTheme = getSystemTheme();
         applyTheme(savedTheme || document.documentElement.dataset.theme || systemTheme, Boolean(savedTheme));
         prefersDark.addEventListener("change", (event) => {
           const stored = safeGetStoredTheme();
           if (stored) return;
-          applyTheme(event.matches ? "dark" : "light", false);
+          applyTheme(event.matches ? "mocha" : "latte", false);
         });
-        const toggle = document.getElementById("theme-toggle");
-        if (toggle) {
-          toggle.addEventListener("change", (event) => {
-            applyTheme(event.target.checked ? "dark" : "light");
+
+        document.querySelectorAll("[data-theme-option]").forEach((option) => {
+          option.addEventListener("click", () => {
+            const choice = option.getAttribute("data-theme-option");
+            applyTheme(choice);
           });
-        }
+        });
       }
 
       document.addEventListener("DOMContentLoaded", () => {
-        initThemeToggle();
+        initThemeControls();
         updateTimezoneInputs();
         updateEventTimes();
         initChannelVisibilityAlerts();
