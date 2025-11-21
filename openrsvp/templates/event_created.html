@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Event Created</h2>
 {% set admin_url = request.url_for('event_admin', event_id=event.id, admin_token=event.admin_token) %}
 {% set event_url = request.url_for('event_page', event_id=event.id) %}
 {% if event.channel %}
@@ -10,30 +9,36 @@
 {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
 {% endif %}
 {% endif %}
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Event created</p>
+      <h1 class="display-6 fw-semibold text-white mb-2">Save your links</h1>
+      <div class="text-secondary small">Admin stays private; share the public RSVP link with guests.</div>
+    </div>
+    <a class="btn btn-outline-light" href="/">Back to homepage</a>
+  </div>
+</section>
 <div class="row g-4">
   <div class="col-lg-6">
-    <div class="card border-warning">
-      <div class="card-body">
-        <h3 class="h5 text-warning">Private admin link</h3>
-        <p class="mb-2 small text-muted">Keep this secret. It grants full control over the event.</p>
-        <div class="alert alert-warning mb-3">
-          <a href="{{ admin_url }}">{{ admin_url }}</a>
-        </div>
-        <a class="btn btn-outline-primary w-100 mb-2" href="{{ admin_url }}">Open Admin Page</a>
-        <div class="small text-muted">Anyone with this link can delete or edit the event.</div>
+    <div class="p-4 card-flush rounded-3 shadow-sm h-100 border border-warning border-opacity-50">
+      <h3 class="h6 text-uppercase text-warning mb-2">Private admin link</h3>
+      <p class="small text-secondary">Keep this secret. It grants full control over the event.</p>
+      <div class="alert alert-warning mb-3">
+        <a href="{{ admin_url }}">{{ admin_url }}</a>
       </div>
+      <a class="btn btn-outline-light w-100 mb-2" href="{{ admin_url }}">Open Admin Page</a>
+      <div class="small text-secondary">Anyone with this link can delete or edit the event.</div>
     </div>
   </div>
   <div class="col-lg-6">
-    <div class="card border-success">
-      <div class="card-body">
-        <h3 class="h5 text-success">Public RSVP link</h3>
-        <p class="mb-2 small text-muted">Share this with guests so they can RSVP.</p>
-        <div class="alert alert-success mb-3">
-          <a href="{{ event_url }}">{{ event_url }}</a>
-        </div>
-        <a class="btn btn-success w-100" href="{{ event_url }}">View Event Page</a>
+    <div class="p-4 bg-white border rounded-3 shadow-sm h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Public RSVP link</h3>
+      <p class="small text-muted">Share this with guests so they can RSVP.</p>
+      <div class="alert alert-success mb-3">
+        <a href="{{ event_url }}">{{ event_url }}</a>
       </div>
+      <a class="btn btn-success w-100" href="{{ event_url }}">View Event Page</a>
     </div>
   </div>
 </div>

@@ -1,5 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Create event</p>
+      <h1 class="display-6 fw-semibold text-white mb-2">Spin up a new RSVP page</h1>
+      <div class="text-secondary small">Accountless, privacy-first, and ready to share with your crew.</div>
+    </div>
+    <a class="btn btn-outline-light" href="/">Back to events</a>
+  </div>
+</section>
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="mb-4 text-center">
@@ -35,7 +45,7 @@
           <div class="mb-3">
             <label class="form-label">Channel Name</label>
             <input type="text" name="channel_name" class="form-control" placeholder="Enter or pick a channel" list="public-channel-options">
-            <div class="form-text">Private channels never appear in this list—type them manually.</div>
+            <div class="form-text">Private channels never appear in this list—type them manually. Showing the top public options; type to search beyond the default suggestions.</div>
             <datalist id="public-channel-options">
               {% for channel in public_channels %}
               <option value="{{ channel.name }}"></option>

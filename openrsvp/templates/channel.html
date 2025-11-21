@@ -1,80 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-  <div class="col-lg-10 col-xl-8">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-      <div>
-        <h2 class="mb-1">{{ channel.name }}</h2>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge {% if channel.visibility == 'private' %}bg-dark{% else %}bg-primary{% endif %}">
-            {{ channel.visibility | capitalize }} channel
-          </span>
-          <span class="text-muted small">Page {{ pagination.page }} · {{ pagination.total_events }} events</span>
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
+  <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+    <div>
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Channel</p>
+      <h1 class="display-6 fw-semibold text-white mb-2">{{ channel.name }}</h1>
+      <div class="d-flex flex-wrap align-items-center gap-2 text-secondary">
+        <span class="badge {% if channel.visibility == 'private' %}badge-soft{% else %}bg-primary{% endif %} text-uppercase">
+          {{ channel.visibility }} channel
+        </span>
+        <span class="small">Page {{ pagination.page }} · {{ pagination.total_events }} events</span>
+      </div>
+    </div>
+    <a class="btn btn-outline-light" href="/">Back to homepage</a>
+  </div>
+</section>
+
+<div class="p-4 bg-white border rounded-3 shadow-sm">
+  {% if events %}
+  <div class="list-group list-group-flush">
+    {% for event in events %}
+    <div class="list-group-item px-0">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div>
+          <a class="fw-semibold text-decoration-none text-dark" href="/e/{{ event.id }}">{{ event.title }}</a>
+          <div class="text-muted small">{{ event.location or 'Location TBD' }}</div>
+        </div>
+        <div
+          class="text-end js-event-time"
+          data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+        >
+          <div class="fw-semibold js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
+          <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+          {% if event.end_time %}
+          <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
+          {% endif %}
+        </div>
+        <div class="text-end">
+          {% if event.is_private %}
+          <span class="badge bg-warning text-dark">Private</span>
+          {% else %}
+          <span class="badge bg-success">Public</span>
+          {% endif %}
         </div>
       </div>
-      <a class="btn btn-outline-secondary" href="/">Back to homepage</a>
     </div>
-    {% if events %}
-    <div class="table-responsive shadow-sm">
-      <table class="table table-striped align-middle mb-0">
-        <thead>
-          <tr>
-            <th scope="col">Event</th>
-            <th scope="col">Schedule</th>
-            <th scope="col">Visibility</th>
-            <th scope="col"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for event in events %}
-          <tr>
-            <td>{{ event.title }}</td>
-            <td>
-              <div
-                class="js-event-time"
-                data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
-              >
-                <div class="fw-semibold js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
-                <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
-                {% if event.end_time %}
-                <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
-                {% endif %}
-              </div>
-            </td>
-            <td>
-              {% if event.is_private %}
-              <span class="badge bg-warning text-dark">Private</span>
-              {% else %}
-              <span class="badge bg-success">Public</span>
-              {% endif %}
-            </td>
-            <td class="text-end">
-              <a class="btn btn-sm btn-outline-primary" href="/e/{{ event.id }}">View</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text-muted">No events currently live in this channel.</p>
-    {% endif %}
-
-    {% if pagination.total_pages > 1 %}
-    <nav class="mt-4" aria-label="Channel pagination">
-      <ul class="pagination mb-0">
-        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-          <a class="page-link" href="?page={{ pagination.prev_page or pagination.page }}">Previous</a>
-        </li>
-        <li class="page-item disabled">
-          <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
-        </li>
-        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-          <a class="page-link" href="?page={{ pagination.next_page or pagination.page }}">Next</a>
-        </li>
-      </ul>
-    </nav>
-    {% endif %}
+    {% endfor %}
   </div>
+  {% else %}
+  <p class="text-muted mb-0">No events currently live in this channel.</p>
+  {% endif %}
+
+  {% if pagination.total_pages > 1 %}
+  <nav class="mt-4" aria-label="Channel pagination">
+    <ul class="pagination mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ pagination.prev_page or pagination.page }}">Previous</a>
+      </li>
+      <li class="page-item disabled">
+        <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+      </li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="?page={{ pagination.next_page or pagination.page }}">Next</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
 </div>
 {% endblock %}

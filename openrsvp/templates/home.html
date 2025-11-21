@@ -1,14 +1,64 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+<section class="hero-panel p-4 p-md-5 rounded-4 text-white mb-4">
+  <div class="row align-items-center g-4 flex-lg-nowrap">
+    <div class="col-lg-7">
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Privacy-first RSVPs</p>
+      <h1 class="display-6 fw-semibold mb-3">OpenRSVP is a modern, accountless way to gather people.</h1>
+      <p class="mb-4 lead text-secondary">Built for small communities and pop-up events. Every capability is a single magic link, and stale data quietly decays on its own.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-light text-dark">No accounts or tracking</span>
+        <span class="badge bg-light text-dark">Magic-link admin + guest tokens</span>
+        <span class="badge bg-light text-dark">Automatic decay & cleanup</span>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="bg-dark border border-secondary rounded-3 p-4 h-100">
+        <h2 class="h5 text-white mb-3">Why hosts use OpenRSVP</h2>
+        <ul class="text-secondary small ps-3 mb-4">
+          <li>Share a single link with your group—no logins, emails, or tracking pixels.</li>
+          <li>Guests control their own RSVP; event owners cannot edit names or notes.</li>
+          <li>Events, RSVPs, and channels decay over time to reduce data footprint.</li>
+        </ul>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="/event/create">Create an event</a>
+          <a class="btn btn-outline-light" href="/help">See how it works</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Accountless</h3>
+      <p class="mb-0 text-secondary">Every action is gated by a capability token. No login walls, no stored emails.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Privacy-forward</h3>
+      <p class="mb-0 text-secondary">We collect only names, pronouns, RSVP status, guest count, and notes—nothing else.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Ephemeral by design</h3>
+      <p class="mb-0 text-secondary">Channels and events decay automatically; stale data fades without manual clean up.</p>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
   <div>
-    <h1 class="h3 mb-1">Latest Events</h1>
+    <h2 class="h4 mb-1">Latest Events</h2>
     <p class="text-muted mb-0">Newest events first · {{ pagination.total_events }} total</p>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
-    <form class="d-flex gap-2 align-items-center" method="get">
+    <form class="d-flex flex-wrap gap-2 align-items-center" method="get">
       <label class="form-label mb-0 text-uppercase small fw-semibold">Jump to channel</label>
-      <select name="channel" class="form-select form-select-sm" style="min-width: 200px;">
+      <select name="channel" class="form-select form-select-sm" style="min-width: 220px;">
         <option value="">All public channels</option>
         {% for channel in public_channels %}
         <option value="{{ channel.slug }}">{{ channel.name }}</option>
@@ -45,7 +95,23 @@
   {% endfor %}
   </div>
 {% else %}
-  <p class="text-muted">No visible events yet. Create one!</p>
+  <div class="p-4 bg-white border rounded-3 shadow-sm">
+    <div class="d-flex align-items-start gap-3 flex-wrap">
+      <div class="flex-grow-1">
+        <h3 class="h5 mb-2">No events… yet.</h3>
+        <p class="text-muted mb-3">Be the first to post something for your crew. OpenRSVP works great for pop-up meetups, cigar socials, or tight-knit community hangs where privacy matters.</p>
+        <ul class="text-muted small ps-3 mb-3">
+          <li>Host link stays private to you; guests manage their own RSVP.</li>
+          <li>Public channels for discovery; private slugs when you only invite who you trust.</li>
+          <li>Magic links only—no accounts, analytics, or email collection.</li>
+        </ul>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="/event/create">Create your first event</a>
+          <a class="btn btn-outline-secondary" href="/help">Learn the privacy model</a>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endif %}
 
 {% if pagination.total_pages > 1 %}

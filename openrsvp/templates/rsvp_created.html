@@ -1,13 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>RSVP Created</h2>
-<p class="lead">Save your personal magic link to manage this RSVP later:</p>
 {% set magic_url = request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) %}
-<div class="alert alert-warning">
-  <a href="{{ magic_url }}">{{ magic_url }}</a>
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">RSVP created</p>
+      <h1 class="display-6 fw-semibold text-white mb-2">Your magic link is ready</h1>
+      <div class="text-secondary small">Keep this link safe—it's the only way to edit or delete your RSVP.</div>
+    </div>
+    <a class="btn btn-outline-light" href="/e/{{ event.id }}">Back to event</a>
+  </div>
+</section>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8 col-xl-7">
+    <div class="p-4 bg-white border rounded-3 shadow-sm">
+      <div class="alert alert-warning mb-4">
+        <div class="fw-semibold mb-1">Your unique RSVP link</div>
+        <a href="{{ magic_url }}">{{ magic_url }}</a>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="{{ magic_url }}">Open your RSVP</a>
+        <a class="btn btn-outline-secondary" href="/e/{{ event.id }}">Back to event</a>
+      </div>
+    </div>
+  </div>
 </div>
-<p>
-  <a class="btn btn-outline-primary" href="{{ magic_url }}">Open your RSVP</a>
-  <a class="btn btn-secondary ms-2" href="/e/{{ event.id }}">Back to event</a>
-</p>
 {% endblock %}

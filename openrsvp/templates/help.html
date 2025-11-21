@@ -1,49 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-  <div class="col-lg-10 col-xl-8">
-    <h2>OpenRSVP Help</h2>
-    <p class="lead">Accountless events, magic links, and channel organization.</p>
-
-    <section class="mb-4">
-      <h3 class="h5">Creating Events</h3>
-      <ul>
-        <li>Channels are optional—events can stand alone or be grouped inside a <strong>channel</strong>. Pick a channel name that feels unique to your community if you want one.</li>
-        <li>Channel options appear as you type; selecting one reuses the existing channel. No login is required.</li>
-        <li>Private events remain hidden even when their channel is public.</li>
-      </ul>
-    </section>
-
-    <section class="mb-4">
-      <h3 class="h5">Public vs Private Channels</h3>
-      <p>Channels are lightweight collections of events:</p>
-      <ul>
-        <li><strong>Public channels</strong> show up on the homepage filter and have a public listing under <code>/channel/&lt;slug&gt;</code>.</li>
-        <li><strong>Private channels</strong> never appear in the UI. Only people with the link can view them at <code>/channel/p/&lt;slug&gt;</code>.</li>
-        <li>Private channels do not make private events public—visibility is per-event.</li>
-      </ul>
-    </section>
-
-    <section class="mb-4">
-      <h3 class="h5">Naming Tips & Warnings</h3>
-      <ul>
-        <li>Channel names are converted to slugs: letters are lowercased, accents are stripped to ASCII, and anything besides <code>a-z</code>/<code>0-9</code> turns into a single hyphen (edges trimmed).</li>
-        <li>Channel slugs are derived from the name. Using common words like “party” or “friends” increases the odds of collisions.</li>
-        <li>We recommend including location or community hints (e.g., “san-diego-cigar-social”).</li>
-        <li>Private channels rely purely on the slug—treat them like a shared secret.</li>
-      </ul>
-    </section>
-
-    <section class="mb-4">
-      <h3 class="h5">Safety & Privacy</h3>
-      <ul>
-        <li>No accounts or emails are stored. Keep your magic links private.</li>
-        <li>RSVP tokens are shown once after submission—save them if you’ll need to edit later.</li>
-        <li>Stale events and channels decay automatically; keep them active by sharing and visiting.</li>
-      </ul>
-    </section>
-
-    <p class="text-muted">Need more? Reach out to the event owner directly—OpenRSVP never stores contact info.</p>
+<section class="hero-panel p-4 p-md-5 rounded-4 text-white mb-4">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">How OpenRSVP Works</p>
+      <h1 class="display-6 fw-semibold mb-3">Magic links, zero accounts, privacy-kept events.</h1>
+      <p class="mb-4 lead text-secondary">OpenRSVP is designed for communities that want effortless invites without giving up control of their data.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="badge bg-light text-dark">Capability tokens only</span>
+        <span class="badge bg-light text-dark">Hosts can’t edit guest RSVPs</span>
+        <span class="badge bg-light text-dark">Automatic decay cycles</span>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="bg-dark border border-secondary rounded-3 p-4 h-100">
+        <h2 class="h5 text-white mb-3">Quick start</h2>
+        <ol class="text-secondary small ps-3 mb-4">
+          <li>Create an event and (optionally) drop it into a channel.</li>
+          <li>Share your event link. Guests submit RSVPs and get a one-time token.</li>
+          <li>Keep your admin link private; guests control their own details.</li>
+        </ol>
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="/event/create">Create an event</a>
+          <a class="btn btn-outline-light" href="/">Back to events</a>
+        </div>
+      </div>
+    </div>
   </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Creating events</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li>Channels are optional. Use them to group events for a community.</li>
+        <li>Suggestions appear as you type; picking one reuses that channel.</li>
+        <li>Private events stay hidden even if the channel is public.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Channels & visibility</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li><strong>Public channels</strong> show up on the homepage and at <code>/channel/&lt;slug&gt;</code>.</li>
+        <li><strong>Private channels</strong> are hidden; only people with the slug can view <code>/channel/p/&lt;slug&gt;</code>.</li>
+        <li>Channel privacy never overrides an event’s own privacy.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Naming tips</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li>Names are slugified: lowercase, ASCII, non-alphanumerics become hyphens.</li>
+        <li>Avoid generic names to prevent collisions—add city or group hints.</li>
+        <li>Private channel slugs are the secret; share them carefully.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="p-4 bg-white border rounded-3 shadow-sm">
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <h3 class="h5 mb-3">Safety & privacy</h3>
+      <ul class="text-secondary ps-3">
+        <li>No accounts, emails, or analytics are stored. Keep magic links private.</li>
+        <li>Guest tokens are shown once after submission—save them to edit later.</li>
+        <li>Events, RSVPs, and channels decay automatically unless they stay active.</li>
+      </ul>
+    </div>
+    <div class="col-lg-6">
+      <h3 class="h5 mb-3">What hosts can’t do</h3>
+      <ul class="text-secondary ps-3">
+        <li>Event owners cannot change guest RSVPs (names, pronouns, notes, status).</li>
+        <li>Hosts cannot access other events or bypass decay cycles.</li>
+        <li>Root admin is for debugging only; no silent edits to guests.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="text-muted small mb-0 mt-3">Need more? Reach out to your event owner directly—OpenRSVP never stores contact info.</p>
 </div>
 {% endblock %}

@@ -84,6 +84,7 @@ templates.env.filters["markdown"] = render_markdown
 
 ADMIN_EVENTS_PER_PAGE = 25
 EVENTS_PER_PAGE = 10
+CHANNEL_SUGGESTION_LIMIT = 12
 
 
 def get_db():
@@ -467,7 +468,7 @@ def homepage(
 
 @app.get("/event/create")
 def event_create_page(request: Request, db: Session = Depends(get_db)):
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     return templates.TemplateResponse(
         request,
         "event_create.html",
@@ -492,7 +493,7 @@ def submit_event(
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     channel = None
     cleaned_channel_name = channel_name.strip() if channel_name else ""
     if cleaned_channel_name:
@@ -694,7 +695,7 @@ def event_admin(
         "maybe_count": sum(1 for r in rsvps if r.status == "maybe"),
         "no_count": sum(1 for r in rsvps if r.status == "no"),
     }
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     return templates.TemplateResponse(
@@ -759,7 +760,7 @@ def save_event_admin(
         normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
         if normalized_end <= normalized_start:
             rsvps = list(event.rsvps)
-            public_channels = get_public_channels(db)
+            public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
             return templates.TemplateResponse(
                 request,
                 "event_admin.html",
@@ -775,7 +776,7 @@ def save_event_admin(
                 status_code=400,
             )
     cleaned_channel_name = channel_name.strip() if channel_name else ""
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     channel = event.channel
     if cleaned_channel_name:
         try:

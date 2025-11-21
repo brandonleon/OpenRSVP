@@ -26,12 +26,14 @@ def get_channel_by_slug(session: Session, slug: str) -> Channel | None:
     return session.scalars(stmt).first()
 
 
-def get_public_channels(session: Session) -> list[Channel]:
+def get_public_channels(session: Session, limit: int | None = None) -> list[Channel]:
     stmt = (
         select(Channel)
         .where(Channel.visibility == "public")
         .order_by(Channel.score.desc(), Channel.name.asc())
     )
+    if limit and limit > 0:
+        stmt = stmt.limit(limit)
     return session.scalars(stmt).all()
 
 

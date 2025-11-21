@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Event Deleted</h2>
-<p class="text-muted">Event {{ event_id }} has been removed.</p>
-<a class="btn btn-primary" href="/">Return Home</a>
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4 text-center">
+  <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Event deleted</p>
+  <h1 class="display-6 fw-semibold text-white mb-2">That event is gone</h1>
+  <p class="text-secondary mb-0">Event {{ event_id }} has been removed. Create a new one or head back home.</p>
+</section>
+<div class="d-flex flex-wrap gap-2">
+  <a class="btn btn-primary" href="/">Return Home</a>
+  <a class="btn btn-outline-secondary" href="/event/create">Create a new event</a>
+</div>
 {% endblock %}
