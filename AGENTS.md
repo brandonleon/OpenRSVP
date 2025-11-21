@@ -9,6 +9,7 @@ agent capability and the system-wide rules that support them.
 - Capabilities are represented only through secure tokens or magic links.
 - Tokens are never exposed outside their intended scope.
 - Data is ephemeral. Events and RSVPs decay automatically unless accessed.
+- Magic links can be remembered locally in the browser for quick access and are clearable via the Preferences menu or per-event “Forget” actions.
 
 ## 1. Root Admin Agent
 
@@ -20,6 +21,7 @@ agent capability and the system-wide rules that support them.
 ### Capabilities (Root Admin)
 
 - View every event, including stale, hidden, or decaying entries.
+- See all RSVPs (including private ones) and channel visibility settings.
 - Inspect event metadata, decay scores, and RSVP records (read only).
 - Access any event admin link or RSVP token.
 - Trigger the decay cycle: `openrsvp decay`.
@@ -47,12 +49,14 @@ format `/e/<event-id>/admin/<admin-token>`.
 - Edit event title, description, date, time, and location.
 - View all RSVPs for the event, including notes.
 - Reveal RSVP magic links (hidden behind UI toggles).
+- Delete RSVP records on request (guests control edits).
 - Delete the event early.
 - Inspect decay status, scores, timestamps, and RSVP notes.
 
 ### Restrictions (Event Owner)
 
 - Cannot modify RSVP data (names, pronouns, guest counts, notes, or status).
+- May delete RSVP entries but cannot alter their content.
 - Cannot access other events or the root admin dashboard.
 - Cannot change decay scheduling.
 
@@ -68,6 +72,7 @@ Lets event creators manage their own events without logins or extra accounts.
 ### Capabilities (RSVP User)
 
 - View and edit their RSVP (name, pronouns, status, guests, notes).
+- Hide or unhide their RSVP from the public list; organizers still see it.
 - Cancel or delete their RSVP.
 - View event details.
 

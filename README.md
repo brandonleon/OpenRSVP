@@ -7,8 +7,11 @@ container deployment requested in the specification.
 ## Features
 
 - Magic-link authentication for root admin, event admins, and RSVP guests
+- Device-side helpers: copy-to-clipboard toasts and optional local storage so browsers can reopen admin/RSVP magic links (clearable in the UI)
+- Catppuccin themes (Latte, Mocha, Frappé, Macchiato) with per-browser preference and system fallback
 - FastAPI + Jinja2 UI using Bootstrap 5 (CDN)
 - SQLite storage with SQLAlchemy models
+- Private RSVP toggle to hide a guest from public lists while keeping the organizer’s view intact
 - Background decay + cleanup using APScheduler (runs hourly)
 - Public/private channel system with dedicated listings at `/channel/<slug>` and
   a `/help` explainer
@@ -55,12 +58,28 @@ FastAPI and the decay scheduler.
   same slug + visibility reuses the existing channel and bumps its
   `last_used_at`.
 - Public channels show up on the homepage filter and at `/channel/<slug>`.
-- Private channels never appear in lists; you must know the slug/URL to view them.
+- Private channels never appear in lists; you must know the slug/URL to view
+  them (`/channel/p/<slug>`).
 - Events inherit none of the channel visibility rules—private events stay
   private regardless of channel type.
+- Public events inside private channels hide the channel badge to avoid leaking
+  the slug.
 
 For guidance and safety tips, share `http://localhost:8000/help` (or the
 deployed host) with event creators.
+
+## Magic Links, Privacy, and Preferences
+
+- Guests receive a one-time magic link after submitting an RSVP; it is also
+  stored locally (when possible) so the browser can surface “Edit your RSVP” on
+  the event page. Organizers’ admin links are treated the same way.
+- Local storage is per-device only. Use the Preferences menu or “Forget this
+  key” buttons on event/RSVP pages to clear saved links.
+- Guests can mark an RSVP private so it hides from the public attendee list;
+  organizers still see it. Organizers cannot edit RSVP contents but can delete
+  entries on request.
+- The Preferences menu includes a Catppuccin theme picker. The chosen palette
+  persists locally and falls back to your system light/dark setting if unset.
 
 ## Manual Decay & Vacuum
 

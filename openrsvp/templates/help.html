@@ -5,20 +5,22 @@
     <div class="col-lg-7">
       <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">How OpenRSVP Works</p>
       <h1 class="display-6 fw-semibold mb-3">Magic links, zero accounts, privacy-kept events.</h1>
-      <p class="mb-4 lead text-secondary">OpenRSVP is designed for communities that want effortless invites without giving up control of their data.</p>
+      <p class="mb-4 lead text-secondary">OpenRSVP is designed for communities that want effortless invites without giving up control of their data. Themes and saved keys stay on your device only.</p>
       <div class="d-flex flex-wrap gap-2">
         <span class="badge bg-light text-dark">Capability tokens only</span>
         <span class="badge bg-light text-dark">Hosts can’t edit guest RSVPs</span>
         <span class="badge bg-light text-dark">Automatic decay cycles</span>
+        <span class="badge bg-light text-dark">Catppuccin themes</span>
       </div>
     </div>
     <div class="col-lg-5">
       <div class="bg-dark border border-secondary rounded-3 p-4 h-100">
         <h2 class="h5 text-white mb-3">Quick start</h2>
         <ol class="text-secondary small ps-3 mb-4">
-          <li>Create an event and (optionally) drop it into a channel.</li>
-          <li>Share your event link. Guests submit RSVPs and get a one-time token.</li>
-          <li>Keep your admin link private; guests control their own details.</li>
+          <li>Create an event, pick a channel (optional), and set privacy.</li>
+          <li>Share the public link. Guests get a one-time RSVP token after submitting.</li>
+          <li>Keep the admin link private; hosts cannot impersonate guests.</li>
+          <li>Use Preferences to pick a theme or forget saved magic links.</li>
         </ol>
         <div class="d-flex flex-wrap gap-2">
           <a class="btn btn-primary" href="/event/create">Create an event</a>
@@ -30,27 +32,30 @@
 </section>
 
 <div class="row g-3 mb-4">
-  <div class="col-md-4">
+  <div class="col-lg-4 col-md-6">
     <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
       <h3 class="h6 text-uppercase text-muted mb-2">Creating events</h3>
       <ul class="mb-0 text-secondary small ps-3">
         <li>Channels are optional. Use them to group events for a community.</li>
         <li>Suggestions appear as you type; picking one reuses that channel.</li>
+        <li>Start/end times respect viewer timezones; durations render automatically.</li>
         <li>Private events stay hidden even if the channel is public.</li>
+        <li>Descriptions support basic Markdown for richer details.</li>
       </ul>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-lg-4 col-md-6">
     <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
       <h3 class="h6 text-uppercase text-muted mb-2">Channels & visibility</h3>
       <ul class="mb-0 text-secondary small ps-3">
         <li><strong>Public channels</strong> show up on the homepage and at <code>/channel/&lt;slug&gt;</code>.</li>
         <li><strong>Private channels</strong> are hidden; only people with the slug can view <code>/channel/p/&lt;slug&gt;</code>.</li>
+        <li>Public events inside private channels hide the channel badge to protect the slug.</li>
         <li>Channel privacy never overrides an event’s own privacy.</li>
       </ul>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-lg-4 col-md-6">
     <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
       <h3 class="h6 text-uppercase text-muted mb-2">Naming tips</h3>
       <ul class="mb-0 text-secondary small ps-3">
@@ -62,22 +67,56 @@
   </div>
 </div>
 
+<div class="row g-3 mb-4">
+  <div class="col-lg-4 col-md-6">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">RSVP privacy controls</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li>Guests can hide their RSVP from the public list; organizers still see it.</li>
+        <li>Each submission returns a magic link to edit, toggle privacy, or delete.</li>
+        <li>Public counters show total visible guests; private RSVP counts are summarized.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-6">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Magic links & storage</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li>Magic links are shown once and can be copied with inline buttons.</li>
+        <li>Your browser can remember admin/RSVP keys locally to surface “Open Admin” or “Edit your RSVP.”</li>
+        <li>Clear saved keys anytime from Preferences or via “Forget this key” on event/RSVP pages.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-lg-4 col-md-6">
+    <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
+      <h3 class="h6 text-uppercase text-muted mb-2">Themes & polish</h3>
+      <ul class="mb-0 text-secondary small ps-3">
+        <li>Pick between <a href="https://catppuccin.com/" target="_blank" rel="noopener">Catppuccin</a> Latte, Mocha, Frappé, or Macchiato in the Preferences menu.</li>
+        <li>The selection persists per-device; respects system dark mode until you override.</li>
+        <li>Copy actions surface toast confirmations so you know the link was saved.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <div class="p-4 bg-white border rounded-3 shadow-sm">
   <div class="row g-4">
     <div class="col-lg-6">
       <h3 class="h5 mb-3">Safety & privacy</h3>
       <ul class="text-secondary ps-3">
-        <li>No accounts, emails, or analytics are stored. Keep magic links private.</li>
-        <li>Guest tokens are shown once after submission—save them to edit later.</li>
+        <li>No accounts, emails, or analytics are stored. Magic links stay local to your device unless you share them.</li>
+        <li>Hosts cannot change guest RSVPs—only guests can edit their own details.</li>
+        <li>Private RSVPs hide from other guests; hosts still see full details.</li>
         <li>Events, RSVPs, and channels decay automatically unless they stay active.</li>
       </ul>
     </div>
     <div class="col-lg-6">
-      <h3 class="h5 mb-3">What hosts can’t do</h3>
+      <h3 class="h5 mb-3">Lifecycle & control</h3>
       <ul class="text-secondary ps-3">
-        <li>Event owners cannot change guest RSVPs (names, pronouns, notes, status).</li>
-        <li>Hosts cannot access other events or bypass decay cycles.</li>
-        <li>Root admin is for debugging only; no silent edits to guests.</li>
+        <li>Event owners can update event details, assign channels, or delete RSVPs on request.</li>
+        <li>Hourly decay hides stale events; purged items cannot be restored. Root admin can trigger decay via CLI.</li>
+        <li>Channel privacy is independent from events—set them separately to match your invite style.</li>
       </ul>
     </div>
   </div>
