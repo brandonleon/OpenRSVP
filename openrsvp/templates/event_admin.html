@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% set admin_link = request.url_for('event_admin', event_id=event.id, admin_token=admin_token) %}
+{% set public_link = request.url_for('event_page', event_id=event.id) %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
   <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
@@ -18,12 +20,12 @@
           <button
             class="btn btn-sm btn-outline-light"
             type="button"
-            data-copy-link="{{ request.url_for('event_admin', event_id=event.id, admin_token=admin_token) }}"
+            data-copy-link="{{ public_link }}"
           >
-            Copy magic link
+            Copy public link
           </button>
           <button
-            class="btn btn-sm btn-outline-light"
+            class="btn btn-sm btn-outline-danger"
             type="button"
             data-clear-event-keys="{{ event.id }}"
             data-clear-redirect="/e/{{ event.id }}"
@@ -198,23 +200,18 @@
       </div>
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <div class="fw-semibold text-white">Shareable links</div>
+          <div class="fw-semibold">Admin link</div>
           <div class="small text-secondary">Keep admin link private.</div>
         </div>
         <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#admin-links" aria-expanded="false" aria-controls="admin-links">
-          Toggle
+          Reveal admin link
         </button>
       </div>
       <div class="collapse" id="admin-links">
-        <div class="small mb-2">
-          <div class="fw-semibold text-white">Admin link</div>
-          <input type="text" readonly class="form-control form-control-sm mb-2" value="{{ request.url_for('event_admin', event_id=event.id, admin_token=admin_token) }}">
-          <div class="text-secondary">Save or bookmark this link. Anyone with it can edit/delete the event.</div>
-        </div>
         <div class="small">
-          <div class="fw-semibold text-white">Public RSVP page</div>
-          <input type="text" readonly class="form-control form-control-sm mb-2" value="{{ request.url_for('event_page', event_id=event.id) }}">
-          <div class="text-secondary">Share this with guests. They get their own magic link after RSVPing.</div>
+          <div class="fw-semibold">Admin link</div>
+          <button class="btn btn-sm btn-outline-warning" type="button" data-copy-link="{{ admin_link }}">Copy admin link</button>
+          <div class="text-secondary mt-2">Keep this private—only share with trusted event organizers. Anyone with it can edit/delete the event.</div>
         </div>
       </div>
     </div>
