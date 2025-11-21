@@ -31,4 +31,12 @@
     </div>
   </div>
 </div>
+<div
+  class="d-none"
+  data-rsvp-token
+  data-event-id="{{ event.id }}"
+  data-rsvp-id="{{ rsvp.id }}"
+  data-rsvp-token-value="{{ rsvp.rsvp_token }}"
+  data-rsvp-name="{{ rsvp.name | e }}"
+></div>
 {% endblock %}

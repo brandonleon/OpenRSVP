@@ -59,4 +59,10 @@
   {% endif %}
   <a class="btn btn-secondary" href="/">Back to homepage</a>
 </div>
+<div
+  class="d-none"
+  data-event-admin-token
+  data-event-id="{{ event.id }}"
+  data-admin-token="{{ event.admin_token }}"
+></div>
 {% endblock %}

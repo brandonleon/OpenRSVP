@@ -367,6 +367,13 @@
         border-color: var(--accent);
       }
 
+      .badge-private {
+        background: rgba(255, 255, 255, 0.24);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        letter-spacing: 0.08em;
+      }
+
       .dropdown-item.theme-option {
         border-radius: 0.75rem;
       }
@@ -428,6 +435,12 @@
                     <span class="badge bg-secondary">Dark</span>
                   </button>
                 </div>
+                <hr>
+                <div class="mb-2 small fw-semibold">Saved access keys</div>
+                <p class="small text-muted mb-2">
+                  Remove stored admin and RSVP keys on this device. You will need your magic links to get back in.
+                </p>
+                <button class="btn btn-outline-danger btn-sm w-100" type="button" id="clear-keys-btn">Forget saved keys</button>
               </div>
             </li>
           </ul>
@@ -462,6 +475,7 @@
     <script>
       const THEME_STORAGE_KEY = "openrsvp-theme";
       const THEME_OPTIONS = ["latte", "mocha", "frappe", "macchiato"];
+      const KEY_STORAGE_KEY = "openrsvp-keys";
 
       function safeGetStoredTheme() {
         try {
@@ -478,6 +492,61 @@
         } catch (error) {
           // ignore storage errors
         }
+      }
+
+      function safeReadKeyStore() {
+        try {
+          const raw = localStorage.getItem(KEY_STORAGE_KEY);
+          if (!raw) return { events: {} };
+          const parsed = JSON.parse(raw);
+          return parsed && typeof parsed === "object" ? parsed : { events: {} };
+        } catch (error) {
+          return { events: {} };
+        }
+      }
+
+      function safeWriteKeyStore(store) {
+        try {
+          localStorage.setItem(KEY_STORAGE_KEY, JSON.stringify(store));
+        } catch (error) {
+          // ignore storage errors
+        }
+      }
+
+      function saveAdminKey(eventId, adminToken) {
+        if (!eventId || !adminToken) return;
+        const store = safeReadKeyStore();
+        if (!store.events) store.events = {};
+        store.events[eventId] = store.events[eventId] || {};
+        store.events[eventId].adminToken = adminToken;
+        safeWriteKeyStore(store);
+      }
+
+      function saveRsvpKey(eventId, rsvpId, rsvpToken, rsvpName) {
+        if (!eventId || !rsvpId || !rsvpToken) return;
+        const store = safeReadKeyStore();
+        if (!store.events) store.events = {};
+        store.events[eventId] = store.events[eventId] || {};
+        store.events[eventId].rsvp = {
+          id: String(rsvpId),
+          token: rsvpToken,
+          name: rsvpName || "",
+        };
+        safeWriteKeyStore(store);
+      }
+
+      function getStoredEventKeys(eventId) {
+        const store = safeReadKeyStore();
+        return (store.events && store.events[eventId]) || null;
+      }
+
+      function clearStoredKeys() {
+        try {
+          localStorage.removeItem(KEY_STORAGE_KEY);
+        } catch (error) {
+          // ignore storage errors
+        }
+        renderStoredActions();
       }
 
       function getSystemTheme() {
@@ -525,10 +594,88 @@
             applyTheme(choice);
           });
         });
+
+        const clearBtn = document.getElementById("clear-keys-btn");
+        if (clearBtn) {
+          clearBtn.addEventListener("click", () => {
+            const confirmed = window.confirm(
+              "This removes stored admin and RSVP keys on this device. You will need your magic links to get back into admin views. Continue?",
+            );
+            if (!confirmed) return;
+            clearStoredKeys();
+          });
+        }
+      }
+
+      function initKeyPersistence() {
+        document.querySelectorAll("[data-event-admin-token]").forEach((node) => {
+          const eventId = node.getAttribute("data-event-id");
+          const token = node.getAttribute("data-admin-token");
+          saveAdminKey(eventId, token);
+        });
+
+        document.querySelectorAll("[data-rsvp-token]").forEach((node) => {
+          const eventId = node.getAttribute("data-event-id");
+          const rsvpId = node.getAttribute("data-rsvp-id");
+          const token = node.getAttribute("data-rsvp-token-value");
+          const name = node.getAttribute("data-rsvp-name") || "";
+          saveRsvpKey(eventId, rsvpId, token, name);
+        });
+      }
+
+      function renderStoredActions() {
+        const hero = document.querySelector("[data-event-page]");
+        if (!hero) return;
+        const eventId = hero.getAttribute("data-event-id");
+        if (!eventId) return;
+        const stored = getStoredEventKeys(eventId);
+        const actionArea = document.getElementById("event-action-area");
+        if (!stored) {
+          if (actionArea) {
+            actionArea.querySelectorAll("[data-stored-admin-link], [data-stored-rsvp-link]").forEach((el) => el.remove());
+          }
+          document.querySelectorAll("[data-stored-rsvp-badge]").forEach((el) => el.remove());
+          return;
+        }
+        if (actionArea) {
+          if (stored.adminToken && !actionArea.querySelector("[data-stored-admin-link]")) {
+            const adminLink = document.createElement("a");
+            adminLink.className = "btn btn-outline-light";
+            adminLink.href = `/e/${eventId}/admin/${stored.adminToken}`;
+            adminLink.textContent = "Open Admin";
+            adminLink.setAttribute("data-stored-admin-link", "true");
+            actionArea.prepend(adminLink);
+          }
+          if (stored.rsvp && stored.rsvp.token && !actionArea.querySelector("[data-stored-rsvp-link]")) {
+            const rsvpLink = document.createElement("a");
+            rsvpLink.className = "btn btn-outline-secondary";
+            rsvpLink.href = `/e/${eventId}/rsvp/${stored.rsvp.token}`;
+            rsvpLink.textContent = "Edit your RSVP";
+            rsvpLink.setAttribute("data-stored-rsvp-link", "true");
+            actionArea.appendChild(rsvpLink);
+          }
+        }
+
+        if (stored.rsvp && stored.rsvp.id) {
+          const listItems = document.querySelectorAll(`[data-rsvp-id='${stored.rsvp.id}']`);
+          listItems.forEach((item) => {
+            const nameEl = item.querySelector(".fw-semibold");
+            if (nameEl && !item.querySelector("[data-stored-rsvp-badge]")) {
+              const badge = document.createElement("a");
+              badge.href = `/e/${eventId}/rsvp/${stored.rsvp.token}`;
+              badge.className = "badge bg-primary text-decoration-none ms-2";
+              badge.textContent = "Manage";
+              badge.setAttribute("data-stored-rsvp-badge", "true");
+              nameEl.appendChild(badge);
+            }
+          });
+        }
       }
 
       document.addEventListener("DOMContentLoaded", () => {
         initThemeControls();
+        initKeyPersistence();
+        renderStoredActions();
         updateTimezoneInputs();
         updateEventTimes();
         initChannelVisibilityAlerts();
@@ -540,6 +687,7 @@
         updateEventTimes();
         initChannelVisibilityAlerts();
         initChannelEventAlerts();
+        renderStoredActions();
       });
 
       function updateTimezoneInputs() {
