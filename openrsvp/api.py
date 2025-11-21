@@ -562,7 +562,10 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
         touch_channel(event.channel)
         db.add(event.channel)
     rsvps = [r for r in event.rsvps if not getattr(r, "is_private", False)]
-    private_rsvp_count = sum(1 for r in event.rsvps if getattr(r, "is_private", False))
+    private_rsvps = [r for r in event.rsvps if getattr(r, "is_private", False)]
+    private_rsvp_count = len(private_rsvps)
+    public_party_size = sum((r.guest_count or 0) + 1 for r in rsvps)
+    private_party_size = sum((r.guest_count or 0) + 1 for r in private_rsvps)
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     return templates.TemplateResponse(
@@ -573,6 +576,8 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "event": event,
             "rsvps": rsvps,
             "private_rsvp_count": private_rsvp_count,
+            "public_party_size": public_party_size,
+            "private_party_size": private_party_size,
             "message": message,
             "message_class": message_class,
         },

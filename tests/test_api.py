@@ -209,3 +209,47 @@ def test_private_rsvp_hidden_from_public_list(client):
     assert "Private" in admin_page.text  # badge exists
 
     session.close()
+
+
+def test_event_page_counts_public_and_private_party_sizes(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Headcount",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+    )
+    # public RSVP: party of 3 (1 + 2 guests)
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Public One",
+        status="yes",
+        pronouns=None,
+        guest_count=2,
+        notes=None,
+        is_private=False,
+    )
+    # private RSVP: party of 2 (1 + 1 guest)
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Private One",
+        status="yes",
+        pronouns=None,
+        guest_count=1,
+        notes=None,
+        is_private=True,
+    )
+    session.commit()
+
+    event_page = client.get(f"/e/{event.id}")
+    assert event_page.status_code == 200
+    assert "3 public people (1 RSVP" in event_page.text
+    assert "+ 2 private people (1 RSVP" in event_page.text
+
+    session.close()

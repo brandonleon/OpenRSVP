@@ -62,9 +62,9 @@
       <div class="d-flex align-items-center justify-content-between mb-2">
         <h3 class="h6 text-uppercase text-muted mb-0">Attendees</h3>
         <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-light text-dark">{{ rsvps|length }} public</span>
+          <span class="badge bg-light text-dark">{{ public_party_size }} public people ({{ rsvps|length }} RSVP{% if rsvps|length != 1 %}s{% endif %})</span>
           {% if private_rsvp_count %}
-          <span class="badge bg-secondary">+ {{ private_rsvp_count }} private</span>
+          <span class="badge bg-secondary">+ {{ private_party_size }} private people ({{ private_rsvp_count }} RSVP{% if private_rsvp_count != 1 %}s{% endif %})</span>
           {% endif %}
         </div>
       </div>
