@@ -98,7 +98,7 @@ def run_decay_cycle() -> dict:
                 )
                 event.last_modified = now
                 session.add(event)
-                logger.info(
+                logger.debug(
                     "Decayed event %s (%s): score %.4f -> %.4f after %.2f days",
                     event.id,
                     event.title,
@@ -113,7 +113,7 @@ def run_decay_cycle() -> dict:
                     event.score <= settings.delete_threshold
                     and age_days >= settings.delete_after_days
                 ):
-                    logger.info(
+                    logger.debug(
                         "Deleting event %s (%s): score %.4f age %.2f days",
                         event.id,
                         event.title,
@@ -146,7 +146,7 @@ def run_decay_cycle() -> dict:
             if not deletion_batch:
                 break
             for event in deletion_batch:
-                logger.info(
+                logger.debug(
                     "Deleting event %s (%s) below threshold with no prior decay pass",
                     event.id,
                     event.title,
@@ -200,7 +200,7 @@ def run_decay_cycle() -> dict:
                     settings.decay_factor, elapsed_days
                 )
                 session.add(channel)
-                logger.info(
+                logger.debug(
                     "Decayed channel %s (%s): score %.4f -> %.4f after %.2f days",
                     channel.id,
                     channel.name,
@@ -210,7 +210,7 @@ def run_decay_cycle() -> dict:
                 )
                 stats["channels_updated"] += 1
                 if channel.score <= settings.delete_threshold and not channel.events:
-                    logger.info(
+                    logger.debug(
                         "Deleting channel %s (%s): score %.4f (empty)",
                         channel.id,
                         channel.name,
@@ -243,7 +243,7 @@ def run_decay_cycle() -> dict:
                 break
             for channel in deletion_batch:
                 if channel.score <= settings.delete_threshold and not channel.events:
-                    logger.info(
+                    logger.debug(
                         "Deleting channel %s (%s) below threshold (empty)",
                         channel.id,
                         channel.name,
@@ -269,15 +269,17 @@ def run_decay_cycle() -> dict:
             )
 
     logger.info(
-        "Decay cycle finished with %d event updates, %d event deletions, %d channel updates, %d channel deletions",
+        (
+            "Decay cycle finished: events updated=%d, deleted=%d, skipped=%d across %d batches; "
+            "channels updated=%d, deleted=%d, skipped=%d across %d batches"
+        ),
         stats["events_updated"],
         stats["events_deleted"],
+        stats["events_skipped"],
+        stats["event_batches"],
         stats["channels_updated"],
         stats["channels_deleted"],
-    )
-    logger.debug(
-        "Decay batches processed: %d for events, %d for channels",
-        stats["event_batches"],
+        stats["channels_skipped"],
         stats["channel_batches"],
     )
     return stats
