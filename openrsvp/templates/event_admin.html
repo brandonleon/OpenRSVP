@@ -7,10 +7,33 @@
       <h1 class="display-6 fw-semibold text-white mb-2">{{ event.title }}</h1>
       <div class="text-secondary small">This magic link controls the event. Keep it private.</div>
     </div>
-    <div class="text-end text-secondary small">
-      <div class="badge badge-soft text-uppercase">Event admin</div>
-      <div class="mt-2">RSVPs: {{ rsvps|length }}</div>
-      {% if event.is_private %}<div class="mt-1 badge bg-warning text-dark text-uppercase">Private event</div>{% endif %}
+    <div class="text-end text-secondary small d-flex flex-column align-items-end gap-2">
+      <div>
+        <div class="badge badge-soft text-uppercase">Event admin</div>
+        <div class="mt-2">RSVPs: {{ rsvps|length }}</div>
+        {% if event.is_private %}<div class="mt-1 badge bg-warning text-dark text-uppercase">Private event</div>{% endif %}
+      </div>
+      <div class="d-flex flex-column align-items-end gap-1">
+        <div class="btn-group">
+          <button
+            class="btn btn-sm btn-outline-light"
+            type="button"
+            data-copy-link="{{ request.url_for('event_admin', event_id=event.id, admin_token=admin_token) }}"
+          >
+            Copy magic link
+          </button>
+          <button
+            class="btn btn-sm btn-outline-light"
+            type="button"
+            data-clear-event-keys="{{ event.id }}"
+            data-clear-redirect="/e/{{ event.id }}"
+            data-clear-message="Forget the stored admin key for this event on this device? You'll need the admin magic link to return."
+          >
+            Forget this admin key
+          </button>
+        </div>
+        <div class="text-secondary small text-end">You'll need the admin magic link to return.</div>
+      </div>
     </div>
   </div>
 </section>

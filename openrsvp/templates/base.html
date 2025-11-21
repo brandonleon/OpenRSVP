@@ -368,10 +368,34 @@
       }
 
       .badge-private {
-        background: rgba(255, 255, 255, 0.24);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.9);
+        color: #11111b;
+        border: 1px solid rgba(0, 0, 0, 0.25);
         letter-spacing: 0.08em;
+      }
+
+      .pref-keys-label {
+        color: var(--text);
+      }
+
+      [data-theme="mocha"] .badge-private,
+      [data-theme="frappe"] .badge-private,
+      [data-theme="macchiato"] .badge-private {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+
+      [data-theme="mocha"] .pref-keys-label {
+        color: #cba6f7;
+      }
+
+      [data-theme="frappe"] .pref-keys-label {
+        color: #ca9ee6;
+      }
+
+      [data-theme="macchiato"] .pref-keys-label {
+        color: #c6a0f6;
       }
 
       .dropdown-item.theme-option {
@@ -388,9 +412,42 @@
         background: linear-gradient(135deg, var(--hero-3), var(--nav-2));
         color: #fff;
       }
+
+      .toast-stack {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1080;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .toast-banner {
+        min-width: 220px;
+        max-width: 360px;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        transition: opacity 250ms ease;
+      }
+
+      .toast-success {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+      }
+
+      .toast-danger {
+        background: linear-gradient(135deg, #ef4444, #b91c1c);
+      }
+
+      .toast-info {
+        background: linear-gradient(135deg, #1e66f5, #8839ef);
+      }
     </style>
   </head>
   <body class="d-flex flex-column min-vh-100">
+    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div class="container">
         <a class="navbar-brand" href="/">OpenRSVP</a>
@@ -436,7 +493,7 @@
                   </button>
                 </div>
                 <hr>
-                <div class="mb-2 small fw-semibold">Saved access keys</div>
+                <div class="mb-2 small fw-semibold pref-keys-label">Saved access keys</div>
                 <p class="small text-muted mb-2">
                   Remove stored admin and RSVP keys on this device. You will need your magic links to get back in.
                 </p>
@@ -549,6 +606,84 @@
         renderStoredActions();
       }
 
+      function showToast(message, variant = "info") {
+        const stack = document.getElementById("toast-stack");
+        if (!stack || !message) return;
+        const toast = document.createElement("div");
+        toast.className = `toast-banner toast-${variant}`;
+        toast.textContent = message;
+        stack.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = "0";
+        }, 2000);
+        setTimeout(() => {
+          toast.remove();
+        }, 2600);
+      }
+
+      function removeEventKeys(eventId) {
+        if (!eventId) return;
+        const store = safeReadKeyStore();
+        if (store.events && store.events[eventId]) {
+          delete store.events[eventId];
+          safeWriteKeyStore(store);
+        }
+        renderStoredActions();
+      }
+
+      function copyToClipboard(text) {
+        if (!text) return Promise.reject(new Error("Nothing to copy"));
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        return new Promise((resolve, reject) => {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.setAttribute("readonly", "");
+          textarea.style.position = "absolute";
+          textarea.style.left = "-9999px";
+          document.body.appendChild(textarea);
+          const selection = document.getSelection();
+          const selected =
+            selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+          textarea.select();
+          try {
+            document.execCommand("copy");
+            resolve();
+          } catch (error) {
+            reject(error);
+          } finally {
+            document.body.removeChild(textarea);
+            if (selected && selection) {
+              selection.removeAllRanges();
+              selection.addRange(selected);
+            }
+          }
+        });
+      }
+
+      function initCopyLinks() {
+        document.querySelectorAll("[data-copy-link]").forEach((button) => {
+          if (button.dataset.copyBound === "true") return;
+          button.dataset.copyBound = "true";
+          button.addEventListener("click", async () => {
+            const target = button.getAttribute("data-copy-link");
+            if (!target) return;
+            const original = button.textContent;
+            try {
+              await copyToClipboard(target);
+              button.textContent = "Copied!";
+              showToast("Link copied to clipboard", "success");
+              setTimeout(() => (button.textContent = original), 1600);
+            } catch (error) {
+              button.textContent = "Copy failed";
+              showToast(`Copy blocked. Link: ${target}`, "danger");
+              setTimeout(() => (button.textContent = original), 1600);
+            }
+          });
+        });
+      }
+
       function getSystemTheme() {
         return window.matchMedia("(prefers-color-scheme: dark)").matches ? "mocha" : "latte";
       }
@@ -603,8 +738,28 @@
             );
             if (!confirmed) return;
             clearStoredKeys();
+            showToast("All stored keys forgotten on this device.", "info");
           });
         }
+
+        document.querySelectorAll("[data-clear-event-keys]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const eventId = button.getAttribute("data-clear-event-keys");
+            if (!eventId) return;
+            const redirect = button.getAttribute("data-clear-redirect");
+            const customMessage = button.getAttribute("data-clear-message");
+            const confirmed = window.confirm(
+              customMessage ||
+                "Remove stored admin/RSVP keys for this event on this device? You'll need the magic link to get back.",
+            );
+            if (!confirmed) return;
+            removeEventKeys(eventId);
+            showToast("Stored key forgotten for this event.", "info");
+            if (redirect) {
+              window.location.href = redirect;
+            }
+          });
+        });
       }
 
       function initKeyPersistence() {
@@ -635,6 +790,7 @@
             actionArea.querySelectorAll("[data-stored-admin-link], [data-stored-rsvp-link]").forEach((el) => el.remove());
           }
           document.querySelectorAll("[data-stored-rsvp-badge]").forEach((el) => el.remove());
+          document.querySelectorAll("[data-stored-rsvp-placeholder]").forEach((el) => el.remove());
           return;
         }
         if (actionArea) {
@@ -658,6 +814,33 @@
 
         if (stored.rsvp && stored.rsvp.id) {
           const listItems = document.querySelectorAll(`[data-rsvp-id='${stored.rsvp.id}']`);
+          if (!listItems.length) {
+            const listGroup = document.getElementById("event-rsvp-list");
+            if (listGroup) {
+              listGroup.querySelectorAll("[data-empty-rsvp-list]").forEach((el) => el.remove());
+              const item = document.createElement("div");
+              item.className = "list-group-item px-0";
+              item.setAttribute("data-stored-rsvp-placeholder", "true");
+              const name = stored.rsvp.name || "Your RSVP";
+              item.innerHTML = `
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+                  <div>
+                    <div class="fw-semibold"></div>
+                    <div class="small text-muted">Private RSVP (visible only to you)</div>
+                  </div>
+                  <div class="text-end">
+                    <div class="d-flex flex-wrap justify-content-end gap-1">
+                      <span class="badge bg-dark text-uppercase">Private</span>
+                      <a class="badge bg-primary text-decoration-none" href="/e/${eventId}/rsvp/${stored.rsvp.token}">Manage</a>
+                    </div>
+                  </div>
+                </div>
+              `;
+              const nameEl = item.querySelector(".fw-semibold");
+              if (nameEl) nameEl.textContent = name;
+              listGroup.prepend(item);
+            }
+          }
           listItems.forEach((item) => {
             const nameEl = item.querySelector(".fw-semibold");
             if (nameEl && !item.querySelector("[data-stored-rsvp-badge]")) {
@@ -676,6 +859,7 @@
         initThemeControls();
         initKeyPersistence();
         renderStoredActions();
+        initCopyLinks();
         updateTimezoneInputs();
         updateEventTimes();
         initChannelVisibilityAlerts();
@@ -687,6 +871,7 @@
         updateEventTimes();
         initChannelVisibilityAlerts();
         initChannelEventAlerts();
+        initCopyLinks();
         renderStoredActions();
       });
 

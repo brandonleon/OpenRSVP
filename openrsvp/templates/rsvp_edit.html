@@ -7,7 +7,28 @@
       <h1 class="display-6 fw-semibold text-white mb-2">{{ event.title }}</h1>
       <div class="text-secondary small">Use your magic link to edit or delete your RSVP. Keep it private.</div>
     </div>
-    <a class="btn btn-outline-light" href="/e/{{ event.id }}">Back to event</a>
+    <div class="d-flex flex-column align-items-end gap-2">
+      <a class="btn btn-outline-light" href="/e/{{ event.id }}">Back to event</a>
+      <div class="btn-group">
+        <button
+          class="btn btn-outline-light btn-sm"
+          type="button"
+          data-copy-link="{{ request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) }}"
+        >
+          Copy magic link
+        </button>
+        <button
+          class="btn btn-outline-light btn-sm"
+          type="button"
+          data-clear-event-keys="{{ event.id }}"
+          data-clear-redirect="/e/{{ event.id }}"
+          data-clear-message="Forget the stored RSVP key on this device? You'll need your magic link to manage or delete your RSVP again."
+        >
+          Forget this RSVP key
+        </button>
+      </div>
+      <div class="text-secondary small text-end">You'll need your magic link to get back here.</div>
+    </div>
   </div>
 </section>
 

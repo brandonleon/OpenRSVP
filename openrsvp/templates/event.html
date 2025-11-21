@@ -71,27 +71,29 @@
       {% if private_rsvp_count %}
       <p class="small text-muted mb-3">Some guests chose to keep their RSVP private. The organizer can see them, but they are hidden from this list.</p>
       {% endif %}
-      {% if rsvps %}
       <div class="list-group list-group-flush" id="event-rsvp-list">
-        {% for rsvp in rsvps %}
-        <div class="list-group-item px-0" data-rsvp-id="{{ rsvp.id }}">
-          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
-            <div>
-              <div class="fw-semibold">{{ rsvp.name }}</div>
-              {% if rsvp.pronouns %}<div class="small text-muted">{{ rsvp.pronouns }}</div>{% endif %}
-              {% if rsvp.notes %}<div class="small text-muted">Notes: {{ rsvp.notes }}</div>{% endif %}
-            </div>
-            <div class="text-end">
-              <span class="badge bg-secondary text-uppercase">{{ rsvp.status }}</span>
-              <div class="small text-muted">Guests: {{ rsvp.guest_count }}</div>
+        {% if rsvps %}
+          {% for rsvp in rsvps %}
+          <div class="list-group-item px-0" data-rsvp-id="{{ rsvp.id }}">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ rsvp.name }}</div>
+                {% if rsvp.pronouns %}<div class="small text-muted">{{ rsvp.pronouns }}</div>{% endif %}
+                {% if rsvp.notes %}<div class="small text-muted">Notes: {{ rsvp.notes }}</div>{% endif %}
+              </div>
+              <div class="text-end">
+                <span class="badge bg-secondary text-uppercase">{{ rsvp.status }}</span>
+                <div class="small text-muted">Guests: {{ rsvp.guest_count }}</div>
+              </div>
             </div>
           </div>
-        </div>
-        {% endfor %}
+          {% endfor %}
+        {% else %}
+          <div class="list-group-item px-0 text-muted" data-empty-rsvp-list="true">
+            No public RSVPs yet. Be the first!
+          </div>
+        {% endif %}
       </div>
-      {% else %}
-      <p class="text-muted mb-0">No RSVPs yet. Be the first!</p>
-      {% endif %}
     </div>
   </div>
   <div class="col-lg-4">
