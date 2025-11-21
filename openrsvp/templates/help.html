@@ -27,6 +27,7 @@
     <section class="mb-4">
       <h3 class="h5">Naming Tips & Warnings</h3>
       <ul>
+        <li>Channel names are converted to slugs: letters are lowercased, accents are stripped to ASCII, and anything besides <code>a-z</code>/<code>0-9</code> turns into a single hyphen (edges trimmed).</li>
         <li>Channel slugs are derived from the name. Using common words like “party” or “friends” increases the odds of collisions.</li>
         <li>We recommend including location or community hints (e.g., “san-diego-cigar-social”).</li>
         <li>Private channels rely purely on the slug—treat them like a shared secret.</li>

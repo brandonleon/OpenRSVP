@@ -50,8 +50,10 @@ FastAPI and the decay scheduler.
 ## Channels
 
 - Channel names and visibility (public/private) are chosen when creating an event.
-- Channel names are slugified; reusing the same slug + visibility reuses the
-  existing channel and bumps its `last_used_at`.
+- Channel names are slugified (lowercased, ASCII-only, non-alphanumeric
+  collapsed to hyphens, with leading/trailing hyphens removed); reusing the
+  same slug + visibility reuses the existing channel and bumps its
+  `last_used_at`.
 - Public channels show up on the homepage filter and at `/channel/<slug>`.
 - Private channels never appear in lists; you must know the slug/URL to view them.
 - Events inherit none of the channel visibility rules—private events stay
