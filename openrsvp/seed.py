@@ -57,6 +57,7 @@ def seed_fake_data(
     extra_events: int = 0,
     max_rsvps_per_event: int = 5,
     private_percentage: int = 10,
+    private_rsvp_percentage: int = 20,
 ) -> dict[str, int]:
     """Populate the SQLite database with synthetic channels and events."""
     if channel_count < 0:
@@ -69,6 +70,8 @@ def seed_fake_data(
         raise ValueError("max_rsvps_per_event must be >= 0")
     if not 0 <= private_percentage <= 100:
         raise ValueError("private_percentage must be between 0 and 100")
+    if not 0 <= private_rsvp_percentage <= 100:
+        raise ValueError("private_rsvp_percentage must be between 0 and 100")
 
     init_db()
     fake = Faker()
@@ -85,6 +88,7 @@ def seed_fake_data(
                     fake,
                     channel=channel,
                     private_percentage=private_percentage,
+                    private_rsvp_percentage=private_rsvp_percentage,
                     max_rsvps=max_rsvps_per_event,
                 )
                 stats["events"] += 1
@@ -96,6 +100,7 @@ def seed_fake_data(
                 fake,
                 channel=None,
                 private_percentage=private_percentage,
+                private_rsvp_percentage=private_rsvp_percentage,
                 max_rsvps=max_rsvps_per_event,
             )
             stats["events"] += 1
@@ -123,6 +128,7 @@ def _create_event(
     *,
     channel: Channel | None,
     private_percentage: int,
+    private_rsvp_percentage: int,
     max_rsvps: int,
 ) -> int:
     start_time = _random_start_time()
@@ -142,7 +148,13 @@ def _create_event(
         channel=channel,
         is_private=is_private,
     )
-    return _create_rsvps(session, fake, event, max_rsvps)
+    return _create_rsvps(
+        session,
+        fake,
+        event,
+        max_rsvps,
+        private_rsvp_percentage=private_rsvp_percentage,
+    )
 
 
 def _random_start_time() -> datetime:
@@ -165,7 +177,14 @@ def _maybe_end_time(start_time: datetime) -> datetime | None:
     return start_time + timedelta(hours=duration_hours)
 
 
-def _create_rsvps(session: Session, fake: Faker, event: Event, max_rsvps: int) -> int:
+def _create_rsvps(
+    session: Session,
+    fake: Faker,
+    event: Event,
+    max_rsvps: int,
+    *,
+    private_rsvp_percentage: int,
+) -> int:
     if max_rsvps <= 0:
         return 0
     total = random.randint(0, max_rsvps)
@@ -175,6 +194,7 @@ def _create_rsvps(session: Session, fake: Faker, event: Event, max_rsvps: int) -
         status = random.choice(_rsvp_statuses)
         guest_count = max(0, random.randint(0, 3))
         notes = fake.sentence() if random.random() < 0.3 else None
+        is_private = random.randint(1, 100) <= private_rsvp_percentage
         create_rsvp(
             session,
             event=event,
@@ -183,5 +203,6 @@ def _create_rsvps(session: Session, fake: Faker, event: Event, max_rsvps: int) -
             pronouns=pronouns,
             guest_count=guest_count,
             notes=notes,
+            is_private=is_private,
         )
     return total

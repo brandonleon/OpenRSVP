@@ -9,6 +9,7 @@ from openrsvp import api, database
 from openrsvp.crud import create_event, ensure_channel
 from openrsvp.models import Event
 from openrsvp.utils import utcnow
+from openrsvp import crud
 
 
 @pytest.fixture()
@@ -155,5 +156,56 @@ def test_public_event_in_private_channel_hides_channel_on_event_page(client):
     admin_page = client.get(f"/e/{event.id}/admin/{event.admin_token}")
     assert admin_page.status_code == 200
     assert "Hidden Den" in admin_page.text
+
+    session.close()
+
+
+def test_private_rsvp_hidden_from_public_list(client):
+    session = database.SessionLocal()
+    channel = ensure_channel(session, name="Mixed", visibility="public")
+    start = utcnow().replace(microsecond=0)
+    event = create_event(
+        session,
+        title="Mixer",
+        description="desc",
+        start_time=start,
+        end_time=None,
+        location="Somewhere",
+        channel=channel,
+        is_private=False,
+    )
+    public = crud.create_rsvp(
+        session,
+        event=event,
+        name="Public Guest",
+        status="yes",
+        pronouns=None,
+        guest_count=0,
+        notes=None,
+        is_private=False,
+    )
+    private = crud.create_rsvp(
+        session,
+        event=event,
+        name="Private Guest",
+        status="yes",
+        pronouns=None,
+        guest_count=0,
+        notes=None,
+        is_private=True,
+    )
+    session.commit()
+
+    event_page = client.get(f"/e/{event.id}")
+    assert event_page.status_code == 200
+    assert "Public Guest" in event_page.text
+    assert "Private Guest" not in event_page.text
+    assert "+ 1 private" in event_page.text
+
+    admin_page = client.get(f"/e/{event.id}/admin/{event.admin_token}")
+    assert admin_page.status_code == 200
+    assert "Public Guest" in admin_page.text
+    assert "Private Guest" in admin_page.text
+    assert "Private" in admin_page.text  # badge exists
 
     session.close()

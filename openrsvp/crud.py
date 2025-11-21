@@ -136,6 +136,7 @@ def create_rsvp(
     pronouns: str | None,
     guest_count: int | None,
     notes: str | None,
+    is_private: bool = False,
 ) -> RSVP:
     normalized_status = (status or "").strip().lower() or "yes"
     if normalized_status not in {"yes", "no", "maybe"}:
@@ -148,6 +149,7 @@ def create_rsvp(
         pronouns=pronouns,
         guest_count=guest_count or 0,
         notes=notes,
+        is_private=is_private,
     )
     session.add(rsvp)
     session.flush()
@@ -163,6 +165,7 @@ def update_rsvp(
     pronouns: str | None,
     guest_count: int | None,
     notes: str | None,
+    is_private: bool,
 ) -> RSVP:
     normalized_status = (status or "").strip().lower() or "yes"
     if normalized_status not in {"yes", "no", "maybe"}:
@@ -172,6 +175,7 @@ def update_rsvp(
     rsvp.pronouns = pronouns
     rsvp.guest_count = min(max(guest_count or 0, 0), 5)
     rsvp.notes = notes
+    rsvp.is_private = bool(is_private)
     rsvp.last_modified = _now()
     session.add(rsvp)
     session.flush()

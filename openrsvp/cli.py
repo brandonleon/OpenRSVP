@@ -85,6 +85,13 @@ def seed_data(
         max=100,
         help="Percentage of events that should be private (0-100)",
     ),
+    private_rsvp_percent: int = typer.Option(
+        20,
+        "--private-rsvp-percent",
+        min=0,
+        max=100,
+        help="Percentage of RSVPs that should be private (0-100)",
+    ),
 ):
     """Populate the database with fake channels and events for testing."""
     stats = seed_fake_data(
@@ -93,6 +100,7 @@ def seed_data(
         extra_events=extra_events,
         max_rsvps_per_event=max_rsvps,
         private_percentage=private_percent,
+        private_rsvp_percentage=private_rsvp_percent,
     )
     typer.echo(
         f"Seed complete: {stats['channels']} channels, {stats['events']} events, "

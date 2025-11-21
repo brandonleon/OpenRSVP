@@ -61,8 +61,16 @@
     <div class="p-4 bg-white border rounded-3 shadow-sm">
       <div class="d-flex align-items-center justify-content-between mb-2">
         <h3 class="h6 text-uppercase text-muted mb-0">Attendees</h3>
-        <span class="badge bg-light text-dark">{{ rsvps|length }} total</span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-light text-dark">{{ rsvps|length }} public</span>
+          {% if private_rsvp_count %}
+          <span class="badge bg-secondary">+ {{ private_rsvp_count }} private</span>
+          {% endif %}
+        </div>
       </div>
+      {% if private_rsvp_count %}
+      <p class="small text-muted mb-3">Some guests chose to keep their RSVP private. The organizer can see them, but they are hidden from this list.</p>
+      {% endif %}
       {% if rsvps %}
       <div class="list-group list-group-flush">
         {% for rsvp in rsvps %}

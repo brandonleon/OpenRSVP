@@ -204,7 +204,12 @@
               <div class="text-muted small">Guests: {{ rsvp.guest_count }}</div>
             </div>
             <div class="text-end">
-              <span class="badge bg-secondary text-uppercase">{{ rsvp.status }}</span>
+              <div class="d-flex flex-wrap justify-content-end gap-1">
+                <span class="badge bg-secondary text-uppercase">{{ rsvp.status }}</span>
+                {% if rsvp.is_private %}
+                <span class="badge bg-dark text-uppercase">Private</span>
+                {% endif %}
+              </div>
               <form
                 method="post"
                 action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/delete"

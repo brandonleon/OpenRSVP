@@ -561,7 +561,8 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     if event.channel:
         touch_channel(event.channel)
         db.add(event.channel)
-    rsvps = list(event.rsvps)
+    rsvps = [r for r in event.rsvps if not getattr(r, "is_private", False)]
+    private_rsvp_count = sum(1 for r in event.rsvps if getattr(r, "is_private", False))
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     return templates.TemplateResponse(
@@ -571,6 +572,7 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "request": request,
             "event": event,
             "rsvps": rsvps,
+            "private_rsvp_count": private_rsvp_count,
             "message": message,
             "message_class": message_class,
         },
@@ -592,6 +594,7 @@ def create_rsvp_view(
     pronouns: str | None = Form(None),
     guest_count: int = Form(0),
     notes: str | None = Form(None),
+    is_private_rsvp: bool = Form(False),
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
@@ -604,6 +607,7 @@ def create_rsvp_view(
         pronouns=pronouns,
         guest_count=guest_count,
         notes=notes,
+        is_private=is_private_rsvp,
     )
     return templates.TemplateResponse(
         request,
@@ -638,6 +642,7 @@ def save_rsvp(
     pronouns: str | None = Form(None),
     guest_count: int = Form(0),
     notes: str | None = Form(None),
+    is_private_rsvp: bool = Form(False),
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
@@ -651,6 +656,7 @@ def save_rsvp(
         pronouns=pronouns,
         guest_count=guest_count,
         notes=notes,
+        is_private=is_private_rsvp,
     )
     return templates.TemplateResponse(
         request,

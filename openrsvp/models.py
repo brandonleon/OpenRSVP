@@ -70,6 +70,7 @@ class RSVP(Base):
     status = Column(String(16), nullable=False, default="yes")
     guest_count = Column(Integer, default=0, nullable=False)
     notes = Column(Text)
+    is_private = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=_now, nullable=False)
     last_modified = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 
