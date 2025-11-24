@@ -44,13 +44,18 @@
         --nav-1: #1e66f5;
         --nav-2: #8839ef;
         --nav-3: #dc8a78;
+        --nav-text: #0f0f1a;
+        --nav-hover: #0f0f1a;
         --hero-1: #1e66f5;
         --hero-2: #8839ef;
         --hero-3: #4c4f69;
+        --hero-badge-fg: #4c4f69;
+        --danger-hero: #dc8a78;
         --shadow-strong: rgba(17, 17, 27, 0.16);
         --input-bg: #ffffff;
         --input-border: #cdd0da;
         --badge-soft-fg: #4c4f69;
+        --badge-accent-fg: #ffffff;
       }
 
       [data-theme="latte"] {
@@ -70,13 +75,18 @@
         --nav-1: #1e66f5;
         --nav-2: #8839ef;
         --nav-3: #dc8a78;
+        --nav-text: #f7f9ff;
+        --nav-hover: #ffffff;
         --hero-1: #1e66f5;
         --hero-2: #8839ef;
         --hero-3: #4c4f69;
+        --hero-badge-fg: #4c4f69;
+        --danger-hero: #dc8a78;
         --shadow-strong: rgba(17, 17, 27, 0.16);
         --input-bg: #ffffff;
         --input-border: #cdd0da;
         --badge-soft-fg: #4c4f69;
+        --badge-accent-fg: #ffffff;
       }
 
       [data-theme="mocha"] {
@@ -96,13 +106,18 @@
         --nav-1: #11111b;
         --nav-2: #1e1e2e;
         --nav-3: #181825;
+        --nav-text: #ffffff;
+        --nav-hover: #89b4fa;
         --hero-1: #1e1e2e;
         --hero-2: #181825;
         --hero-3: #0f0f1a;
+        --hero-badge-fg: #0f0f1a;
+        --danger-hero: #f5e0dc;
         --shadow-strong: rgba(0, 0, 0, 0.35);
         --input-bg: #181825;
         --input-border: #45475a;
         --badge-soft-fg: #cdd6f4;
+        --badge-accent-fg: #0f0f1a;
       }
 
       [data-theme="frappe"] {
@@ -122,13 +137,18 @@
         --nav-1: #232634;
         --nav-2: #292c3c;
         --nav-3: #303446;
+        --nav-text: #ffffff;
+        --nav-hover: #8caaee;
         --hero-1: #303446;
         --hero-2: #292c3c;
         --hero-3: #1f2232;
+        --hero-badge-fg: #1f2232;
+        --danger-hero: #f2d5cf;
         --shadow-strong: rgba(0, 0, 0, 0.3);
         --input-bg: #292c3c;
         --input-border: #51576d;
         --badge-soft-fg: #c6d0f5;
+        --badge-accent-fg: #1f2232;
       }
 
       [data-theme="macchiato"] {
@@ -148,13 +168,18 @@
         --nav-1: #181926;
         --nav-2: #1e2030;
         --nav-3: #24273a;
+        --nav-text: #ffffff;
+        --nav-hover: #8aadf4;
         --hero-1: #24273a;
         --hero-2: #1e2030;
         --hero-3: #161724;
+        --hero-badge-fg: #161724;
+        --danger-hero: #f4dbd6;
         --shadow-strong: rgba(0, 0, 0, 0.32);
         --input-bg: #1e2030;
         --input-border: #494d64;
         --badge-soft-fg: #cad3f5;
+        --badge-accent-fg: #161724;
       }
 
       body {
@@ -171,12 +196,12 @@
 
       .navbar-brand,
       .navbar-dark .navbar-nav .nav-link {
-        color: #fff;
+        color: var(--nav-text);
       }
 
       .navbar-dark .navbar-nav .nav-link:hover,
       .navbar-dark .navbar-nav .nav-link:focus {
-        color: var(--accent);
+        color: var(--nav-hover);
       }
 
       .navbar .dropdown-menu {
@@ -204,6 +229,11 @@
 
       .hero-panel .badge {
         background: rgba(255, 255, 255, 0.9);
+        color: var(--hero-badge-fg);
+      }
+
+      .hero-panel .text-danger {
+        color: var(--danger-hero) !important;
       }
 
       .card-flush {
@@ -223,7 +253,7 @@
 
       .navbar .badge-soft {
         background: rgba(255, 255, 255, 0.2);
-        color: #fff;
+        color: var(--nav-text);
       }
 
       .bg-white,
@@ -356,10 +386,12 @@
 
       .badge.bg-secondary {
         background: var(--accent-strong) !important;
+        color: var(--badge-accent-fg);
       }
 
       .badge.bg-primary {
         background: var(--accent) !important;
+        color: var(--badge-accent-fg);
       }
 
       .dropdown-menu .form-check-input:checked {
