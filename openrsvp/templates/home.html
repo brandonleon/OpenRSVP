@@ -52,8 +52,8 @@
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
   <div>
-    <h2 class="h4 mb-1">Latest Events</h2>
-    <p class="text-muted mb-0">Newest events first · {{ pagination.total_events }} total</p>
+    <h2 class="h4 mb-1">Upcoming Events</h2>
+    <p class="text-muted mb-0">Soonest first · {{ upcoming_pagination.total_events }} total</p>
   </div>
   <div class="d-flex flex-wrap gap-2 align-items-center">
     <form class="d-flex flex-wrap gap-2 align-items-center" method="get">
@@ -70,9 +70,9 @@
   </div>
 </div>
 
-{% if events %}
+{% if upcoming_events %}
   <div class="list-group shadow-sm">
-  {% for event in events %}
+  {% for event in upcoming_events %}
     <a href="/e/{{ event.id }}" class="list-group-item list-group-item-action py-3">
       <div class="d-flex w-100 justify-content-between align-items-center flex-wrap gap-2">
         <div>
@@ -98,7 +98,7 @@
   <div class="p-4 bg-white border rounded-3 shadow-sm">
     <div class="d-flex align-items-start gap-3 flex-wrap">
       <div class="flex-grow-1">
-        <h3 class="h5 mb-2">No events… yet.</h3>
+        <h3 class="h5 mb-2">No upcoming events right now.</h3>
         <p class="text-muted mb-3">Be the first to post something for your crew. OpenRSVP works great for pop-up meetups, cigar socials, or tight-knit community hangs where privacy matters.</p>
         <ul class="text-muted small ps-3 mb-3">
           <li>Host link stays private to you; guests manage their own RSVP.</li>
@@ -114,19 +114,51 @@
   </div>
 {% endif %}
 
-{% if pagination.total_pages > 1 %}
+{% if upcoming_pagination.total_pages > 1 %}
 <nav class="mt-4" aria-label="Event pagination">
   <ul class="pagination mb-0">
-    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-      <a class="page-link" href="?page={{ pagination.prev_page or pagination.page }}">Previous</a>
+    <li class="page-item {% if not upcoming_pagination.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ upcoming_pagination.prev_page or upcoming_pagination.page }}">Previous</a>
     </li>
     <li class="page-item disabled">
-      <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+      <span class="page-link">Page {{ upcoming_pagination.page }} of {{ upcoming_pagination.total_pages }}</span>
     </li>
-    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-      <a class="page-link" href="?page={{ pagination.next_page or pagination.page }}">Next</a>
+    <li class="page-item {% if not upcoming_pagination.has_next %}disabled{% endif %}">
+      <a class="page-link" href="?page={{ upcoming_pagination.next_page or upcoming_pagination.page }}">Next</a>
     </li>
   </ul>
 </nav>
+{% endif %}
+
+{% if recent_events %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mt-5 mb-3">
+  <div>
+    <h3 class="h5 mb-1">Recently happened</h3>
+    <p class="text-muted mb-0">Most recent first · showing up to {{ recent_limit }} still-visible events</p>
+  </div>
+</div>
+<div class="list-group shadow-sm">
+{% for event in recent_events %}
+  <a href="/e/{{ event.id }}" class="list-group-item list-group-item-action py-3">
+    <div class="d-flex w-100 justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h5 class="mb-1">{{ event.title }}</h5>
+        <small class="text-muted">{{ event.location or 'Location TBD' }}</small>
+      </div>
+      <div
+        class="text-end js-event-time"
+        data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+      >
+        <span class="badge bg-light text-dark js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
+        <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+        {% if event.end_time %}
+        <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mb-0 mt-2 text-muted small markdown-content">{{ (event.description or 'No description provided.') | markdown | safe }}</div>
+  </a>
+{% endfor %}
+</div>
 {% endif %}
 {% endblock %}

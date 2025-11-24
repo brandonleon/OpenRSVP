@@ -84,6 +84,7 @@ templates.env.filters["markdown"] = render_markdown
 
 ADMIN_EVENTS_PER_PAGE = 25
 EVENTS_PER_PAGE = 10
+RECENT_EVENTS_LIMIT = 5
 CHANNEL_SUGGESTION_LIMIT = 12
 
 
@@ -415,6 +416,54 @@ def _paginate_visible_events(
     )
 
 
+def _paginate_upcoming_events(
+    db: Session,
+    *,
+    include_private: bool,
+    channel_id: str | None,
+    page: int,
+    per_page: int = EVENTS_PER_PAGE,
+):
+    now = utcnow()
+    filters = _visible_event_filters(
+        include_private=include_private,
+        channel_id=channel_id,
+        now=now,
+    )
+    filters.append(Event.start_time >= now)
+    return paginate_events(
+        db,
+        filters=filters,
+        order_by=Event.start_time.asc(),
+        per_page=per_page,
+        page=page,
+    )
+
+
+def _recent_events(
+    db: Session,
+    *,
+    include_private: bool,
+    channel_id: str | None,
+    limit: int = RECENT_EVENTS_LIMIT,
+):
+    now = utcnow()
+    filters = _visible_event_filters(
+        include_private=include_private,
+        channel_id=channel_id,
+        now=now,
+    )
+    filters.append(Event.start_time < now)
+    stmt = (
+        select(Event)
+        .order_by(Event.start_time.desc())
+        .limit(limit)
+    )
+    for condition in filters:
+        stmt = stmt.where(condition)
+    return db.scalars(stmt).all()
+
+
 def _paginate_events(db: Session, *, page: int, query: str | None, include_rsvps: bool = False):
     clause = _event_search_clause(query)
     filters = [clause] if clause is not None else []
@@ -446,12 +495,18 @@ def homepage(
                 url=f"/channel/p/{slug_channel.slug}", status_code=303
             )
         return RedirectResponse(url=f"/channel/{slug_channel.slug}", status_code=303)
-    events, pagination = _paginate_visible_events(
+    upcoming_events, upcoming_pagination = _paginate_upcoming_events(
         db,
         include_private=False,
         channel_id=None,
         page=page,
         per_page=EVENTS_PER_PAGE,
+    )
+    recent_events = _recent_events(
+        db,
+        include_private=False,
+        channel_id=None,
+        limit=RECENT_EVENTS_LIMIT,
     )
     public_channels = get_public_channels(db)
     return templates.TemplateResponse(
@@ -459,9 +514,11 @@ def homepage(
         "home.html",
         {
             "request": request,
-            "events": events,
+            "upcoming_events": upcoming_events,
+            "upcoming_pagination": upcoming_pagination,
+            "recent_events": recent_events,
+            "recent_limit": RECENT_EVENTS_LIMIT,
             "public_channels": public_channels,
-            "pagination": pagination,
         },
     )
 
