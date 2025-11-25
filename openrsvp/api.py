@@ -10,10 +10,11 @@ from importlib.metadata import PackageNotFoundError, version as pkg_version
 from pathlib import Path
 import tomllib
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
@@ -118,7 +119,9 @@ def _local_to_utc(dt: datetime, offset_minutes: int) -> datetime:
 
 def _wants_json(request: Request) -> bool:
     accept = (request.headers.get("accept") or "").lower()
-    return "application/json" in accept and "text/html" not in accept
+    return request.url.path.startswith("/api/") or (
+        "application/json" in accept and "text/html" not in accept
+    )
 
 
 def _render_error(request: Request, status_code: int, message: str | None):
@@ -223,6 +226,181 @@ def _require_root_access(root_token: str) -> None:
         raise HTTPException(status_code=403, detail="Forbidden")
 
 
+def _get_bearer_token(request: Request) -> str | None:
+    auth_header = request.headers.get("authorization") or ""
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    return token or None
+
+
+def _clamp_guest_count(raw: int | None) -> int:
+    try:
+        value = int(raw or 0)
+    except (TypeError, ValueError):
+        value = 0
+    return max(0, min(value, 5))
+
+
+def _normalize_event_times(
+    *,
+    start_time: str | None,
+    end_time: str | None,
+    timezone_offset_minutes: int,
+):
+    normalized_start = None
+    normalized_end = None
+    if start_time:
+        parsed_start = _parse_datetime(start_time)
+        normalized_start = _local_to_utc(parsed_start, timezone_offset_minutes)
+    if end_time:
+        parsed_end = _parse_datetime(end_time)
+        normalized_end = _local_to_utc(parsed_end, timezone_offset_minutes)
+    if normalized_start and normalized_end and normalized_end <= normalized_start:
+        raise HTTPException(
+            status_code=400, detail="End time must be after the start time"
+        )
+    return normalized_start, normalized_end
+
+
+def _serialize_channel(channel: Channel):
+    return {
+        "id": channel.id,
+        "name": channel.name,
+        "slug": channel.slug,
+        "visibility": channel.visibility,
+        "score": channel.score,
+        "created_at": channel.created_at.isoformat(),
+        "last_used_at": channel.last_used_at.isoformat(),
+    }
+
+
+def _serialize_rsvp(
+    rsvp: RSVP,
+    *,
+    include_token: bool = False,
+    include_internal_id: bool = False,
+):
+    payload = {
+        "event_id": rsvp.event_id,
+        "name": rsvp.name,
+        "pronouns": rsvp.pronouns,
+        "status": rsvp.status,
+        "guest_count": rsvp.guest_count,
+        "notes": rsvp.notes,
+        "is_private": rsvp.is_private,
+        "created_at": rsvp.created_at.isoformat(),
+        "last_modified": rsvp.last_modified.isoformat(),
+    }
+    if include_token:
+        payload["rsvp_token"] = rsvp.rsvp_token
+    if include_internal_id:
+        payload["id"] = rsvp.id
+    return payload
+
+
+def _serialize_event(
+    event: Event,
+    *,
+    include_rsvps: list[RSVP] | None = None,
+    include_private_counts: bool = False,
+    include_admin_link: bool = False,
+):
+    payload = {
+        "id": event.id,
+        "title": event.title,
+        "description": event.description,
+        "start_time": event.start_time.isoformat(),
+        "end_time": event.end_time.isoformat() if event.end_time else None,
+        "location": event.location,
+        "is_private": event.is_private,
+        "score": event.score,
+        "created_at": event.created_at.isoformat(),
+        "last_modified": event.last_modified.isoformat(),
+        "last_accessed": event.last_accessed.isoformat(),
+        "links": {
+            "public": f"/e/{event.id}",
+        },
+    }
+    if event.channel:
+        payload["channel"] = {
+            "id": event.channel.id,
+            "name": event.channel.name,
+            "slug": event.channel.slug,
+            "visibility": event.channel.visibility,
+        }
+    if include_admin_link:
+        payload["links"]["admin"] = f"/e/{event.id}/admin/{event.admin_token}"
+    if include_rsvps is not None:
+        payload["rsvps"] = [_serialize_rsvp(r) for r in include_rsvps]
+    if include_private_counts:
+        private_rsvps = [r for r in event.rsvps if r.is_private]
+        public_rsvps = [r for r in event.rsvps if not r.is_private]
+        payload["rsvp_counts"] = {
+            "public": len(public_rsvps),
+            "private": len(private_rsvps),
+            "public_party_size": sum((r.guest_count or 0) + 1 for r in public_rsvps),
+            "private_party_size": sum((r.guest_count or 0) + 1 for r in private_rsvps),
+        }
+    return payload
+
+
+def _rsvp_stats(rsvps: list[RSVP]) -> dict[str, int]:
+    yes_rsvps = [r for r in rsvps if r.status == "yes"]
+    yes_guest_count = sum(r.guest_count for r in yes_rsvps)
+    return {
+        "yes_count": len(yes_rsvps),
+        "yes_guest_count": yes_guest_count,
+        "yes_total": len(yes_rsvps) + yes_guest_count,
+        "maybe_count": sum(1 for r in rsvps if r.status == "maybe"),
+        "no_count": sum(1 for r in rsvps if r.status == "no"),
+    }
+
+
+class EventCreatePayload(BaseModel):
+    title: str
+    description: str | None = None
+    start_time: str = Field(..., description="ISO datetime string")
+    end_time: str | None = Field(
+        None, description="Optional ISO datetime string after start_time"
+    )
+    timezone_offset_minutes: int = 0
+    location: str | None = None
+    channel_name: str | None = None
+    channel_visibility: str = "public"
+    is_private: bool = False
+
+
+class EventUpdatePayload(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    start_time: str | None = Field(None, description="ISO datetime string")
+    end_time: str | None = Field(None, description="Optional ISO datetime string")
+    timezone_offset_minutes: int | None = None
+    location: str | None = None
+    channel_name: str | None = None
+    channel_visibility: str | None = None
+    is_private: bool | None = None
+
+
+class RSVPCreatePayload(BaseModel):
+    name: str
+    status: str
+    pronouns: str | None = None
+    guest_count: int = 0
+    notes: str | None = None
+    is_private_rsvp: bool = False
+
+
+class RSVPUpdatePayload(BaseModel):
+    name: str | None = None
+    status: str | None = None
+    pronouns: str | None = None
+    guest_count: int | None = None
+    notes: str | None = None
+    is_private_rsvp: bool | None = None
+
+
 def _channel_error_message(raw: str) -> str:
     message = raw.lower()
     if "different visibility" in message:
@@ -235,6 +413,21 @@ def _channel_error_message(raw: str) -> str:
     if "invalid channel visibility" in message:
         return "Channel visibility must be set to Public or Private."
     return "We couldn't save that channel. Please try again with a different name."
+
+
+def _require_admin_header(event: Event, request: Request) -> str:
+    token = _get_bearer_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    _require_admin_or_root(event, token)
+    return token
+
+
+def _require_rsvp_from_header(event: Event, request: Request, db: Session) -> RSVP:
+    token = _get_bearer_token(request)
+    if not token:
+        raise HTTPException(status_code=401, detail="Missing bearer token")
+    return _ensure_rsvp(db, event, token)
 
 
 def _channel_search_clause(query: str | None):
@@ -371,6 +564,42 @@ def paginate_channels(
     if include_events:
         for channel in channels:
             _ = list(channel.events)
+    return channels, pagination
+
+
+def _paginate_public_channels(
+    db: Session,
+    *,
+    query: str | None,
+    page: int,
+    per_page: int = ADMIN_EVENTS_PER_PAGE,
+):
+    clause = _channel_search_clause(query)
+    count_stmt = select(func.count()).select_from(Channel).where(
+        Channel.visibility == "public"
+    )
+    if clause is not None:
+        count_stmt = count_stmt.where(clause)
+    total_channels = db.scalar(count_stmt) or 0
+    pagination = _build_pagination(
+        page=page,
+        per_page=per_page,
+        total_events=total_channels,
+        include_query=True,
+        query=query,
+    )
+    page_number = pagination["page"]
+    offset = (page_number - 1) * per_page if total_channels else 0
+    stmt = (
+        select(Channel)
+        .where(Channel.visibility == "public")
+        .order_by(Channel.name.asc())
+        .offset(offset)
+        .limit(per_page)
+    )
+    if clause is not None:
+        stmt = stmt.where(clause)
+    channels = db.scalars(stmt).all()
     return channels, pagination
 
 
@@ -1076,3 +1305,251 @@ def channel_page_private(
 @app.get("/help")
 def help_page(request: Request):
     return templates.TemplateResponse(request, "help.html", {"request": request})
+
+
+# -------- JSON API (v1) --------
+
+
+@app.post("/api/v1/events", status_code=201)
+def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db)):
+    channel = None
+    cleaned_channel = (payload.channel_name or "").strip()
+    visibility = payload.channel_visibility or "public"
+    if cleaned_channel:
+        try:
+            channel = ensure_channel(db, name=cleaned_channel, visibility=visibility)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400, detail=_channel_error_message(str(exc))
+            ) from exc
+
+    normalized_start, normalized_end = _normalize_event_times(
+        start_time=payload.start_time,
+        end_time=payload.end_time,
+        timezone_offset_minutes=payload.timezone_offset_minutes,
+    )
+    if not normalized_start:
+        raise HTTPException(status_code=400, detail="start_time is required")
+
+    event = create_event(
+        db,
+        title=payload.title,
+        description=payload.description,
+        start_time=normalized_start,
+        end_time=normalized_end,
+        location=payload.location,
+        channel=channel,
+        is_private=payload.is_private,
+    )
+    return {
+        "event": _serialize_event(event, include_admin_link=True),
+        "admin_token": event.admin_token,
+    }
+
+
+@app.get("/api/v1/events/{event_id}")
+def api_get_event(event_id: str, db: Session = Depends(get_db)):
+    event = _ensure_event(db, event_id)
+    event.last_accessed = utcnow()
+    db.add(event)
+    public_rsvps = [r for r in event.rsvps if not r.is_private]
+    return {
+        "event": _serialize_event(
+            event,
+            include_rsvps=public_rsvps,
+            include_private_counts=True,
+            include_admin_link=False,
+        )
+    }
+
+
+@app.patch("/api/v1/events/{event_id}")
+def api_update_event(
+    event_id: str,
+    payload: EventUpdatePayload,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_header(event, request)
+    data = payload.model_dump(exclude_unset=True)
+    tz_offset = int(data.get("timezone_offset_minutes", 0) or 0)
+    normalized_start, normalized_end = _normalize_event_times(
+        start_time=data.get("start_time"),
+        end_time=data.get("end_time"),
+        timezone_offset_minutes=tz_offset,
+    )
+    channel = event.channel
+    if "channel_name" in data or "channel_visibility" in data:
+        cleaned_channel = (data.get("channel_name") or "").strip()
+        visibility = data.get("channel_visibility") or "public"
+        if cleaned_channel:
+            try:
+                channel = ensure_channel(
+                    db, name=cleaned_channel, visibility=visibility
+                )
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=400, detail=_channel_error_message(str(exc))
+                ) from exc
+        else:
+            channel = None
+    event = update_event(
+        db,
+        event,
+        title=data.get("title", event.title),
+        description=data.get("description", event.description),
+        start_time=normalized_start or event.start_time,
+        end_time=normalized_end if "end_time" in data else event.end_time,
+        location=data.get("location", event.location),
+        channel=channel,
+        is_private=data.get("is_private", event.is_private),
+    )
+    return {"event": _serialize_event(event, include_admin_link=True)}
+
+
+@app.delete("/api/v1/events/{event_id}", status_code=204)
+def api_delete_event(
+    event_id: str, request: Request, db: Session = Depends(get_db)
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_header(event, request)
+    db.delete(event)
+    return Response(status_code=204)
+
+
+@app.get("/api/v1/events/{event_id}/rsvps")
+def api_list_event_rsvps(
+    event_id: str, request: Request, db: Session = Depends(get_db)
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_header(event, request)
+    rsvps = list(event.rsvps)
+    return {
+        "event": _serialize_event(event, include_admin_link=True),
+        "rsvps": [
+            _serialize_rsvp(r, include_token=True, include_internal_id=True) for r in rsvps
+        ],
+        "stats": _rsvp_stats(rsvps),
+    }
+
+
+@app.post("/api/v1/events/{event_id}/rsvps", status_code=201)
+def api_create_rsvp(
+    event_id: str,
+    payload: RSVPCreatePayload,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    rsvp = create_rsvp(
+        db,
+        event=event,
+        name=payload.name,
+        status=payload.status,
+        pronouns=payload.pronouns,
+        guest_count=_clamp_guest_count(payload.guest_count),
+        notes=payload.notes,
+        is_private=payload.is_private_rsvp,
+    )
+    return {
+        "rsvp": _serialize_rsvp(rsvp, include_token=True),
+        "links": {
+            "self": f"/api/v1/events/{event.id}/rsvps/self",
+            "html": f"/e/{event.id}/rsvp/{rsvp.rsvp_token}",
+        },
+    }
+
+
+@app.get("/api/v1/events/{event_id}/rsvps/self")
+def api_get_own_rsvp(
+    event_id: str, request: Request, db: Session = Depends(get_db)
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _require_rsvp_from_header(event, request, db)
+    return {"rsvp": _serialize_rsvp(rsvp, include_token=True)}
+
+
+@app.patch("/api/v1/events/{event_id}/rsvps/self")
+def api_update_own_rsvp(
+    event_id: str,
+    payload: RSVPUpdatePayload,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _require_rsvp_from_header(event, request, db)
+    data = payload.model_dump(exclude_unset=True)
+    update_rsvp(
+        db,
+        rsvp=rsvp,
+        name=data.get("name", rsvp.name),
+        status=data.get("status", rsvp.status),
+        pronouns=data.get("pronouns", rsvp.pronouns),
+        guest_count=_clamp_guest_count(data.get("guest_count", rsvp.guest_count)),
+        notes=data.get("notes", rsvp.notes),
+        is_private=data.get("is_private_rsvp", rsvp.is_private),
+    )
+    return {"rsvp": _serialize_rsvp(rsvp, include_token=True)}
+
+
+@app.delete("/api/v1/events/{event_id}/rsvps/self", status_code=204)
+def api_delete_own_rsvp(
+    event_id: str, request: Request, db: Session = Depends(get_db)
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _require_rsvp_from_header(event, request, db)
+    db.delete(rsvp)
+    return Response(status_code=204)
+
+
+@app.delete("/api/v1/events/{event_id}/rsvps/{rsvp_token}", status_code=204)
+def api_delete_rsvp_admin(
+    event_id: str,
+    rsvp_token: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_header(event, request)
+    rsvp = _ensure_rsvp(db, event, rsvp_token)
+    db.delete(rsvp)
+    return Response(status_code=204)
+
+
+@app.get("/api/v1/channels")
+def api_public_channels(
+    q: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    channels, pagination = _paginate_public_channels(db, query=q, page=page)
+    return {
+        "channels": [_serialize_channel(ch) for ch in channels],
+        "pagination": pagination,
+    }
+
+
+@app.get("/api/v1/channels/{slug}")
+def api_channel_detail(
+    slug: str,
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    channel = get_channel_by_slug(db, slug)
+    if not channel:
+        raise HTTPException(status_code=404, detail="Channel not found")
+    touch_channel(channel)
+    db.add(channel)
+    include_private = channel.visibility == "private"
+    events, pagination = _paginate_visible_events(
+        db,
+        include_private=include_private,
+        channel_id=channel.id,
+        page=page,
+        per_page=EVENTS_PER_PAGE,
+    )
+    return {
+        "channel": _serialize_channel(channel),
+        "events": [_serialize_event(event) for event in events],
+        "pagination": pagination,
+    }

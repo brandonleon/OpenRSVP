@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenRSVP Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+      <div class="container">
+        <a class="navbar-brand" href="#">OpenRSVP Docs</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
+            <li class="nav-item"><a class="nav-link" href="#web-app">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="#api">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="#tokens">Tokens</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-5">
+      <section class="hero mb-5" id="overview">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-7">
+            <span class="badge rounded-pill badge-soft mb-3">Latte look · Bootstrap 5</span>
+            <h1 class="fw-bold mb-3">OpenRSVP: accountless RSVPs with magic links.</h1>
+            <p class="lead text-secondary">
+              FastAPI + SQLite powered RSVPs built around capability links. This guide covers the web experience and the JSON API that third parties can use to create events, list channels, and manage RSVPs.
+            </p>
+            <div class="d-flex flex-wrap gap-3 mt-4">
+              <a href="#web-app" class="btn btn-primary px-4">Web app guide</a>
+              <a href="#api" class="btn btn-outline-primary px-4">API for builders</a>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="section-card h-100">
+              <h5 class="fw-bold mb-3">Core principles</h5>
+              <ul class="list-unstyled mb-0">
+                <li class="mb-2">• Accountless capabilities via magic links</li>
+                <li class="mb-2">• Privacy-first: minimal fields, optional private RSVPs</li>
+                <li class="mb-2">• Ephemeral data with hourly decay and cleanup</li>
+                <li class="mb-2">• Channels for lightweight grouping (public or private)</li>
+                <li>• Bootstrap UI with a Catppuccin Latte palette</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-4" id="web-app">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Web app</p>
+            <h2 class="fw-bold mb-0">Using OpenRSVP in the browser</h2>
+          </div>
+          <span class="pill"><span class="text-primary">UI</span> Latte theme</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">Create an event</h3>
+              <p>Pick a title, optional description, start/end time, location, and channel. The app slugifies the channel name and reuses it when the slug + visibility match.</p>
+              <div class="callout mb-3">
+                <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
+              </div>
+              <p class="mb-0"><strong>Admin link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code>. Save it—there are no accounts to recover it later.</p>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">RSVP flow</h3>
+              <p>Guests submit name, pronouns, status (yes/maybe/no), guest count, and notes. They immediately see their RSVP magic link and can store it locally for quick edits.</p>
+              <ul class="mb-0">
+                <li>Public vs. private RSVPs (hide from attendee list; organizers still see them).</li>
+                <li>Edit or delete your own RSVP anytime using the token link.</li>
+                <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">Channels & browsing</h3>
+              <p>Channels keep related events together without accounts.</p>
+              <ul class="mb-0">
+                <li>Public channels appear on the homepage filter and <code>/channel/&lt;slug&gt;</code>.</li>
+                <li>Private channels never list publicly; they are reachable only by URL.</li>
+                <li>Channel badge hides on public events inside private channels to avoid leaking the slug.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Magic links, privacy, and preferences</h3>
+              <p>The UI stores admin/RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
+              <p class="mb-2">Catppuccin themes are available in the app; this docs site sticks to Latte for consistency.</p>
+              <p class="mb-0 text-muted small">Never share admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Decay and cleanup</h3>
+              <p>APScheduler runs hourly to decay scores for events, RSVPs, and channels. Low-score or expired items disappear from listings and are purged when empty.</p>
+              <ul class="mb-2">
+                <li>Root admins can trigger <code>openrsvp decay</code> manually.</li>
+                <li>Deleted events and purged data are not recoverable.</li>
+              </ul>
+              <p class="mb-0 text-muted small">This keeps deployments lean—no long-lived analytics or accounts.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5">
+        <div class="row g-4 align-items-stretch">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">CLI snippets</h3>
+              <p>Use the Typer CLI for local control.</p>
+              <pre><code># run the server (FastAPI + scheduler)
+openrsvp runserver
+
+# fetch the root admin token
+openrsvp admin-token
+
+# seed fake data for demos
+openrsvp seed-data --channels 4 --max-events 3 --max-rsvps 5
+
+# force decay and optional vacuum
+openrsvp decay --vacuum</code></pre>
+              <p class="mb-0 text-muted small">Root admin is CLI-only and can view everything but never edits guest content.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5 mb-3">Roles at a glance</h3>
+              <div class="row row-cols-1 row-cols-sm-2 g-3">
+                <div class="col">
+                  <div class="callout h-100">
+                    <h6 class="fw-bold mb-1">Root admin</h6>
+                    <p class="mb-0 small">Full visibility, decay control, and delete powers. No guest impersonation.</p>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="callout h-100">
+                    <h6 class="fw-bold mb-1">Event owner</h6>
+                    <p class="mb-0 small">Edit event details, view RSVPs, delete entries, and reveal magic links.</p>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="callout h-100">
+                    <h6 class="fw-bold mb-1">RSVP guest</h6>
+                    <p class="mb-0 small">Edit/cancel their own RSVP, set privacy, and view event info.</p>
+                  </div>
+                </div>
+                <div class="col">
+                  <div class="callout h-100">
+                    <h6 class="fw-bold mb-1">Public visitor</h6>
+                    <p class="mb-0 small">Browse public events/channels, create new RSVPs.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5" id="api">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">API</p>
+            <h2 class="fw-bold mb-0">JSON API for third-party builders</h2>
+            <p class="text-muted mb-0">Base path: <code>/api/v1</code> · JSON only · Bearer tokens for capability links</p>
+          </div>
+          <span class="pill"><span class="text-primary">Auth</span> Bearer token</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Authentication</h3>
+              <ul class="mb-3">
+                <li><strong>Event admin token</strong> → required for editing/deleting events or listing/deleting RSVPs: <code>Authorization: Bearer &lt;admin-token&gt;</code>.</li>
+                <li><strong>RSVP token</strong> → required for managing your own RSVP at <code>/events/{event_id}/rsvps/self</code>.</li>
+                <li>No root-level API; root admin stays CLI-only.</li>
+              </ul>
+              <div class="callout mb-2">
+                <strong>Tip:</strong> send ISO timestamps; include <code>timezone_offset_minutes</code> when creating/updating events so local times are stored correctly in UTC.
+              </div>
+              <p class="mb-0 text-muted small">Private RSVPs are hidden from <code>GET /api/v1/events/{id}</code> but are visible when using admin endpoints.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Key endpoints</h3>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events</span> Create event; returns admin token + links.</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}</span> Public event detail + public RSVPs.</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">PATCH</span>/api/v1/events/{event_id}</span> Update event (admin bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">DELETE</span>/api/v1/events/{event_id}</span> Delete event (admin bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}/rsvps</span> List RSVPs + stats (admin bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps</span> Create RSVP; returns token + links.</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET/PATCH/DELETE</span>/api/v1/events/{event_id}/rsvps/self</span> Manage your own RSVP (rsvp bearer).</div>
+              <div class="mb-0"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels</span> Public channels with pagination; filter via <code>?q=</code>.</div>
+              <div class="mt-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels/{slug}</span> Channel detail + events (public or private based on slug visibility).</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Create an event</h3>
+              <p class="mb-2">Send ISO8601 times. Pass <code>timezone_offset_minutes</code> (e.g., browser timezone offset) so local times normalize to UTC.</p>
+              <pre><code>curl -X POST http://localhost:8000/api/v1/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Cedar Social: Cigar Night",
+    "description": "Monthly hang at the lounge.",
+    "start_time": "2024-08-22T19:00:00",
+    "end_time": "2024-08-22T21:30:00",
+    "timezone_offset_minutes": -300,
+    "location": "Cedar Social, Austin",
+    "channel_name": "ATX Cigars",
+    "channel_visibility": "public",
+    "is_private": false
+  }'</code></pre>
+              <div class="callout mb-0">
+                Response includes <code>admin_token</code> plus <code>links.admin</code> for the UI admin page and <code>links.public</code> for the guest view.
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Create an RSVP</h3>
+              <p class="mb-2">No auth required to submit; the response includes the RSVP token.</p>
+              <pre><code>curl -X POST http://localhost:8000/api/v1/events/{event_id}/rsvps \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Sky",
+    "status": "yes",
+    "pronouns": "they/them",
+    "guest_count": 1,
+    "notes": "Can bring a projector",
+    "is_private_rsvp": false
+  }'</code></pre>
+              <p class="mb-2">Guests manage their own entry at <code>/api/v1/events/{event_id}/rsvps/self</code> using <code>Authorization: Bearer &lt;rsvp-token&gt;</code>.</p>
+              <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id}/rsvps/self \
+  -H "Authorization: Bearer &lt;rsvp-token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "no", "notes": "Out of town"}'</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Admin actions on events</h3>
+              <p class="mb-2">Use the admin token as a bearer to edit or delete.</p>
+              <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id} \
+  -H "Authorization: Bearer &lt;admin-token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated title",
+    "channel_name": "Private Circle",
+    "channel_visibility": "private",
+    "is_private": true
+  }'</code></pre>
+              <p class="mb-0 text-muted small">Deleting an event (<code>DELETE /api/v1/events/{id}</code>) removes the event and all RSVPs. This is irreversible.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">List RSVPs with stats (admin)</h3>
+              <p class="mb-2">Returns RSVP records (including private ones) plus convenience counts.</p>
+              <pre><code>curl http://localhost:8000/api/v1/events/{event_id}/rsvps \
+  -H "Authorization: Bearer &lt;admin-token&gt;"</code></pre>
+              <p class="mb-2">Example stats payload:</p>
+              <pre><code>{
+  "stats": {
+    "yes_count": 6,
+    "yes_guest_count": 3,
+    "yes_total": 9,
+    "maybe_count": 2,
+    "no_count": 1
+  }
+}</code></pre>
+              <p class="mb-0 text-muted small">Admins can delete specific RSVPs via <code>DELETE /api/v1/events/{event_id}/rsvps/{rsvp_token}</code>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5" id="tokens">
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Token safety</h3>
+              <ul class="mb-2">
+                <li>Tokens are capability links; treat them like passwords.</li>
+                <li>Never email or log admin tokens; share directly with organizers.</li>
+                <li>Guests get RSVP tokens once; they should bookmark or store them locally.</li>
+              </ul>
+              <p class="mb-0 text-muted small">The platform is intentionally accountless. Losing a token means creating a fresh event or RSVP.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Privacy defaults</h3>
+              <ul class="mb-2">
+                <li>Only name, pronouns, status, guest count, and notes are collected.</li>
+                <li>Private RSVPs hide from public lists but remain visible to organizers.</li>
+                <li>Private channels rely on secrecy of the slug; share carefully.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Transparency is deliberate: organizers cannot silently alter guest responses.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider my-5"></div>
+      <p class="footer text-center mb-4">OpenRSVP · FastAPI · SQLite · Catppuccin Latte</p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
