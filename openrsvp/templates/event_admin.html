@@ -180,21 +180,21 @@
         <div class="col">
           <div class="p-3 h-100 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-50">
             <div class="fw-semibold text-success text-uppercase small">Yes</div>
-            <div class="fs-4 text-white">{{ totals.yes }}</div>
+            <div class="fs-4 stat-value">{{ totals.yes }}</div>
             <div class="small text-secondary">{{ totals.yes_rsvps }} RSVP(s)</div>
           </div>
         </div>
         <div class="col">
           <div class="p-3 h-100 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-50">
             <div class="fw-semibold text-warning text-uppercase small">Maybe</div>
-            <div class="fs-4 text-white">{{ totals.maybe }}</div>
+            <div class="fs-4 stat-value">{{ totals.maybe }}</div>
             <div class="small text-secondary">{{ totals.maybe_rsvps }} RSVP(s)</div>
           </div>
         </div>
         <div class="col">
           <div class="p-3 h-100 rounded-3 bg-light bg-opacity-10 border border-secondary border-opacity-50">
             <div class="fw-semibold text-uppercase small text-secondary">No</div>
-            <div class="fs-4 text-white">{{ totals.no }}</div>
+            <div class="fs-4 stat-value">{{ totals.no }}</div>
           </div>
         </div>
       </div>
@@ -250,6 +250,21 @@
       {% else %}
       <p class="text-muted mb-0">No RSVPs yet.</p>
       {% endif %}
+    </div>
+    <div class="p-4 card-flush rounded-3 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <div class="fw-semibold">Delete event</div>
+          <div class="small text-secondary">Removes the event and all RSVPs. This cannot be undone.</div>
+        </div>
+        <form
+          method="post"
+          action="/e/{{ event.id }}/admin/{{ admin_token }}/delete"
+          onsubmit="return confirm('Delete this event and all RSVPs? This cannot be undone.');"
+        >
+          <button class="btn btn-outline-danger btn-sm" type="submit">Delete event</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>

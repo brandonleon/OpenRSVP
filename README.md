@@ -78,6 +78,9 @@ deployed host) with event creators.
 - Guests can mark an RSVP private so it hides from the public attendee list;
   organizers still see it. Organizers cannot edit RSVP contents but can delete
   entries on request.
+- Event owners can delete an entire event from the admin page or via
+  `DELETE /api/v1/events/{event_id}` using `Authorization: Bearer <admin-token>`.
+  Deletion wipes all RSVPs and cannot be undone.
 - The Preferences menu includes a Catppuccin theme picker. The chosen palette
   persists locally and falls back to your system light/dark setting if unset.
 

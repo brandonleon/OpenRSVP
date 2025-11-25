@@ -125,11 +125,16 @@ def _wants_json(request: Request) -> bool:
 
 
 def _render_error(request: Request, status_code: int, message: str | None):
+    lower_message = (message or "").lower()
+    extra_hint = None
+    if "rsvp not found" in lower_message:
+        extra_hint = "The event owner may have deleted this RSVP."
     context = {
         "request": request,
         "status_code": status_code,
         "message": None,
         "error_message": message or "Something went wrong.",
+        "extra_hint": extra_hint,
     }
     return templates.TemplateResponse(
         request, "error.html", context, status_code=status_code
