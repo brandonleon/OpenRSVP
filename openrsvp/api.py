@@ -1348,23 +1348,6 @@ def save_event_admin(
     )
 
 
-@app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_token}/delete")
-def delete_rsvp_admin(
-    event_id: str,
-    admin_token: str,
-    rsvp_token: str,
-    request: Request,
-    db: Session = Depends(get_db),
-):
-    event = _ensure_event(db, event_id)
-    _require_admin_or_root(event, admin_token)
-    rsvp = _ensure_rsvp(db, event, rsvp_token)
-    db.delete(rsvp)
-    return RedirectResponse(
-        url=f"/e/{event.id}/admin/{event.admin_token}", status_code=303
-    )
-
-
 @app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_id}/approve")
 def approve_rsvp_admin(
     event_id: str,

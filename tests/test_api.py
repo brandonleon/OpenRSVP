@@ -176,7 +176,7 @@ def test_private_rsvp_hidden_from_public_list(client):
         channel=channel,
         is_private=False,
     )
-    public = crud.create_rsvp(
+    crud.create_rsvp(
         session,
         event=event,
         name="Public Guest",
@@ -185,7 +185,7 @@ def test_private_rsvp_hidden_from_public_list(client):
         guest_count=0,
         is_private=False,
     )
-    private = crud.create_rsvp(
+    crud.create_rsvp(
         session,
         event=event,
         name="Private Guest",
