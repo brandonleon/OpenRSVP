@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title or "OpenRSVP" }}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('favicon') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('apple_touch_icon') }}">
     <script>
       (() => {
         const THEMES = ["latte", "mocha", "frappe", "macchiato"];

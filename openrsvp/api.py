@@ -12,7 +12,8 @@ import tomllib
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
@@ -79,6 +80,8 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="OpenRSVP", version=APP_VERSION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+static_dir = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["repo_url"] = get_repo_url()
 templates.env.filters["relative_time"] = humanize_time
@@ -202,6 +205,20 @@ async def generic_exception_handler(request: Request, exc: Exception):
         500,
         "We hit a snag while processing that request. Please try again.",
     )
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(static_dir / "favicon.ico")
+
+
+@app.get("/apple-touch-icon.png", include_in_schema=False)
+async def apple_touch_icon():
+    return FileResponse(static_dir / "apple-touch-icon.png")
+
+
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
+async def apple_touch_icon_precomposed():
+    return FileResponse(static_dir / "apple-touch-icon-precomposed.png")
 
 
 def _ensure_event(db: Session, event_id: str) -> Event:

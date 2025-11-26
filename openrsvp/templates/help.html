@@ -9,6 +9,7 @@
       <div class="d-flex flex-wrap gap-2">
         <span class="badge bg-light text-dark">Capability tokens only</span>
         <span class="badge bg-light text-dark">Hosts can’t edit guest RSVPs</span>
+        <span class="badge bg-light text-dark">Optional RSVP approvals</span>
         <span class="badge bg-light text-dark">Automatic decay cycles</span>
         <span class="badge bg-light text-dark">Catppuccin themes</span>
       </div>
@@ -41,6 +42,7 @@
         <li>Start/end times respect viewer timezones; durations render automatically.</li>
         <li>Private events stay hidden even if the channel is public.</li>
         <li>Descriptions support basic Markdown for richer details.</li>
+        <li>Toggle “Require admin approval for new RSVPs” if you want to approve guests before they show up.</li>
       </ul>
     </div>
   </div>
@@ -57,7 +59,7 @@
   </div>
   <div class="col-lg-4 col-md-6">
     <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
-      <h3 class="h6 text-uppercase text-muted mb-2">Naming tips</h3>
+      <h3 class="h6 text-uppercase text-muted mb-2">Channel Naming tips</h3>
       <ul class="mb-0 text-secondary small ps-3">
         <li>Names automatically become web-safe links: we lowercase them and swap spaces or punctuation for hyphens.</li>
         <li>Avoid generic names to prevent collisions—add city or group hints.</li>
@@ -75,6 +77,7 @@
         <li>Guests can hide their RSVP from the public list; organizers still see it.</li>
         <li>Each submission returns a magic link to edit, toggle privacy, or delete.</li>
         <li>Public counters show total visible guests; private RSVP counts are summarized.</li>
+        <li>When approval is required, new RSVPs start as pending until the host approves or rejects them.</li>
       </ul>
     </div>
   </div>

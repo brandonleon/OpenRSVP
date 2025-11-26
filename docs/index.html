@@ -75,6 +75,7 @@
                 <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
               </div>
               <p class="mb-0"><strong>Admin link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code>. Save it—there are no accounts to recover it later.</p>
+              <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until you approve or reject them in the admin view.</p>
               <p class="mb-0 text-muted small mt-2">The admin page lets owners edit details or delete the event entirely (which also removes all RSVPs).</p>
             </div>
           </div>
@@ -85,6 +86,7 @@
               <ul class="mb-0">
                 <li>Public vs. private RSVPs (hide from attendee list; organizers still see them).</li>
                 <li>Edit or delete your own RSVP anytime using the token link.</li>
+                <li>Events with approval enabled hold new RSVPs as <strong>pending</strong> until the host marks them approved or rejected.</li>
                 <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
               </ul>
             </div>
@@ -257,7 +259,7 @@ openrsvp decay --vacuum</code></pre>
     "notes": "Can bring a projector",
     "is_private_rsvp": false
   }'</code></pre>
-              <p class="mb-2">Guests manage their own entry at <code>/api/v1/events/{event_id}/rsvps/self</code> using <code>Authorization: Bearer &lt;rsvp-token&gt;</code>.</p>
+              <p class="mb-2">Guests manage their own entry at <code>/api/v1/events/{event_id}/rsvps/self</code> using <code>Authorization: Bearer &lt;rsvp-token&gt;</code>. Responses include <code>approval_status</code> (approved/pending/rejected).</p>
               <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id}/rsvps/self \
   -H "Authorization: Bearer &lt;rsvp-token&gt;" \
   -H "Content-Type: application/json" \
@@ -290,6 +292,7 @@ openrsvp decay --vacuum</code></pre>
               <p class="mb-2">Returns RSVP records (including private ones) plus convenience counts.</p>
               <pre><code>curl http://localhost:8000/api/v1/events/{event_id}/rsvps \
   -H "Authorization: Bearer &lt;admin-token&gt;"</code></pre>
+              <p class="mb-2">Events with approval enabled include <code>approval_status</code> on each RSVP; pending/rejected entries stay off the public attendee list.</p>
               <p class="mb-2">Example stats payload:</p>
               <pre><code>{
   "stats": {
