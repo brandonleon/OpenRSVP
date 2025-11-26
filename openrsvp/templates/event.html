@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set public_messages = public_messages or [] %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4" id="event-hero" data-event-page data-event-id="{{ event.id }}">
   <div class="d-flex flex-column flex-lg-row align-items-start gap-4">
@@ -26,6 +27,13 @@
           <div class="text-white fw-semibold">Location</div>
           <div class="small">{{ event.location or 'Location TBD' }}</div>
         </div>
+        {% if event.admin_approval_required %}
+        <div class="vr opacity-50"></div>
+        <div>
+          <div class="text-white fw-semibold">Approval</div>
+          <div class="small">RSVPs require host approval</div>
+        </div>
+        {% endif %}
       </div>
       {% if event.channel and not (not event.is_private and event.channel.visibility == 'private') %}
       <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
@@ -58,6 +66,29 @@
       <p class="text-muted mb-0">No description provided.</p>
       {% endif %}
     </div>
+    <div class="p-4 bg-white border rounded-3 shadow-sm mb-3">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h3 class="h6 text-uppercase text-muted mb-0">Announcements</h3>
+        <span class="badge bg-light text-dark">{{ public_messages|length }} update{% if public_messages|length != 1 %}s{% endif %}</span>
+      </div>
+      {% if public_messages %}
+      <div class="list-group list-group-flush">
+        {% for message in public_messages %}
+        <div class="list-group-item px-0">
+          <div class="d-flex justify-content-between align-items-start gap-2">
+            <div>
+              <div class="fw-semibold">{{ message.content }}</div>
+              <div class="small text-muted">{{ message.created_at|relative_time }}</div>
+            </div>
+            <span class="badge bg-secondary text-uppercase">{{ message.message_type }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted mb-0">No announcements yet.</p>
+      {% endif %}
+    </div>
     <div class="p-4 bg-white border rounded-3 shadow-sm">
       <div class="d-flex align-items-center justify-content-between mb-2">
         <h3 class="h6 text-uppercase text-muted mb-0">Attendees</h3>
@@ -79,10 +110,14 @@
               <div>
                 <div class="fw-semibold">{{ rsvp.name }}</div>
                 {% if rsvp.pronouns %}<div class="small text-muted">{{ rsvp.pronouns }}</div>{% endif %}
-                {% if rsvp.notes %}<div class="small text-muted">Notes: {{ rsvp.notes }}</div>{% endif %}
               </div>
               <div class="text-end">
-                <span class="badge bg-secondary text-uppercase">{{ rsvp.status }}</span>
+                <div class="d-flex flex-wrap justify-content-end gap-1">
+                  <span class="badge bg-secondary text-uppercase">{{ rsvp.attendance_status }}</span>
+                  {% if rsvp.is_private %}
+                  <span class="badge bg-dark text-uppercase">Private</span>
+                  {% endif %}
+                </div>
                 <div class="small text-muted">Guests: {{ rsvp.guest_count }}</div>
               </div>
             </div>
@@ -100,6 +135,11 @@
     <div class="p-4 card-flush rounded-3 shadow-sm h-100">
       <h3 class="h6 text-uppercase text-secondary mb-3">Need to edit your RSVP?</h3>
       <p class="text-secondary small mb-3">You'll get a magic link after submitting. Keep it safe—it's your passwordless key.</p>
+      {% if event.admin_approval_required %}
+      <div class="alert alert-warning small" role="alert">
+        This organizer approves RSVPs before they appear here. You'll see your status on your magic link.
+      </div>
+      {% endif %}
       <a class="btn btn-outline-light w-100" href="/e/{{ event.id }}/rsvp">Start your RSVP</a>
     </div>
   </div>

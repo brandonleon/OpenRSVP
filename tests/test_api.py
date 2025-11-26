@@ -178,20 +178,18 @@ def test_private_rsvp_hidden_from_public_list(client):
         session,
         event=event,
         name="Public Guest",
-        status="yes",
+        attendance_status="yes",
         pronouns=None,
         guest_count=0,
-        notes=None,
         is_private=False,
     )
     private = crud.create_rsvp(
         session,
         event=event,
         name="Private Guest",
-        status="yes",
+        attendance_status="yes",
         pronouns=None,
         guest_count=0,
-        notes=None,
         is_private=True,
     )
     session.commit()
@@ -228,10 +226,9 @@ def test_event_page_counts_public_and_private_party_sizes(client):
         session,
         event=event,
         name="Public One",
-        status="yes",
+        attendance_status="yes",
         pronouns=None,
         guest_count=2,
-        notes=None,
         is_private=False,
     )
     # private RSVP: party of 2 (1 + 1 guest)
@@ -239,10 +236,9 @@ def test_event_page_counts_public_and_private_party_sizes(client):
         session,
         event=event,
         name="Private One",
-        status="yes",
+        attendance_status="yes",
         pronouns=None,
         guest_count=1,
-        notes=None,
         is_private=True,
     )
     session.commit()
