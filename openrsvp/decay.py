@@ -1,4 +1,5 @@
 """Decay cycle utilities."""
+
 from __future__ import annotations
 
 import logging
@@ -64,15 +65,19 @@ def run_decay_cycle() -> dict:
         covered_event_filter = or_(active_events_filter, delete_event_filter)
         total_events = session.scalar(select(func.count()).select_from(Event)) or 0
         covered_events = (
-            session.scalar(select(func.count()).select_from(Event).where(covered_event_filter))
+            session.scalar(
+                select(func.count()).select_from(Event).where(covered_event_filter)
+            )
             or 0
         )
         stats["events_skipped"] = max(total_events - covered_events, 0)
 
         last_event_seen: tuple[datetime | None, str | None] = (None, None)
         while True:
-            query = select(Event).where(active_events_filter).order_by(
-                Event.created_at, Event.id
+            query = (
+                select(Event)
+                .where(active_events_filter)
+                .order_by(Event.created_at, Event.id)
             )
             if last_event_seen[0]:
                 query = query.where(
@@ -129,8 +134,10 @@ def run_decay_cycle() -> dict:
 
         last_event_seen = (None, None)
         while True:
-            query = select(Event).where(delete_event_filter).order_by(
-                Event.created_at, Event.id
+            query = (
+                select(Event)
+                .where(delete_event_filter)
+                .order_by(Event.created_at, Event.id)
             )
             if last_event_seen[0]:
                 query = query.where(
@@ -174,8 +181,10 @@ def run_decay_cycle() -> dict:
 
         last_channel_seen: tuple[datetime | None, str | None] = (None, None)
         while True:
-            query = select(Channel).where(active_channel_filter).order_by(
-                Channel.last_used_at, Channel.id
+            query = (
+                select(Channel)
+                .where(active_channel_filter)
+                .order_by(Channel.last_used_at, Channel.id)
             )
             if last_channel_seen[0]:
                 query = query.where(
@@ -225,8 +234,10 @@ def run_decay_cycle() -> dict:
 
         last_channel_seen = (None, None)
         while True:
-            query = select(Channel).where(delete_channel_filter).order_by(
-                Channel.last_used_at, Channel.id
+            query = (
+                select(Channel)
+                .where(delete_channel_filter)
+                .order_by(Channel.last_used_at, Channel.id)
             )
             if last_channel_seen[0]:
                 query = query.where(

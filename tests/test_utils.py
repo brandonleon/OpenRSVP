@@ -30,7 +30,10 @@ def test_render_markdown_renders_blocks_and_inline_html():
     """
     html = render_markdown(text)
     assert "<h1>Heading</h1>" in html
-    assert "<p>This is <strong>bold</strong>, <em>italic</em>, and <code>code</code>" in html
+    assert (
+        "<p>This is <strong>bold</strong>, <em>italic</em>, and <code>code</code>"
+        in html
+    )
     assert '<a href="https://example.com"' in html
     assert "<ul>" in html and "<li>Item one</li>" in html
     assert "<blockquote>Block quote</blockquote>" in html

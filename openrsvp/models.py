@@ -112,8 +112,12 @@ class Message(Base):
     __tablename__ = "messages"
 
     id = Column(String(36), primary_key=True, default=_uuid)
-    event_id = Column(String(36), ForeignKey("events.id", ondelete="CASCADE"), nullable=True)
-    rsvp_id = Column(String(36), ForeignKey("rsvps.id", ondelete="CASCADE"), nullable=True)
+    event_id = Column(
+        String(36), ForeignKey("events.id", ondelete="CASCADE"), nullable=True
+    )
+    rsvp_id = Column(
+        String(36), ForeignKey("rsvps.id", ondelete="CASCADE"), nullable=True
+    )
     author_id = Column(String(36), nullable=True)
     message_type = Column(String(32), nullable=False)
     visibility = Column(String(16), nullable=False)

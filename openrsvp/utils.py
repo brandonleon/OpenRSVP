@@ -55,7 +55,9 @@ def _render_inline(text: str) -> str:
     """Render inline Markdown (emphasis, code, and links) into sanitized HTML."""
 
     coded = _code_pattern.sub(lambda match: f"<code>{match.group(1)}</code>", text)
-    bolded = _bold_pattern.sub(lambda match: f"<strong>{match.group(1)}</strong>", coded)
+    bolded = _bold_pattern.sub(
+        lambda match: f"<strong>{match.group(1)}</strong>", coded
+    )
     emphasized = _italic_pattern.sub(lambda match: f"<em>{match.group(1)}</em>", bolded)
 
     def replace_link(match: re.Match[str]) -> str:

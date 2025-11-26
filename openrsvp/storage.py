@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import secrets
-from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 
 from .config import settings

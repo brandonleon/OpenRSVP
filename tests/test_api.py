@@ -112,7 +112,9 @@ def test_event_admin_can_change_and_remove_channel(client):
 def test_channel_routes_respect_visibility(client):
     session = database.SessionLocal()
     public_channel = ensure_channel(session, name="Public Lounge", visibility="public")
-    private_channel = ensure_channel(session, name="Secret Cellar", visibility="private")
+    private_channel = ensure_channel(
+        session, name="Secret Cellar", visibility="private"
+    )
     session.commit()
 
     public_response = client.get(f"/channel/{public_channel.slug}")
@@ -354,7 +356,9 @@ def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
     assert reject_resp.status_code == 200
     rejected_rsvp = reject_resp.json()["rsvp"]
     assert rejected_rsvp["approval_status"] == "rejected"
-    message_by_type = {m["message_type"]: m["content"] for m in rejected_rsvp["messages"]}
+    message_by_type = {
+        m["message_type"]: m["content"] for m in rejected_rsvp["messages"]
+    }
     assert message_by_type["rejection_reason"] == reason
     assert "RSVP marked as rejected" in message_by_type["rsvp_status_change"]
 

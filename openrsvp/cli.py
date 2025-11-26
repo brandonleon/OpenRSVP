@@ -41,7 +41,7 @@ def decay(
         False,
         "--vacuum",
         help="Run SQLite VACUUM after decay completes",
-    )
+    ),
 ) -> None:
     """Run the decay cycle manually."""
     init_db()

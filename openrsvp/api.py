@@ -206,6 +206,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
         "We hit a snag while processing that request. Please try again.",
     )
 
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse(static_dir / "favicon.ico")
@@ -718,8 +719,8 @@ def _paginate_public_channels(
     per_page: int = ADMIN_EVENTS_PER_PAGE,
 ):
     clause = _channel_search_clause(query)
-    count_stmt = select(func.count()).select_from(Channel).where(
-        Channel.visibility == "public"
+    count_stmt = (
+        select(func.count()).select_from(Channel).where(Channel.visibility == "public")
     )
     if clause is not None:
         count_stmt = count_stmt.where(clause)
@@ -826,17 +827,15 @@ def _recent_events(
         now=now,
     )
     filters.append(Event.start_time < now)
-    stmt = (
-        select(Event)
-        .order_by(Event.start_time.desc())
-        .limit(limit)
-    )
+    stmt = select(Event).order_by(Event.start_time.desc()).limit(limit)
     for condition in filters:
         stmt = stmt.where(condition)
     return db.scalars(stmt).all()
 
 
-def _paginate_events(db: Session, *, page: int, query: str | None, include_rsvps: bool = False):
+def _paginate_events(
+    db: Session, *, page: int, query: str | None, include_rsvps: bool = False
+):
     clause = _event_search_clause(query)
     filters = [clause] if clause is not None else []
     return paginate_events(
@@ -1021,7 +1020,9 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
 @app.get("/e/{event_id}/rsvp")
 def rsvp_form(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
-    return templates.TemplateResponse(request, "rsvp_form.html", {"request": request, "event": event})
+    return templates.TemplateResponse(
+        request, "rsvp_form.html", {"request": request, "event": event}
+    )
 
 
 @app.post("/e/{event_id}/rsvp")
@@ -1170,9 +1171,7 @@ def event_admin(
         event, visibilities={"public", "attendee", "admin"}
     )
     rsvp_messages = {
-        rsvp.id: _rsvp_messages(
-            rsvp, visibilities={"public", "attendee", "admin"}
-        )
+        rsvp.id: _rsvp_messages(rsvp, visibilities={"public", "attendee", "admin"})
         for rsvp in rsvps
     }
     return templates.TemplateResponse(
@@ -1244,9 +1243,7 @@ def save_event_admin(
         event, visibilities={"public", "attendee", "admin"}
     )
     rsvp_messages = {
-        rsvp.id: _rsvp_messages(
-            rsvp, visibilities={"public", "attendee", "admin"}
-        )
+        rsvp.id: _rsvp_messages(rsvp, visibilities={"public", "attendee", "admin"})
         for rsvp in rsvps
     }
     parsed_start = _parse_datetime(start_time)
@@ -1329,9 +1326,7 @@ def save_event_admin(
         event, visibilities={"public", "attendee", "admin"}
     )
     rsvp_messages = {
-        rsvp.id: _rsvp_messages(
-            rsvp, visibilities={"public", "attendee", "admin"}
-        )
+        rsvp.id: _rsvp_messages(rsvp, visibilities={"public", "attendee", "admin"})
         for rsvp in rsvps
     }
     return templates.TemplateResponse(
@@ -1421,7 +1416,9 @@ def pending_rsvp_admin(
     _require_admin_or_root(event, admin_token)
     rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
     _apply_rsvp_status_change(db, event=event, rsvp=rsvp, new_status="pending")
-    params = urlencode({"message": "RSVP set to pending", "message_class": "alert-info"})
+    params = urlencode(
+        {"message": "RSVP set to pending", "message_class": "alert-info"}
+    )
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
@@ -1453,9 +1450,7 @@ def add_admin_rsvp_note(
             {"message": "Note cannot be empty", "message_class": "alert-danger"}
         )
     else:
-        params = urlencode(
-            {"message": "Note added", "message_class": "alert-success"}
-        )
+        params = urlencode({"message": "Note added", "message_class": "alert-success"})
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
@@ -1785,9 +1780,7 @@ def api_update_event(
 
 
 @app.delete("/api/v1/events/{event_id}", status_code=204)
-def api_delete_event(
-    event_id: str, request: Request, db: Session = Depends(get_db)
-):
+def api_delete_event(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
     _require_admin_header(event, request)
     db.delete(event)
@@ -1804,7 +1797,8 @@ def api_list_event_rsvps(
     return {
         "event": _serialize_event(event, include_admin_link=True),
         "rsvps": [
-            _serialize_rsvp(r, include_token=True, include_internal_id=True) for r in rsvps
+            _serialize_rsvp(r, include_token=True, include_internal_id=True)
+            for r in rsvps
         ],
         "stats": _rsvp_stats(rsvps),
     }
@@ -1919,7 +1913,9 @@ def api_create_rsvp_message(
     rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
     visibility = (payload.visibility or "").lower()
     if visibility not in {"admin", "attendee"}:
-        raise HTTPException(status_code=400, detail="Invalid visibility for RSVP message")
+        raise HTTPException(
+            status_code=400, detail="Invalid visibility for RSVP message"
+        )
     if payload.message_type not in {"admin_note", "rejection_reason", "user_note"}:
         raise HTTPException(status_code=400, detail="Invalid message type for RSVP")
     message = _create_message_if_content(
@@ -1936,7 +1932,10 @@ def api_create_rsvp_message(
     visible_messages = _rsvp_messages(
         rsvp, visibilities={"public", "attendee", "admin"}
     )
-    return {"message": _serialize_message(message), "messages": [_serialize_message(m) for m in visible_messages]}
+    return {
+        "message": _serialize_message(message),
+        "messages": [_serialize_message(m) for m in visible_messages],
+    }
 
 
 @app.post("/api/v1/events/{event_id}/rsvps", status_code=201)
@@ -1974,9 +1973,7 @@ def api_create_rsvp(
 
 
 @app.get("/api/v1/events/{event_id}/rsvps/self")
-def api_get_own_rsvp(
-    event_id: str, request: Request, db: Session = Depends(get_db)
-):
+def api_get_own_rsvp(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
     rsvp = _require_rsvp_from_header(event, request, db)
     attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
@@ -2024,9 +2021,7 @@ def api_update_own_rsvp(
 
 
 @app.delete("/api/v1/events/{event_id}/rsvps/self", status_code=204)
-def api_delete_own_rsvp(
-    event_id: str, request: Request, db: Session = Depends(get_db)
-):
+def api_delete_own_rsvp(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
     rsvp = _require_rsvp_from_header(event, request, db)
     db.delete(rsvp)
