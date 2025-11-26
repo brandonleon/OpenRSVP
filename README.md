@@ -112,3 +112,21 @@ attaches randomized RSVP records. The `--extra-events` flag optionally creates
 events that are not attached to any channel, `--max-rsvps` caps RSVP counts per
 event, and `--private-percent` controls what portion of events are marked
 private.
+
+## Running Tests
+
+Use `uv` so dev dependencies install on demand:
+
+```bash
+PYTHONPATH=. UV_CACHE_DIR=.uv-cache uv run pytest
+```
+
+`PYTHONPATH=.` makes the local `openrsvp` package importable without an editable
+install. The `UV_CACHE_DIR` override keeps cache files in the repo instead of
+the default user cache (helpful on locked-down environments).
+
+You can also run the same defaults via the CLI:
+
+```bash
+uv run main.py test              # or: openrsvp test
+```

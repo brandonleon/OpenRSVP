@@ -74,6 +74,7 @@ def test_create_and_update_event(session):
         end_time=new_end,
         location="New place",
         channel=None,
+        admin_approval_required=True,
         is_private=True,
     )
     assert event.title == "Updated"
@@ -81,6 +82,7 @@ def test_create_and_update_event(session):
     assert event.end_time == new_end
     assert event.location == "New place"
     assert event.channel is None
+    assert event.admin_approval_required is True
     assert event.is_private is True
 
 
@@ -123,3 +125,53 @@ def test_create_and_update_rsvp(session):
     assert rsvp.pronouns is None
     assert rsvp.guest_count == 5  # clamped at max
     assert rsvp.is_private is False
+
+
+def test_rsvp_pending_until_approved_when_required(session):
+    channel = ensure_channel(session, name="Approval", visibility="public")
+    start = utcnow()
+    event = create_event(
+        session,
+        title="Gatekept Party",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=channel,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+    rsvp = create_rsvp(
+        session,
+        event=event,
+        name="Pending Pal",
+        attendance_status="yes",
+        pronouns=None,
+        guest_count=0,
+        is_private=False,
+    )
+    assert rsvp.approval_status == "pending"
+
+    update_rsvp(
+        session,
+        rsvp,
+        name="Pending Pal",
+        attendance_status="maybe",
+        pronouns=None,
+        guest_count=1,
+        is_private=False,
+    )
+    assert rsvp.approval_status == "pending"
+
+    update_rsvp(
+        session,
+        rsvp,
+        name="Approved Pal",
+        attendance_status="yes",
+        approval_status="approved",
+        pronouns=None,
+        guest_count=2,
+        is_private=False,
+    )
+    assert rsvp.approval_status == "approved"

@@ -2,6 +2,11 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
+import sys
+
 import typer
 import uvicorn
 
@@ -106,6 +111,25 @@ def seed_data(
         f"Seed complete: {stats['channels']} channels, {stats['events']} events, "
         f"{stats['rsvps']} RSVPs created."
     )
+
+
+@app.command("test")
+def run_tests(pytest_args: list[str] = typer.Argument(None, help="Extra pytest args")):
+    """Run the test suite with helpful defaults."""
+    env = os.environ.copy()
+    env.setdefault("PYTHONPATH", ".")
+    env.setdefault("UV_CACHE_DIR", ".uv-cache")
+    uv_path = shutil.which("uv")
+    if uv_path:
+        cmd = [uv_path, "run", "pytest"]
+    else:
+        typer.echo("uv not found, falling back to python -m pytest")
+        cmd = [sys.executable, "-m", "pytest"]
+    if pytest_args:
+        cmd.extend(pytest_args)
+    typer.echo(f"Running tests: {' '.join(cmd)}")
+    result = subprocess.run(cmd, env=env)
+    raise typer.Exit(code=result.returncode)
 
 
 if __name__ == "__main__":

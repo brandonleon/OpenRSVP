@@ -249,3 +249,127 @@ def test_event_page_counts_public_and_private_party_sizes(client):
     assert "+ 2 private people (1 RSVP" in event_page.text
 
     session.close()
+
+
+def test_pending_rsvp_hidden_until_approved(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Approval Needed",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    create_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Pending Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert create_resp.status_code == 201
+    created_rsvp = create_resp.json()["rsvp"]
+    assert created_rsvp["approval_status"] == "pending"
+
+    public_resp = client.get(f"/api/v1/events/{event.id}")
+    public_event = public_resp.json()["event"]
+    counts = public_event["rsvp_counts"]
+    assert counts["public"] == 0
+    assert counts["public_party_size"] == 0
+    assert public_event["rsvps"] == []
+
+    headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_list = client.get(f"/api/v1/events/{event.id}/rsvps", headers=headers)
+    assert admin_list.status_code == 200
+    admin_rsvp = admin_list.json()["rsvps"][0]
+    assert admin_rsvp["approval_status"] == "pending"
+
+    rsvp_id = admin_rsvp["id"]
+    approve_resp = client.post(
+        f"/events/{event.id}/rsvps/{rsvp_id}/approve", headers=headers
+    )
+    assert approve_resp.status_code == 200
+    approved_rsvp = approve_resp.json()["rsvp"]
+    assert approved_rsvp["approval_status"] == "approved"
+    message_types = {m["message_type"] for m in approved_rsvp["messages"]}
+    assert "rsvp_status_change" in message_types
+
+    public_after = client.get(f"/api/v1/events/{event.id}")
+    event_after = public_after.json()["event"]
+    counts_after = event_after["rsvp_counts"]
+    assert counts_after["public"] == 1
+    assert counts_after["public_party_size"] == 1
+    assert len(event_after["rsvps"]) == 1
+    assert event_after["rsvps"][0]["name"] == "Pending Guest"
+
+    session.close()
+
+
+def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Approval Needed",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    create_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Rejectable Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert create_resp.status_code == 201
+    rsvp_payload = create_resp.json()["rsvp"]
+    rsvp_token = rsvp_payload["rsvp_token"]
+
+    headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_list = client.get(f"/api/v1/events/{event.id}/rsvps", headers=headers)
+    rsvp_id = admin_list.json()["rsvps"][0]["id"]
+
+    reason = "Invite list is full"
+    reject_resp = client.post(
+        f"/events/{event.id}/rsvps/{rsvp_id}/reject",
+        headers=headers,
+        json={"reason": reason},
+    )
+    assert reject_resp.status_code == 200
+    rejected_rsvp = reject_resp.json()["rsvp"]
+    assert rejected_rsvp["approval_status"] == "rejected"
+    message_by_type = {m["message_type"]: m["content"] for m in rejected_rsvp["messages"]}
+    assert message_by_type["rejection_reason"] == reason
+    assert "RSVP marked as rejected" in message_by_type["rsvp_status_change"]
+
+    attendee_view = client.get(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        headers={"Authorization": f"Bearer {rsvp_token}"},
+    )
+    assert attendee_view.status_code == 200
+    attendee_messages = attendee_view.json()["rsvp"]["messages"]
+    attendee_types = {m["message_type"]: m["content"] for m in attendee_messages}
+    assert attendee_types["rejection_reason"] == reason
+
+    public_resp = client.get(f"/api/v1/events/{event.id}")
+    public_counts = public_resp.json()["event"]["rsvp_counts"]
+    assert public_counts["public"] == 0
+    assert public_counts["public_party_size"] == 0
+
+    session.close()
