@@ -3,7 +3,10 @@
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4 text-center">
   <div class="display-5 fw-semibold text-danger mb-2">{{ status_code }}</div>
   <h1 class="display-6 fw-semibold text-white mb-2">Something went wrong</h1>
-  <p class="lead text-secondary mb-0">{{ error_message }}</p>
+  <p class="lead text-secondary mb-2">{{ error_message }}</p>
+  {% if extra_hint %}
+  <p class="text-secondary small mb-0">{{ extra_hint }}</p>
+  {% endif %}
 </section>
 <div class="d-flex justify-content-center gap-3 flex-wrap">
   <a class="btn btn-primary" href="/">Back to homepage</a>

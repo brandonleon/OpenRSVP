@@ -25,7 +25,7 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Status</label>
-          <select name="status" class="form-select" required>
+          <select name="attendance_status" class="form-select" required>
             <option value="yes">Yes</option>
             <option value="no">No</option>
             <option value="maybe">Maybe</option>
@@ -38,13 +38,19 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Notes</label>
-          <textarea name="notes" class="form-control" rows="3" placeholder="Anything we should know"></textarea>
+          <textarea name="note" class="form-control" rows="3" placeholder="Anything we should know"></textarea>
+          <div class="form-text">Notes are shared privately with the organizer.</div>
         </div>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" value="true" id="rsvp-private" name="is_private_rsvp">
           <label class="form-check-label" for="rsvp-private">Hide my RSVP from the public list</label>
           <div class="form-text">The event host will still see it; this only hides it from other guests.</div>
         </div>
+        {% if event.admin_approval_required %}
+        <div class="alert alert-warning small" role="alert">
+          This organizer reviews RSVPs before approving them. You'll receive a pending status until they decide.
+        </div>
+        {% endif %}
         <div class="d-flex flex-wrap gap-2">
           <a class="btn btn-outline-secondary" href="/e/{{ event.id }}">Cancel</a>
           <button class="btn btn-primary" type="submit">Create RSVP</button>

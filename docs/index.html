@@ -75,6 +75,7 @@
                 <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
               </div>
               <p class="mb-0"><strong>Admin link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code>. Save it—there are no accounts to recover it later.</p>
+              <p class="mb-0 text-muted small mt-2">The admin page lets owners edit details or delete the event entirely (which also removes all RSVPs).</p>
             </div>
           </div>
           <div class="col-lg-4">
@@ -270,6 +271,7 @@ openrsvp decay --vacuum</code></pre>
             <div class="section-card h-100">
               <h3 class="h5">Admin actions on events</h3>
               <p class="mb-2">Use the admin token as a bearer to edit or delete.</p>
+              <p class="mb-2 text-muted small">Third-party apps can delete events the same way the admin UI does by calling the DELETE endpoint with the admin token.</p>
               <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id} \
   -H "Authorization: Bearer &lt;admin-token&gt;" \
   -H "Content-Type: application/json" \

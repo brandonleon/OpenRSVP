@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from .crud import (
     CHANNEL_VISIBILITIES,
     create_event,
+    create_message,
     create_rsvp,
     ensure_channel,
     get_channel_by_slug,
@@ -147,6 +148,7 @@ def _create_event(
         location=location,
         channel=channel,
         is_private=is_private,
+        admin_approval_required=random.random() < 0.2,
     )
     return _create_rsvps(
         session,
@@ -195,14 +197,27 @@ def _create_rsvps(
         guest_count = max(0, random.randint(0, 3))
         notes = fake.sentence() if random.random() < 0.3 else None
         is_private = random.randint(1, 100) <= private_rsvp_percentage
-        create_rsvp(
+        approval_status = "approved"
+        if event.admin_approval_required:
+            approval_status = random.choice(["approved", "pending", "rejected"])
+        rsvp = create_rsvp(
             session,
             event=event,
             name=name,
-            status=status,
+            attendance_status=status,
             pronouns=pronouns,
             guest_count=guest_count,
-            notes=notes,
+            approval_status=approval_status,
             is_private=is_private,
         )
+        if notes:
+            create_message(
+                session,
+                event=event,
+                rsvp=rsvp,
+                author_id=rsvp.id,
+                message_type="user_note",
+                visibility="attendee",
+                content=notes,
+            )
     return total

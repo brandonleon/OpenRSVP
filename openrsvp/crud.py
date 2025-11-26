@@ -8,10 +8,12 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import Channel, Event, RSVP
+from .models import Channel, Event, Message, RSVP
 from .utils import slugify, utcnow
 
 CHANNEL_VISIBILITIES = {"public", "private"}
+VALID_APPROVAL_STATUSES = {"pending", "approved", "rejected"}
+VALID_ATTENDANCE_STATUSES = {"yes", "no", "maybe"}
 
 
 def _now() -> datetime:
@@ -47,6 +49,7 @@ def ensure_channel(
     name: str,
     visibility: str,
 ) -> Channel:
+    """Return an existing channel or create a new one."""
     visibility = visibility.lower()
     if visibility not in CHANNEL_VISIBILITIES:
         raise ValueError("Invalid channel visibility")
@@ -84,11 +87,14 @@ def create_event(
     end_time: datetime | None,
     location: str | None,
     channel: Channel | None,
+    admin_approval_required: bool = False,
     is_private: bool = False,
 ) -> Event:
+    """Create and persist a new event."""
     event = Event(
         admin_token=secrets.token_urlsafe(32),
         is_private=is_private,
+        admin_approval_required=admin_approval_required,
         title=title,
         description=description,
         start_time=start_time,
@@ -112,14 +118,17 @@ def update_event(
     end_time: datetime | None,
     location: str | None,
     channel: Channel | None,
+    admin_approval_required: bool,
     is_private: bool,
 ) -> Event:
+    """Update an existing event."""
     event.title = title
     event.description = description
     event.start_time = start_time
     event.end_time = end_time
     event.location = location
     event.is_private = is_private
+    event.admin_approval_required = admin_approval_required
     event.channel = channel
     event.last_modified = _now()
     session.add(event)
@@ -127,28 +136,67 @@ def update_event(
     return event
 
 
+def create_message(
+    session: Session,
+    *,
+    event: Event | None,
+    rsvp: RSVP | None,
+    author_id: str | None,
+    message_type: str,
+    visibility: str,
+    content: str,
+) -> Message:
+    """Create a message tied to an event or RSVP."""
+    message = Message(
+        event=event,
+        rsvp=rsvp,
+        author_id=author_id,
+        message_type=message_type,
+        visibility=visibility,
+        content=content,
+        created_at=_now(),
+    )
+    session.add(message)
+    session.flush()
+    return message
+
+
+def _normalize_attendance(status: str | None) -> str:
+    normalized = (status or "").strip().lower() or "yes"
+    return normalized if normalized in VALID_ATTENDANCE_STATUSES else "maybe"
+
+
+def _normalize_approval(status: str | None) -> str:
+    normalized = (status or "").strip().lower() or "approved"
+    return normalized if normalized in VALID_APPROVAL_STATUSES else "pending"
+
+
 def create_rsvp(
     session: Session,
     *,
     event: Event,
     name: str,
-    status: str,
+    attendance_status: str,
+    approval_status: str | None = None,
     pronouns: str | None,
     guest_count: int | None,
-    notes: str | None,
     is_private: bool = False,
 ) -> RSVP:
-    normalized_status = (status or "").strip().lower() or "yes"
-    if normalized_status not in {"yes", "no", "maybe"}:
-        normalized_status = "maybe"
+    """Create a new RSVP, respecting approval rules."""
+    normalized_attendance = _normalize_attendance(attendance_status)
+    normalized_approval = (
+        _normalize_approval(approval_status)
+        if approval_status is not None
+        else ("pending" if event.admin_approval_required else "approved")
+    )
     rsvp = RSVP(
         event=event,
         rsvp_token=secrets.token_urlsafe(32),
         name=name,
-        status=normalized_status,
+        attendance_status=normalized_attendance,
+        approval_status=normalized_approval,
         pronouns=pronouns,
         guest_count=guest_count or 0,
-        notes=notes,
         is_private=is_private,
     )
     session.add(rsvp)
@@ -161,21 +209,39 @@ def update_rsvp(
     rsvp: RSVP,
     *,
     name: str,
-    status: str,
+    attendance_status: str,
+    approval_status: str | None = None,
     pronouns: str | None,
     guest_count: int | None,
-    notes: str | None,
     is_private: bool,
 ) -> RSVP:
-    normalized_status = (status or "").strip().lower() or "yes"
-    if normalized_status not in {"yes", "no", "maybe"}:
-        normalized_status = "maybe"
+    """Update RSVP fields without altering approval unless provided."""
+    normalized_attendance = _normalize_attendance(attendance_status)
+    normalized_approval = (
+        _normalize_approval(approval_status)
+        if approval_status is not None
+        else rsvp.approval_status
+    )
     rsvp.name = name
-    rsvp.status = normalized_status
+    rsvp.attendance_status = normalized_attendance
+    rsvp.approval_status = normalized_approval
     rsvp.pronouns = pronouns
     rsvp.guest_count = min(max(guest_count or 0, 0), 5)
-    rsvp.notes = notes
     rsvp.is_private = bool(is_private)
+    rsvp.last_modified = _now()
+    session.add(rsvp)
+    session.flush()
+    return rsvp
+
+
+def set_rsvp_status(
+    session: Session,
+    *,
+    rsvp: RSVP,
+    status: str,
+) -> RSVP:
+    """Update the approval status for an RSVP."""
+    rsvp.approval_status = _normalize_approval(status)
     rsvp.last_modified = _now()
     session.add(rsvp)
     session.flush()

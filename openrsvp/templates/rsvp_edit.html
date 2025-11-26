@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set attendee_messages = attendee_messages or [] %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
@@ -35,6 +36,25 @@
 <div class="row justify-content-center">
   <div class="col-lg-8 col-xl-7">
     <div class="p-4 bg-white border rounded-3 shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <div class="small text-muted text-uppercase">Current status</div>
+          <div class="h5 mb-0">
+            <span class="badge {% if rsvp.approval_status == 'approved' %}bg-success{% elif rsvp.approval_status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} text-uppercase">
+              {{ rsvp.approval_status }}
+            </span>
+          </div>
+        </div>
+        <div class="text-end small text-muted">
+          Attending: {{ rsvp.attendance_status | capitalize }}<br>
+          Guests: {{ rsvp.guest_count }}
+        </div>
+      </div>
+      {% if rsvp.approval_status == 'pending' %}
+      <div class="alert alert-warning small">Your RSVP is awaiting approval from the organizer.</div>
+      {% elif rsvp.approval_status == 'rejected' %}
+      <div class="alert alert-danger small">This RSVP was rejected by the organizer.</div>
+      {% endif %}
       <form method="post" action="/e/{{ event.id }}/rsvp/{{ rsvp.rsvp_token }}" class="mt-1">
         <div class="mb-3">
           <label class="form-label">Name</label>
@@ -46,10 +66,10 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Status</label>
-          <select name="status" class="form-select">
-            <option value="yes" {% if rsvp.status == 'yes' %}selected{% endif %}>Yes</option>
-            <option value="no" {% if rsvp.status == 'no' %}selected{% endif %}>No</option>
-            <option value="maybe" {% if rsvp.status == 'maybe' %}selected{% endif %}>Maybe</option>
+          <select name="attendance_status" class="form-select">
+            <option value="yes" {% if rsvp.attendance_status == 'yes' %}selected{% endif %}>Yes</option>
+            <option value="no" {% if rsvp.attendance_status == 'no' %}selected{% endif %}>No</option>
+            <option value="maybe" {% if rsvp.attendance_status == 'maybe' %}selected{% endif %}>Maybe</option>
           </select>
         </div>
         <div class="mb-3">
@@ -59,7 +79,8 @@
         </div>
         <div class="mb-3">
           <label class="form-label">Notes</label>
-          <textarea name="notes" class="form-control" rows="3">{{ rsvp.notes or '' }}</textarea>
+          <textarea name="note" class="form-control" rows="3" placeholder="Add a new note for the organizer"></textarea>
+          <div class="form-text">Notes are shared privately with the organizer.</div>
         </div>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" value="true" id="rsvp-private" name="is_private_rsvp" {% if rsvp.is_private %}checked{% endif %}>
@@ -79,6 +100,27 @@
       >
         <button class="btn btn-danger" type="submit">Delete My RSVP</button>
       </form>
+      <div class="mt-4">
+        <h3 class="h6 text-uppercase text-muted mb-2">Messages</h3>
+        {% set attendee_feed = attendee_messages or [] %}
+        {% if attendee_feed %}
+        <div class="list-group list-group-flush">
+          {% for message in attendee_feed %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ message.content }}</div>
+                <div class="small text-muted">{{ message.created_at|relative_time }}</div>
+              </div>
+              <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted small mb-0">No messages yet.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>

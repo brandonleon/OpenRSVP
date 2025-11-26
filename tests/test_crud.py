@@ -102,10 +102,9 @@ def test_create_and_update_rsvp(session):
         session,
         event=event,
         name="Alice",
-        status="yes",
+        attendance_status="yes",
         pronouns="she/her",
         guest_count=1,
-        notes="See you!",
         is_private=True,
     )
     session.commit()
@@ -113,15 +112,14 @@ def test_create_and_update_rsvp(session):
         session,
         rsvp,
         name="Alice B",
-        status="maybe",
+        attendance_status="maybe",
         pronouns=None,
         guest_count=10,
-        notes=None,
         is_private=False,
     )
     assert rsvp.name == "Alice B"
-    assert rsvp.status == "maybe"
+    assert rsvp.attendance_status == "maybe"
+    assert rsvp.approval_status == "approved"
     assert rsvp.pronouns is None
     assert rsvp.guest_count == 5  # clamped at max
-    assert rsvp.notes is None
     assert rsvp.is_private is False

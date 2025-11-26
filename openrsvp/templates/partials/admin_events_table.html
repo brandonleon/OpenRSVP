@@ -32,11 +32,15 @@
         {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
         {% endif %}
         {% else %}
-        {% set channel_url = None %}
+          {% set channel_url = None %}
         {% endif %}
         {% set totals = namespace(yes=0, maybe=0) %}
+        {% set pending_count = event.rsvps | selectattr('approval_status', 'equalto', 'pending') | list | length %}
         {% for rsvp in event.rsvps %}
-          {% set status = (rsvp.status or '').lower() %}
+          {% if rsvp.approval_status != 'approved' %}
+            {% continue %}
+          {% endif %}
+          {% set status = (rsvp.attendance_status or '').lower() %}
           {% set party_size = (rsvp.guest_count or 0) + 1 %}
           {% if status == 'yes' %}
             {% set totals.yes = totals.yes + party_size %}
@@ -50,6 +54,12 @@
             <div class="small text-muted">
               ID: <code>{{ event.id }}</code>
               {% if event.location %}&middot; {{ event.location }}{% endif %}
+              {% if event.admin_approval_required %}
+              <span class="badge bg-warning text-dark text-uppercase ms-1">Approval required</span>
+              {% endif %}
+              {% if pending_count %}
+              <div class="mt-1"><span class="badge bg-light text-dark">{{ pending_count }} pending</span></div>
+              {% endif %}
             </div>
           </td>
           <td>
