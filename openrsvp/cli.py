@@ -19,6 +19,14 @@ from .storage import fetch_root_token, init_db, rotate_root_token
 app = typer.Typer(help="OpenRSVP command-line interface")
 
 
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Show help when no subcommand is provided."""
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+
+
 @app.command("admin-token")
 def admin_token() -> None:
     """Print the current root admin token."""

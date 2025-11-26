@@ -52,6 +52,14 @@ from .utils import (
 logger = logging.getLogger("uvicorn.error")
 
 
+def _no_cache(response: Response) -> Response:
+    """Prevent clients from caching dynamic pages so fresh data is shown."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _load_app_version() -> str:
     """Return the current package version, falling back to pyproject for dev runs."""
     try:
@@ -1000,7 +1008,7 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     public_messages = _event_messages(event, visibilities={"public"})
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "event.html",
         {
@@ -1015,6 +1023,7 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "public_messages": public_messages,
         },
     )
+    return _no_cache(response)
 
 
 @app.get("/e/{event_id}/rsvp")
@@ -1174,7 +1183,7 @@ def event_admin(
         rsvp.id: _rsvp_messages(rsvp, visibilities={"public", "attendee", "admin"})
         for rsvp in rsvps
     }
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request,
         "event_admin.html",
         {
@@ -1191,6 +1200,7 @@ def event_admin(
             "rsvp_messages": rsvp_messages,
         },
     )
+    return _no_cache(response)
 
 
 @app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_id}/delete")
