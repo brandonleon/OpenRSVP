@@ -59,7 +59,7 @@
     <div class="p-3 bg-white shadow-sm border rounded-3 h-100">
       <h3 class="h6 text-uppercase text-muted mb-2">Naming tips</h3>
       <ul class="mb-0 text-secondary small ps-3">
-        <li>Names are slugified: lowercase, ASCII, non-alphanumerics become hyphens.</li>
+        <li>Names automatically become web-safe links: we lowercase them and swap spaces or punctuation for hyphens.</li>
         <li>Avoid generic names to prevent collisions—add city or group hints.</li>
         <li>Private channel slugs are the secret; share them carefully.</li>
       </ul>
@@ -120,6 +120,8 @@
       </ul>
     </div>
   </div>
-  <p class="text-muted small mb-0 mt-3">Need more? Reach out to your event owner directly—OpenRSVP never stores contact info.</p>
+  {% set issues_url = repo_url ~ '/issues' if repo_url else 'https://github.com/brandonleon/OpenRSVP/issues' %}
+  <p class="text-muted small mb-2 mt-3">Need more? Reach out to your event owner directly—OpenRSVP never stores contact info.</p>
+  <p class="text-muted small mb-0">Have feedback or spot a bug? <a class="link-secondary" href="{{ issues_url }}" target="_blank" rel="noopener">Open an issue on GitHub</a>.</p>
 </div>
 {% endblock %}
