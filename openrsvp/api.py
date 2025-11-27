@@ -220,14 +220,60 @@ async def favicon():
     return FileResponse(static_dir / "favicon.ico")
 
 
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon_svg():
+    return FileResponse(static_dir / "favicon.svg")
+
+
+@app.get("/favicon-96x96.png", include_in_schema=False)
+@app.get("/favicon.png", include_in_schema=False)
+async def favicon_png():
+    return FileResponse(static_dir / "favicon-96x96.png")
+
+
 @app.get("/apple-touch-icon.png", include_in_schema=False)
+@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
 async def apple_touch_icon():
     return FileResponse(static_dir / "apple-touch-icon.png")
 
 
-@app.get("/apple-touch-icon-precomposed.png", include_in_schema=False)
-async def apple_touch_icon_precomposed():
-    return FileResponse(static_dir / "apple-touch-icon-precomposed.png")
+@app.get("/android-chrome-192x192.png", include_in_schema=False)
+@app.get("/web-app-manifest-192x192.png", include_in_schema=False)
+async def web_app_icon_192():
+    return FileResponse(static_dir / "web-app-manifest-192x192.png")
+
+
+@app.get("/android-chrome-512x512.png", include_in_schema=False)
+@app.get("/web-app-manifest-512x512.png", include_in_schema=False)
+async def web_app_icon_512():
+    return FileResponse(static_dir / "web-app-manifest-512x512.png")
+
+
+@app.get("/site.webmanifest", include_in_schema=False)
+async def site_webmanifest(request: Request):
+    """Expose a lightweight manifest for Android and modern browsers."""
+    manifest = {
+        "name": "OpenRSVP",
+        "short_name": "OpenRSVP",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#f4f4f7",
+        "theme_color": "#1e66f5",
+        "icons": [
+            {
+                "src": str(request.url_for("web_app_icon_192")),
+                "sizes": "192x192",
+                "type": "image/png",
+            },
+            {
+                "src": str(request.url_for("web_app_icon_512")),
+                "sizes": "512x512",
+                "type": "image/png",
+            },
+        ],
+    }
+    headers = {"Cache-Control": "public, max-age=3600"}
+    return JSONResponse(manifest, headers=headers)
 
 
 def _ensure_event(db: Session, event_id: str) -> Event:

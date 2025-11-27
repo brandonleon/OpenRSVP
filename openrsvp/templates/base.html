@@ -4,8 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ title or "OpenRSVP" }}</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('favicon') }}">
+    <meta name="theme-color" content="#1e66f5">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon_svg') }}">
+    <link rel="alternate icon" type="image/png" sizes="96x96" href="{{ url_for('favicon_png') }}">
+    <link rel="shortcut icon" href="{{ url_for('favicon') }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('apple_touch_icon') }}">
+    <link rel="manifest" href="{{ url_for('site_webmanifest') }}">
     <script>
       (() => {
         const THEMES = ["latte", "mocha", "frappe", "macchiato"];
