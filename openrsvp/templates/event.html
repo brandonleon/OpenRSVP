@@ -142,6 +142,52 @@
       {% endif %}
       <a class="btn btn-outline-light w-100" href="/e/{{ event.id }}/rsvp">Start your RSVP</a>
     </div>
+    <div class="p-4 bg-white rounded-3 shadow-sm mt-3 qr-share-card">
+      <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+        <div>
+          <h3 class="h6 text-uppercase text-muted mb-1">Share this RSVP</h3>
+          <p class="small text-secondary mb-0">Scan on mobile or share the link to invite others.</p>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" data-copy-link="{{ request.url_for('rsvp_form', event_id=event.id) }}">
+          Copy link
+        </button>
+      </div>
+      <div class="qr-code-frame d-flex justify-content-center align-items-center">
+        <div id="rsvp-qr" data-rsvp-url="{{ request.url_for('rsvp_form', event_id=event.id) }}" aria-label="QR code for the RSVP link"></div>
+      </div>
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+  (() => {
+    const container = document.getElementById("rsvp-qr");
+    if (!container) return;
+    const target = container.getAttribute("data-rsvp-url");
+    if (!target) return;
+
+    function renderQr() {
+      const styles = getComputedStyle(document.documentElement);
+      const colorDark = styles.getPropertyValue("--accent").trim() || "#1e66f5";
+      const colorLight = styles.getPropertyValue("--surface").trim() || "#ffffff";
+      container.innerHTML = "";
+      /* global QRCode */
+      if (typeof QRCode === "undefined") return;
+      new QRCode(container, {
+        text: target,
+        width: 168,
+        height: 168,
+        colorDark,
+        colorLight,
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+    }
+
+    renderQr();
+    document.addEventListener("themechange", renderQr);
+  })();
+</script>
 {% endblock %}
