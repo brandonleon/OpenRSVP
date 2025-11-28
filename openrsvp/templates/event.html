@@ -49,6 +49,14 @@
       {% endif %}
     </div>
     <div class="text-end d-flex flex-column align-items-end gap-2" id="event-action-area">
+      {% if event.max_attendees %}
+      <span class="badge bg-light text-dark text-uppercase">{{ event.yes_count }} / {{ event.max_attendees }} spots filled</span>
+      {% if event_is_full %}
+      <div class="alert alert-warning small mb-0 text-start">
+        This event is full. You may RSVP as “Maybe” for now. If a spot opens, you can change to “Yes.”
+      </div>
+      {% endif %}
+      {% endif %}
       <a class="btn btn-primary btn-lg" href="/e/{{ event.id }}/rsvp">Submit RSVP</a>
     </div>
   </div>

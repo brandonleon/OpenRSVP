@@ -94,6 +94,18 @@
           <input type="text" name="location" class="form-control" value="{{ event.location or '' }}">
         </div>
         <div class="mb-3">
+          <label class="form-label">Maximum Attendees (optional)</label>
+          <input
+            type="number"
+            name="max_attendees"
+            class="form-control"
+            min="1"
+            value="{{ event.max_attendees or '' }}"
+            placeholder="Leave blank for unlimited"
+          >
+          <div class="form-text">Only YES RSVPs count toward this limit.</div>
+        </div>
+        <div class="mb-3">
           <label class="form-label" for="admin-channel-name">Channel Name</label>
           <div class="input-group">
             <input
@@ -197,6 +209,16 @@
       <div class="small text-muted">
         Pending: {{ approval_counts.pending }} &middot; Approved: {{ approval_counts.approved }} &middot; Rejected: {{ approval_counts.rejected }}
       </div>
+      {% if event.max_attendees %}
+      <div class="alert {% if event_is_full %}alert-warning{% else %}alert-info{% endif %} small mb-3" role="alert">
+        <div class="fw-semibold">Capacity: {{ event.yes_count }} / {{ event.max_attendees }} spots filled</div>
+        {% if event_is_full %}
+        <div class="mb-0">Event is currently at capacity.</div>
+        {% else %}
+        <div class="mb-0">{{ available_yes_slots }} spot{% if available_yes_slots != 1 %}s{% endif %} remaining for Yes RSVPs.</div>
+        {% endif %}
+      </div>
+      {% endif %}
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <div class="fw-semibold">Admin link</div>
@@ -283,6 +305,11 @@
           </button>
         </div>
       </div>
+      {% if event_is_full and event.max_attendees %}
+      <div class="alert alert-warning small" role="alert">
+        Event is currently at capacity. You can still force-accept a guest if needed.
+      </div>
+      {% endif %}
       {% if rsvps %}
       <ul class="list-group list-group-flush" id="admin-rsvp-list">
         {% for rsvp in rsvps %}
@@ -312,6 +339,13 @@
                 <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/pending">
                   <button class="btn btn-outline-secondary btn-sm" type="submit">Pending</button>
                 </form>
+                {% if event.max_attendees and rsvp.attendance_status != 'yes' %}
+                <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/force_accept">
+                  <button class="btn btn-outline-warning btn-sm" type="submit" {% if not event_is_full %}data-bs-toggle="tooltip" title="Bypass the cap and mark as Yes"{% endif %}>
+                    Force Accept
+                  </button>
+                </form>
+                {% endif %}
               </div>
               <form
                 method="post"

@@ -90,12 +90,14 @@ def create_event(
     channel: Channel | None,
     admin_approval_required: bool = False,
     is_private: bool = False,
+    max_attendees: int | None = None,
 ) -> Event:
     """Create and persist a new event."""
     event = Event(
         admin_token=secrets.token_urlsafe(32),
         is_private=is_private,
         admin_approval_required=admin_approval_required,
+        max_attendees=max_attendees,
         title=title,
         description=description,
         start_time=start_time,
@@ -121,6 +123,7 @@ def update_event(
     channel: Channel | None,
     admin_approval_required: bool,
     is_private: bool,
+    max_attendees: int | None = None,
 ) -> Event:
     """Update an existing event."""
     event.title = title
@@ -131,6 +134,7 @@ def update_event(
     event.is_private = is_private
     event.admin_approval_required = admin_approval_required
     event.channel = channel
+    event.max_attendees = max_attendees
     event.last_modified = _now()
     session.add(event)
     session.flush()

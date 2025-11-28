@@ -34,6 +34,7 @@ from .crud import (
     touch_channel,
     update_event,
     update_rsvp,
+    VALID_ATTENDANCE_STATUSES,
 )
 from .database import SessionLocal
 from .models import Channel, Event, Message, RSVP
@@ -58,6 +59,33 @@ def _no_cache(response: Response) -> Response:
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+class EventFullError(Exception):
+    """Raised when an event is at capacity for YES RSVPs."""
+
+
+EVENT_FULL_ERROR = {
+    "error": "EventFull",
+    "message": "This event has reached its maximum number of attendees.",
+}
+
+
+def _normalize_attendance_status(status: str | None) -> str:
+    normalized = (status or "").strip().lower() or "yes"
+    return normalized if normalized in VALID_ATTENDANCE_STATUSES else "maybe"
+
+
+def _normalize_max_attendees(raw: str | int | None) -> int | None:
+    if raw is None:
+        return None
+    if isinstance(raw, str) and not raw.strip():
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="Invalid maximum attendees") from exc
+    return value if value > 0 else None
 
 
 def _load_app_version() -> str:
@@ -310,6 +338,65 @@ def _ensure_rsvp_by_id(db: Session, event: Event, rsvp_id: str) -> RSVP:
     return rsvp
 
 
+def _yes_party_size(event: Event, *, exclude_rsvp: RSVP | None = None) -> int:
+    excluded_id = exclude_rsvp.id if exclude_rsvp else None
+    return sum(
+        (rsvp.guest_count or 0) + 1
+        for rsvp in event.rsvps
+        if rsvp.attendance_status == "yes"
+        and (excluded_id is None or rsvp.id != excluded_id)
+    )
+
+
+def _available_yes_slots(event: Event, current_rsvp: RSVP | None = None) -> int | None:
+    if event.max_attendees is None:
+        return None
+    yes_party_size = _yes_party_size(event, exclude_rsvp=current_rsvp)
+    return max(event.max_attendees - yes_party_size, 0)
+
+
+def _enforce_attendance_capacity(
+    *,
+    event: Event,
+    new_status: str,
+    current_rsvp: RSVP | None = None,
+    admin_token: str | None = None,
+    force_accept: bool = False,
+    new_guest_count: int | None = 0,
+) -> bool:
+    normalized_status = _normalize_attendance_status(new_status)
+    if normalized_status != "yes":
+        return False
+    if event.max_attendees is None:
+        return False
+    yes_party_size = _yes_party_size(event, exclude_rsvp=current_rsvp)
+    proposed_party_size = (_clamp_guest_count(new_guest_count) or 0) + 1
+    if yes_party_size + proposed_party_size <= event.max_attendees:
+        return False
+    if force_accept:
+        if not admin_token:
+            raise HTTPException(status_code=403, detail="Invalid admin token")
+        _require_admin_or_root(event, admin_token)
+        return True
+    raise EventFullError
+
+
+def _event_full_response(request: Request, template: str | None, context: dict):
+    if _wants_json(request):
+        return JSONResponse(EVENT_FULL_ERROR, status_code=400)
+    if template:
+        payload = dict(context)
+        payload["message"] = EVENT_FULL_ERROR["message"]
+        payload["message_class"] = "alert-danger"
+        return templates.TemplateResponse(
+            request,
+            template,
+            payload,
+            status_code=400,
+        )
+    raise HTTPException(status_code=400, detail=EVENT_FULL_ERROR["message"])
+
+
 def _require_admin_or_root(event: Event, admin_token: str) -> None:
     if admin_token == event.admin_token:
         return
@@ -432,6 +519,8 @@ def _serialize_event(
         "is_private": event.is_private,
         "admin_approval_required": event.admin_approval_required,
         "score": event.score,
+        "max_attendees": event.max_attendees,
+        "yes_count": event.yes_count,
         "created_at": event.created_at.isoformat(),
         "last_modified": event.last_modified.isoformat(),
         "last_accessed": event.last_accessed.isoformat(),
@@ -522,6 +611,23 @@ def _create_message_if_content(
     )
 
 
+def _log_force_accept(db: Session, *, event: Event, rsvp: RSVP):
+    spots = (
+        f"{event.yes_count}/{event.max_attendees}"
+        if event.max_attendees is not None
+        else f"{event.yes_count}"
+    )
+    return create_message(
+        db,
+        event=event,
+        rsvp=rsvp,
+        author_id=None,
+        message_type="force_accept",
+        visibility="admin",
+        content=f"Force accepted RSVP for {rsvp.name} (capacity {spots})",
+    )
+
+
 def _apply_rsvp_status_change(
     db: Session,
     *,
@@ -568,6 +674,9 @@ class EventCreatePayload(BaseModel):
     channel_visibility: str = "public"
     is_private: bool = False
     admin_approval_required: bool = False
+    max_attendees: int | None = Field(
+        None, ge=1, description="Maximum number of YES RSVPs allowed"
+    )
 
 
 class EventUpdatePayload(BaseModel):
@@ -581,6 +690,9 @@ class EventUpdatePayload(BaseModel):
     channel_visibility: str | None = None
     is_private: bool | None = None
     admin_approval_required: bool | None = None
+    max_attendees: int | None = Field(
+        None, ge=1, description="Maximum number of YES RSVPs allowed"
+    )
 
 
 class RSVPCreatePayload(BaseModel):
@@ -984,6 +1096,7 @@ def submit_event(
     channel_visibility: str = Form("public"),
     is_private: bool = Form(False),
     admin_approval_required: bool = Form(False),
+    max_attendees: str | None = Form(None),
     end_time: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
@@ -1026,6 +1139,20 @@ def submit_event(
                 },
                 status_code=400,
             )
+    try:
+        normalized_max = _normalize_max_attendees(max_attendees)
+    except HTTPException:
+        return templates.TemplateResponse(
+            request,
+            "event_create.html",
+            {
+                "request": request,
+                "public_channels": public_channels,
+                "message": "Maximum attendees must be a positive number.",
+                "message_class": "alert-danger",
+            },
+            status_code=400,
+        )
     event = create_event(
         db,
         title=title,
@@ -1036,6 +1163,7 @@ def submit_event(
         channel=channel,
         is_private=is_private,
         admin_approval_required=admin_approval_required,
+        max_attendees=normalized_max,
     )
     return templates.TemplateResponse(
         request,
@@ -1063,6 +1191,8 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     private_rsvp_count = len(private_rsvps)
     public_party_size = sum((r.guest_count or 0) + 1 for r in rsvps)
     private_party_size = sum((r.guest_count or 0) + 1 for r in private_rsvps)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     public_messages = _event_messages(event, visibilities={"public"})
@@ -1076,6 +1206,8 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "private_rsvp_count": private_rsvp_count,
             "public_party_size": public_party_size,
             "private_party_size": private_party_size,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
             "message": message,
             "message_class": message_class,
             "public_messages": public_messages,
@@ -1087,8 +1219,17 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
 @app.get("/e/{event_id}/rsvp")
 def rsvp_form(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
     return templates.TemplateResponse(
-        request, "rsvp_form.html", {"request": request, "event": event}
+        request,
+        "rsvp_form.html",
+        {
+            "request": request,
+            "event": event,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
+        },
     )
 
 
@@ -1105,12 +1246,33 @@ def create_rsvp_view(
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
+    normalized_status = _normalize_attendance_status(attendance_status)
     guest_count = max(0, min(guest_count, 5))
+    try:
+        _enforce_attendance_capacity(
+            event=event,
+            new_status=normalized_status,
+            new_guest_count=guest_count,
+            force_accept=False,
+        )
+    except EventFullError:
+        public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
+        return _event_full_response(
+            request,
+            "rsvp_form.html",
+            {
+                "request": request,
+                "event": event,
+                "public_channels": public_channels,
+                "available_yes_slots": _available_yes_slots(event),
+                "event_is_full": True,
+            },
+        )
     rsvp = create_rsvp(
         db,
         event=event,
         name=name,
-        attendance_status=attendance_status,
+        attendance_status=normalized_status,
         pronouns=pronouns,
         guest_count=guest_count,
         is_private=is_private_rsvp,
@@ -1142,6 +1304,8 @@ def edit_rsvp(
 ):
     event = _ensure_event(db, event_id)
     rsvp = _ensure_rsvp(db, event, rsvp_token)
+    available_yes_slots = _available_yes_slots(event, current_rsvp=rsvp)
+    event_is_full = _available_yes_slots(event) == 0 if event.max_attendees else False
     attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
     return templates.TemplateResponse(
         request,
@@ -1151,6 +1315,8 @@ def edit_rsvp(
             "event": event,
             "rsvp": rsvp,
             "attendee_messages": attendee_messages,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
         },
     )
 
@@ -1170,12 +1336,35 @@ def save_rsvp(
 ):
     event = _ensure_event(db, event_id)
     rsvp = _ensure_rsvp(db, event, rsvp_token)
+    normalized_status = _normalize_attendance_status(attendance_status)
     guest_count = max(0, min(guest_count, 5))
+    try:
+        _enforce_attendance_capacity(
+            event=event,
+            new_status=normalized_status,
+            current_rsvp=rsvp,
+            new_guest_count=guest_count,
+            force_accept=False,
+        )
+    except EventFullError:
+        attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
+        return _event_full_response(
+            request,
+            "rsvp_edit.html",
+            {
+                "request": request,
+                "event": event,
+                "rsvp": rsvp,
+                "attendee_messages": attendee_messages,
+                "available_yes_slots": _available_yes_slots(event, current_rsvp=rsvp),
+                "event_is_full": True,
+            },
+        )
     update_rsvp(
         db,
         rsvp=rsvp,
         name=name,
-        attendance_status=attendance_status,
+        attendance_status=normalized_status,
         pronouns=pronouns,
         guest_count=guest_count,
         is_private=is_private_rsvp,
@@ -1190,6 +1379,8 @@ def save_rsvp(
         content=note,
     )
     attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
+    available_yes_slots = _available_yes_slots(event, current_rsvp=rsvp)
+    event_is_full = _available_yes_slots(event) == 0 if event.max_attendees else False
     return templates.TemplateResponse(
         request,
         "rsvp_edit.html",
@@ -1198,6 +1389,8 @@ def save_rsvp(
             "event": event,
             "rsvp": rsvp,
             "attendee_messages": attendee_messages,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
             "message": "RSVP updated",
             "message_class": "alert-success",
         },
@@ -1226,6 +1419,8 @@ def event_admin(
     _require_admin_or_root(event, admin_token)
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
     approval_counts = {
         "approved": sum(1 for r in rsvps if r.approval_status == "approved"),
         "pending": sum(1 for r in rsvps if r.approval_status == "pending"),
@@ -1249,6 +1444,8 @@ def event_admin(
             "event": event,
             "rsvps": rsvps,
             "rsvp_stats": rsvp_stats,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
             "approval_counts": approval_counts,
             "public_channels": public_channels,
             "admin_token": admin_token,
@@ -1294,6 +1491,7 @@ def save_event_admin(
     channel_visibility: str = Form("public"),
     is_private: bool = Form(False),
     admin_approval_required: bool = Form(False),
+    max_attendees: str | None = Form(None),
     end_time: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
@@ -1302,6 +1500,8 @@ def save_event_admin(
     _require_admin_or_root(event, admin_token)
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
     approval_counts = {
         "approved": sum(1 for r in rsvps if r.approval_status == "approved"),
         "pending": sum(1 for r in rsvps if r.approval_status == "pending"),
@@ -1331,6 +1531,8 @@ def save_event_admin(
                     "event": event,
                     "rsvps": rsvps,
                     "rsvp_stats": rsvp_stats,
+                    "available_yes_slots": available_yes_slots,
+                    "event_is_full": event_is_full,
                     "approval_counts": approval_counts,
                     "admin_messages": admin_messages,
                     "rsvp_messages": rsvp_messages,
@@ -1341,6 +1543,31 @@ def save_event_admin(
                 },
                 status_code=400,
             )
+    try:
+        normalized_max = _normalize_max_attendees(max_attendees)
+    except HTTPException:
+        rsvps = list(event.rsvps)
+        public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
+        return templates.TemplateResponse(
+            request,
+            "event_admin.html",
+            {
+                "request": request,
+                "event": event,
+                "rsvps": rsvps,
+                "rsvp_stats": rsvp_stats,
+                "available_yes_slots": available_yes_slots,
+                "event_is_full": event_is_full,
+                "approval_counts": approval_counts,
+                "admin_messages": admin_messages,
+                "rsvp_messages": rsvp_messages,
+                "public_channels": public_channels,
+                "admin_token": admin_token,
+                "message": "Maximum attendees must be a positive number.",
+                "message_class": "alert-danger",
+            },
+            status_code=400,
+        )
     cleaned_channel_name = channel_name.strip() if channel_name else ""
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     channel = event.channel
@@ -1356,14 +1583,16 @@ def save_event_admin(
                 "event_admin.html",
                 {
                     "request": request,
-                    "event": event,
-                    "rsvps": rsvps,
-                    "rsvp_stats": rsvp_stats,
-                    "approval_counts": approval_counts,
-                    "admin_messages": admin_messages,
-                    "rsvp_messages": rsvp_messages,
-                    "public_channels": public_channels,
-                    "admin_token": admin_token,
+                "event": event,
+                "rsvps": rsvps,
+                "rsvp_stats": rsvp_stats,
+                "available_yes_slots": available_yes_slots,
+                "event_is_full": event_is_full,
+                "approval_counts": approval_counts,
+                "admin_messages": admin_messages,
+                "rsvp_messages": rsvp_messages,
+                "public_channels": public_channels,
+                "admin_token": admin_token,
                     "message": _channel_error_message(str(exc)),
                     "message_class": "alert-danger",
                 },
@@ -1382,9 +1611,12 @@ def save_event_admin(
         channel=channel,
         admin_approval_required=admin_approval_required,
         is_private=is_private,
+        max_attendees=normalized_max,
     )
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
     approval_counts = {
         "approved": sum(1 for r in rsvps if r.approval_status == "approved"),
         "pending": sum(1 for r in rsvps if r.approval_status == "pending"),
@@ -1405,6 +1637,8 @@ def save_event_admin(
             "event": event,
             "rsvps": rsvps,
             "rsvp_stats": rsvp_stats,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
             "approval_counts": approval_counts,
             "public_channels": public_channels,
             "admin_token": admin_token,
@@ -1469,6 +1703,48 @@ def pending_rsvp_admin(
     _apply_rsvp_status_change(db, event=event, rsvp=rsvp, new_status="pending")
     params = urlencode(
         {"message": "RSVP set to pending", "message_class": "alert-info"}
+    )
+    return RedirectResponse(
+        url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
+    )
+
+
+@app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_id}/force_accept")
+def force_accept_rsvp_admin(
+    event_id: str,
+    admin_token: str,
+    rsvp_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_or_root(event, admin_token)
+    rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
+    try:
+        forced = _enforce_attendance_capacity(
+            event=event,
+            new_status="yes",
+            current_rsvp=rsvp,
+            admin_token=admin_token,
+            force_accept=True,
+            new_guest_count=rsvp.guest_count,
+        )
+    except EventFullError:
+        forced = False
+    update_rsvp(
+        db,
+        rsvp=rsvp,
+        name=rsvp.name,
+        attendance_status="yes",
+        approval_status=rsvp.approval_status,
+        pronouns=rsvp.pronouns,
+        guest_count=rsvp.guest_count,
+        is_private=rsvp.is_private,
+    )
+    if forced:
+        _log_force_accept(db, event=event, rsvp=rsvp)
+    params = urlencode(
+        {"message": "RSVP set to Yes (force accepted)", "message_class": "alert-success"}
     )
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
@@ -1793,6 +2069,7 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         channel=channel,
         is_private=payload.is_private,
         admin_approval_required=payload.admin_approval_required,
+        max_attendees=payload.max_attendees,
     )
     return {
         "event": _serialize_event(event, include_admin_link=True),
@@ -1865,6 +2142,7 @@ def api_update_event(
         channel=channel,
         admin_approval_required=admin_approval_required,
         is_private=data.get("is_private", event.is_private),
+        max_attendees=data.get("max_attendees", event.max_attendees),
     )
     return {"event": _serialize_event(event, include_admin_link=True)}
 
@@ -2031,19 +2309,36 @@ def api_create_rsvp_message(
 @app.post("/api/v1/events/{event_id}/rsvps", status_code=201)
 def api_create_rsvp(
     event_id: str,
+    request: Request,
     payload: RSVPCreatePayload,
+    force_accept: bool = Query(False),
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
+    normalized_status = _normalize_attendance_status(payload.attendance_status)
+    guest_count = _clamp_guest_count(payload.guest_count)
+    admin_token = _get_bearer_token(request) if force_accept else None
+    try:
+        forced = _enforce_attendance_capacity(
+            event=event,
+            new_status=normalized_status,
+            admin_token=admin_token,
+            force_accept=force_accept,
+            new_guest_count=guest_count,
+        )
+    except EventFullError:
+        return JSONResponse(EVENT_FULL_ERROR, status_code=400)
     rsvp = create_rsvp(
         db,
         event=event,
         name=payload.name,
-        attendance_status=payload.attendance_status,
+        attendance_status=normalized_status,
         pronouns=payload.pronouns,
-        guest_count=_clamp_guest_count(payload.guest_count),
+        guest_count=guest_count,
         is_private=payload.is_private_rsvp,
     )
+    if forced:
+        _log_force_accept(db, event=event, rsvp=rsvp)
     _create_message_if_content(
         db,
         event=event,
@@ -2084,13 +2379,27 @@ def api_update_own_rsvp(
     event = _ensure_event(db, event_id)
     rsvp = _require_rsvp_from_header(event, request, db)
     data = payload.model_dump(exclude_unset=True)
+    new_status = _normalize_attendance_status(
+        data.get("attendance_status", rsvp.attendance_status)
+    )
+    guest_count = _clamp_guest_count(data.get("guest_count", rsvp.guest_count))
+    try:
+        _enforce_attendance_capacity(
+            event=event,
+            new_status=new_status,
+            current_rsvp=rsvp,
+            new_guest_count=guest_count,
+            force_accept=False,
+        )
+    except EventFullError:
+        return JSONResponse(EVENT_FULL_ERROR, status_code=400)
     update_rsvp(
         db,
         rsvp=rsvp,
         name=data.get("name", rsvp.name),
-        attendance_status=data.get("attendance_status", rsvp.attendance_status),
+        attendance_status=new_status,
         pronouns=data.get("pronouns", rsvp.pronouns),
-        guest_count=_clamp_guest_count(data.get("guest_count", rsvp.guest_count)),
+        guest_count=guest_count,
         is_private=data.get("is_private_rsvp", rsvp.is_private),
     )
     _create_message_if_content(

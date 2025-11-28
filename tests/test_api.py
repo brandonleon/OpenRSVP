@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from openrsvp import api, database
 from openrsvp.crud import create_event, ensure_channel
-from openrsvp.models import Event
+from openrsvp.models import Event, Message
 from openrsvp.utils import utcnow
 from openrsvp import crud
 
@@ -28,6 +28,24 @@ def _datetime_str(dt: datetime) -> str:
 
 def _iso(dt: datetime) -> str:
     return dt.replace(microsecond=0).isoformat()
+
+
+def _make_event(session, *, max_attendees: int | None = None, title: str = "Capacity Test"):
+    start = utcnow().replace(microsecond=0)
+    event = create_event(
+        session,
+        title=title,
+        description="",
+        start_time=start,
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+        admin_approval_required=False,
+        max_attendees=max_attendees,
+    )
+    session.commit()
+    return event
 
 
 def test_submit_event_creates_event_and_channel(client):
@@ -470,4 +488,256 @@ def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
     assert public_counts["public"] == 0
     assert public_counts["public_party_size"] == 0
 
+    session.close()
+
+
+def test_unlimited_event_allows_yes(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=None, title="Unlimited Event")
+
+    for i in range(4):
+        resp = client.post(
+            f"/api/v1/events/{event.id}/rsvps",
+            json={
+                "name": f"Unlimited Guest {i}",
+                "attendance_status": "yes",
+                "guest_count": 0,
+                "is_private_rsvp": False,
+            },
+        )
+        assert resp.status_code == 201
+
+    session.refresh(event)
+    assert event.max_attendees is None
+    assert event.yes_count == 4
+    session.close()
+
+
+def test_event_cap_blocks_extra_yes(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=3, title="Capped Event")
+
+    for i in range(3):
+        resp = client.post(
+            f"/api/v1/events/{event.id}/rsvps",
+            json={
+                "name": f"Capped Guest {i}",
+                "attendance_status": "yes",
+                "guest_count": 0,
+                "is_private_rsvp": False,
+            },
+        )
+        assert resp.status_code == 201
+
+    fourth = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Overflow Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert fourth.status_code == 400
+    assert fourth.json() == {
+        "error": "EventFull",
+        "message": "This event has reached its maximum number of attendees.",
+    }
+
+    session.refresh(event)
+    assert event.yes_count == 3
+    session.close()
+
+
+def test_event_cap_counts_guest_party_size(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=3, title="Guest Counted Event")
+
+    primary = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Party Of Three",
+            "attendance_status": "yes",
+            "guest_count": 2,
+            "is_private_rsvp": False,
+        },
+    )
+    assert primary.status_code == 201
+
+    overflow = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Overflow Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert overflow.status_code == 400
+    assert overflow.json() == api.EVENT_FULL_ERROR
+
+    session.refresh(event)
+    assert event.yes_count == 3
+    session.close()
+
+
+def test_maybe_and_no_allowed_when_full(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=1, title="Full Event")
+
+    first = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "First Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert first.status_code == 201
+
+    maybe_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Maybe Guest",
+            "attendance_status": "maybe",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert maybe_resp.status_code == 201
+
+    no_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "No Guest",
+            "attendance_status": "no",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert no_resp.status_code == 201
+
+    session.refresh(event)
+    assert event.yes_count == 1
+    session.close()
+
+
+def test_maybe_to_yes_blocked_when_full(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=1, title="Maybe to Yes Block")
+
+    primary = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Primary",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert primary.status_code == 201
+
+    secondary = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Secondary",
+            "attendance_status": "maybe",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert secondary.status_code == 201
+    second_token = secondary.json()["rsvp"]["rsvp_token"]
+
+    upgrade = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        headers={"Authorization": f"Bearer {second_token}"},
+        json={"attendance_status": "yes"},
+    )
+    assert upgrade.status_code == 400
+    assert upgrade.json() == {
+        "error": "EventFull",
+        "message": "This event has reached its maximum number of attendees.",
+    }
+    session.refresh(event)
+    other = [r for r in event.rsvps if r.name == "Secondary"][0]
+    assert other.attendance_status == "maybe"
+    session.close()
+
+
+def test_admin_force_accept_bypasses_cap(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=1, title="Force Accept Event")
+
+    first = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "First Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert first.status_code == 201
+
+    forced = client.post(
+        f"/api/v1/events/{event.id}/rsvps?force_accept=true",
+        headers={"Authorization": f"Bearer {event.admin_token}"},
+        json={
+            "name": "Forced Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert forced.status_code == 201
+
+    session.refresh(event)
+    assert event.yes_count == 2
+    force_messages = (
+        session.query(Message)
+        .filter(Message.event_id == event.id, Message.message_type == "force_accept")
+        .all()
+    )
+    assert force_messages
+    session.close()
+
+
+def test_yes_to_no_frees_slot(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=1, title="Free Slot Event")
+
+    initial = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "First Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert initial.status_code == 201
+    initial_token = initial.json()["rsvp"]["rsvp_token"]
+
+    downgrade = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        headers={"Authorization": f"Bearer {initial_token}"},
+        json={"attendance_status": "no"},
+    )
+    assert downgrade.status_code == 200
+
+    replacement = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Replacement Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert replacement.status_code == 201
+
+    session.refresh(event)
+    assert event.yes_count == 1
     session.close()

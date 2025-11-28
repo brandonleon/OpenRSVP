@@ -36,6 +36,9 @@
 <div class="row justify-content-center">
   <div class="col-lg-8 col-xl-7">
     <div class="p-4 bg-white border rounded-3 shadow-sm">
+      {% if message %}
+      <div class="alert {{ message_class or 'alert-info' }} mb-3">{{ message }}</div>
+      {% endif %}
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
           <div class="small text-muted text-uppercase">Current status</div>
@@ -55,6 +58,16 @@
       {% elif rsvp.approval_status == 'rejected' %}
       <div class="alert alert-danger small">This RSVP was rejected by the organizer.</div>
       {% endif %}
+      {% set yes_disabled = event_is_full and rsvp.attendance_status != 'yes' %}
+      {% if event_is_full %}
+      <div class="alert alert-warning small" role="alert">
+        This event is full. You can keep your current spot or switch to Maybe/No. If space opens, you can change back to Yes.
+      </div>
+      {% elif event.max_attendees %}
+      <div class="alert alert-info small" role="alert">
+        Spots available for Yes RSVPs: {{ available_yes_slots }}.
+      </div>
+      {% endif %}
       <form method="post" action="/e/{{ event.id }}/rsvp/{{ rsvp.rsvp_token }}" class="mt-1">
         <div class="mb-3">
           <label class="form-label">Name</label>
@@ -67,10 +80,15 @@
         <div class="mb-3">
           <label class="form-label">Status</label>
           <select name="attendance_status" class="form-select">
-            <option value="yes" {% if rsvp.attendance_status == 'yes' %}selected{% endif %}>Yes</option>
+            <option value="yes" {% if rsvp.attendance_status == 'yes' %}selected{% endif %} {% if yes_disabled %}disabled{% endif %}>Yes</option>
             <option value="no" {% if rsvp.attendance_status == 'no' %}selected{% endif %}>No</option>
             <option value="maybe" {% if rsvp.attendance_status == 'maybe' %}selected{% endif %}>Maybe</option>
           </select>
+          {% if yes_disabled %}
+          <div class="form-text text-warning">Yes is closed right now. Choose Maybe if you plan to attend if space opens.</div>
+          {% elif event.max_attendees %}
+          <div class="form-text">Only Yes counts toward the cap.</div>
+          {% endif %}
         </div>
         <div class="mb-3">
           <label class="form-label">Guest Count (extra people with you)</label>

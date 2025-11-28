@@ -22,7 +22,13 @@ from .config import (
 from .decay import run_decay_cycle, vacuum_database
 from .scheduler import start_scheduler, stop_scheduler
 from .seed import seed_fake_data
-from .storage import fetch_root_token, init_db, rotate_root_token
+from .storage import (
+    ensure_root_token,
+    fetch_root_token,
+    init_db,
+    rotate_root_token,
+    upgrade_database,
+)
 
 app = typer.Typer(help="OpenRSVP command-line interface")
 
@@ -62,6 +68,39 @@ def rotate_admin_token() -> None:
             raise typer.Exit(code=1)
         raise
     typer.echo(token)
+
+
+@app.command("upgrade-db")
+def upgrade_db(
+    no_backup: bool = typer.Option(
+        False,
+        "--no-backup",
+        help="Skip creating a .bak copy of the database before upgrading",
+    ),
+) -> None:
+    """Upgrade the SQLite database schema if needed."""
+    try:
+        actions = upgrade_database(make_backup=not no_backup)
+    except OperationalError as exc:
+        message = str(getattr(exc, "orig", exc)).lower()
+        if "readonly" in message or "read-only" in message:
+            typer.secho(
+                "Unable to upgrade because the database is read-only. "
+                f"Ensure write access to {settings.database_path}.",
+                err=True,
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        raise
+
+    if not actions:
+        typer.echo("Database already up to date.")
+        return
+
+    ensure_root_token()
+    typer.echo("Database upgrade complete:")
+    for action in actions:
+        typer.echo(f"- {action}")
 
 
 @app.command("decay")

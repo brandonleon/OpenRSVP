@@ -21,6 +21,7 @@
           <ul class="navbar-nav ms-auto">
             <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
             <li class="nav-item"><a class="nav-link" href="#web-app">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="#capacity">Capacity</a></li>
             <li class="nav-item"><a class="nav-link" href="#decay">Decay</a></li>
             <li class="nav-item"><a class="nav-link" href="#api">API</a></li>
             <li class="nav-item"><a class="nav-link" href="#tokens">Tokens</a></li>
@@ -124,6 +125,68 @@
                 <li>Deleted events and purged data are not recoverable.</li>
               </ul>
               <p class="mb-0 text-muted small">This keeps deployments lean—no long-lived analytics or accounts.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5" id="capacity">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Attendance</p>
+            <h2 class="fw-bold mb-0">Event Attendance Caps (Admin)</h2>
+            <p class="text-muted mb-0">Optional limits for Yes RSVPs with predictable overrides.</p>
+          </div>
+          <span class="pill"><span class="text-primary">Capacity</span> Optional</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Enabling a cap</h3>
+              <ul class="mb-3">
+                <li>Use the <strong>Maximum Attendees</strong> field when creating or editing an event.</li>
+                <li>Leave it blank for unlimited attendance.</li>
+              </ul>
+              <h4 class="h6 text-uppercase text-muted">How capacity works</h4>
+              <ul class="mb-3">
+                <li>Only <strong>Yes</strong> RSVPs count toward the limit; Maybe/No do not.</li>
+                <li>When full, standard users cannot submit a Yes RSVP.</li>
+                <li>Admins can still force-accept guests above the cap.</li>
+              </ul>
+              <h4 class="h6 text-uppercase text-muted">EventFull response</h4>
+              <pre><code>HTTP 400
+{
+  "error": "EventFull",
+  "message": "This event has reached its maximum number of attendees."
+}</code></pre>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Force Accept &amp; API usage</h3>
+              <p>Bypass the cap with an admin token when you deliberately want to add someone above the limit.</p>
+              <ul class="mb-3">
+                <li>Admin UI includes a <strong>Force Accept</strong> button next to each RSVP when a cap is set.</li>
+                <li>API: add <code>?force_accept=true</code> and send <code>Authorization: Bearer &lt;admin_token&gt;</code>.</li>
+                <li>Each override writes an admin-visible <code>force_accept</code> message for auditability.</li>
+              </ul>
+              <pre class="mb-3"><code>POST /api/v1/events/{event_id}/rsvps?force_accept=true
+Authorization: Bearer &lt;admin_token&gt;
+{
+  "name": "Guest Name",
+  "attendance_status": "yes",
+  "guest_count": 0,
+  "is_private_rsvp": false
+}</code></pre>
+              <div class="callout">
+                <h6 class="fw-bold mb-1">FAQ</h6>
+                <ul class="mb-0 small">
+                  <li>Override the cap? Yes—use Force Accept.</li>
+                  <li>Do MAYBEs auto-promote? No, guests switch to Yes when space exists.</li>
+                  <li>Waitlist? Not yet; support is planned for a future update.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>

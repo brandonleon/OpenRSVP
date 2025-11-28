@@ -46,6 +46,7 @@ class Event(Base):
     channel_id = Column(String(36), ForeignKey("channels.id"), nullable=True)
     is_private = Column(Boolean, default=False, nullable=False)
     admin_approval_required = Column(Boolean, default=False, nullable=False)
+    max_attendees = Column(Integer, nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     start_time = Column(DateTime, nullable=False)
@@ -66,6 +67,15 @@ class Event(Base):
         order_by="desc(Message.created_at)",
         overlaps="rsvp,messages",
     )
+
+    @property
+    def yes_count(self) -> int:
+        """Return the total attending party size (RSVP + guests)."""
+        return sum(
+            (r.guest_count or 0) + 1
+            for r in self.rsvps
+            if r.attendance_status == "yes"
+        )
 
 
 class RSVP(Base):

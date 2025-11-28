@@ -14,6 +14,18 @@
 <div class="row justify-content-center">
   <div class="col-lg-8 col-xl-7">
     <div class="p-4 bg-white border rounded-3 shadow-sm">
+      {% if message %}
+      <div class="alert {{ message_class or 'alert-info' }} mb-3">{{ message }}</div>
+      {% endif %}
+      {% if event_is_full %}
+      <div class="alert alert-warning small" role="alert">
+        This event is full. You can still RSVP as Maybe or No. If a spot opens, you can switch to Yes later.
+      </div>
+      {% elif event.max_attendees %}
+      <div class="alert alert-info small" role="alert">
+        Spots available for Yes RSVPs: {{ available_yes_slots }}.
+      </div>
+      {% endif %}
       <form method="post" action="/e/{{ event.id }}/rsvp" class="mt-1">
         <div class="mb-3">
           <label class="form-label">Name</label>
@@ -26,10 +38,15 @@
         <div class="mb-3">
           <label class="form-label">Status</label>
           <select name="attendance_status" class="form-select" required>
-            <option value="yes">Yes</option>
+            <option value="yes" {% if event_is_full %}disabled{% endif %}>Yes</option>
             <option value="no">No</option>
             <option value="maybe">Maybe</option>
           </select>
+          {% if event_is_full %}
+          <div class="form-text text-warning">Yes is closed right now. Choose Maybe and switch to Yes later if a spot opens.</div>
+          {% elif event.max_attendees %}
+          <div class="form-text">Only Yes counts against the limit; Maybe keeps you flexible.</div>
+          {% endif %}
         </div>
         <div class="mb-3">
           <label class="form-label">Guest Count (extra people with you)</label>

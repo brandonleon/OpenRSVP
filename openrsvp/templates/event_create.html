@@ -43,6 +43,11 @@
             <input type="text" name="location" class="form-control" placeholder="Venue, city, or meeting link">
           </div>
           <div class="mb-3">
+            <label class="form-label">Maximum Attendees (optional)</label>
+            <input type="number" name="max_attendees" class="form-control" min="1" placeholder="Leave blank for unlimited">
+            <div class="form-text">Only YES RSVPs count toward this limit.</div>
+          </div>
+          <div class="mb-3">
             <label class="form-label">Channel Name</label>
             <input type="text" name="channel_name" class="form-control" placeholder="Enter or pick a channel" list="public-channel-options">
             <div class="form-text">Private channels never appear in this list—type them manually. Showing the top public options; type to search beyond the default suggestions.</div>
