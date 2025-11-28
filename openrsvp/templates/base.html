@@ -188,11 +188,27 @@
         --badge-accent-fg: #161724;
       }
 
+      html {
+        height: 100%;
+      }
+
       body {
         font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
         background: var(--bg);
         color: var(--text);
         transition: background 200ms ease, color 200ms ease;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      main {
+        flex: 1 0 auto;
+        width: 100%;
+      }
+
+      footer {
+        flex-shrink: 0;
       }
 
       .navbar {
@@ -576,7 +592,7 @@
         </div>
       </div>
     </nav>
-    <main class="container mb-5 flex-grow-1">
+    <main class="container flex-grow-1 py-4">
       {% if message %}
       <div class="alert {{ message_class or 'alert-info' }} alert-dismissible fade show" role="alert">
         {{ message }}

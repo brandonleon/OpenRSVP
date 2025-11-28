@@ -90,12 +90,12 @@
       {% endif %}
     </div>
     <div class="p-4 bg-white border rounded-3 shadow-sm">
-      <div class="d-flex align-items-center justify-content-between mb-2">
+      <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2 mb-2">
         <h3 class="h6 text-uppercase text-muted mb-0">Attendees</h3>
-        <div class="d-flex align-items-center gap-2">
-          <span class="badge bg-light text-dark">{{ public_party_size }} public people ({{ rsvps|length }} RSVP{% if rsvps|length != 1 %}s{% endif %})</span>
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 w-100 w-md-auto">
+          <span class="badge bg-light text-dark w-100 w-md-auto text-center text-md-start">{{ public_party_size }} public people ({{ rsvps|length }} RSVP{% if rsvps|length != 1 %}s{% endif %})</span>
           {% if private_rsvp_count %}
-          <span class="badge bg-secondary">+ {{ private_party_size }} private people ({{ private_rsvp_count }} RSVP{% if private_rsvp_count != 1 %}s{% endif %})</span>
+          <span class="badge bg-secondary w-100 w-md-auto text-center text-md-start">+ {{ private_party_size }} private people ({{ private_rsvp_count }} RSVP{% if private_rsvp_count != 1 %}s{% endif %})</span>
           {% endif %}
         </div>
       </div>
@@ -132,17 +132,7 @@
     </div>
   </div>
   <div class="col-lg-4">
-    <div class="p-4 card-flush rounded-3 shadow-sm h-100">
-      <h3 class="h6 text-uppercase text-secondary mb-3">Need to edit your RSVP?</h3>
-      <p class="text-secondary small mb-3">You'll get a magic link after submitting. Keep it safe—it's your passwordless key.</p>
-      {% if event.admin_approval_required %}
-      <div class="alert alert-warning small" role="alert">
-        This organizer approves RSVPs before they appear here. You'll see your status on your magic link.
-      </div>
-      {% endif %}
-      <a class="btn btn-outline-light w-100" href="/e/{{ event.id }}/rsvp">Start your RSVP</a>
-    </div>
-    <div class="p-4 bg-white rounded-3 shadow-sm mt-3 qr-share-card">
+    <div class="p-4 bg-white rounded-3 shadow-sm qr-share-card mb-3">
       <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
         <div>
           <h3 class="h6 text-uppercase text-muted mb-1">Share this RSVP</h3>
@@ -156,12 +146,22 @@
         <div id="rsvp-qr" data-rsvp-url="{{ request.url_for('rsvp_form', event_id=event.id) }}" aria-label="QR code for the RSVP link"></div>
       </div>
     </div>
+    <div class="p-4 card-flush rounded-3 shadow-sm">
+      <h3 class="h6 text-uppercase text-secondary mb-3">Need to edit your RSVP?</h3>
+      <p class="text-secondary small mb-3">You'll get a magic link after submitting. Keep it safe—it's your passwordless key.</p>
+      {% if event.admin_approval_required %}
+      <div class="alert alert-warning small" role="alert">
+        This organizer approves RSVPs before they appear here. You'll see your status on your magic link.
+      </div>
+      {% endif %}
+      <a class="btn btn-outline-light w-100" href="/e/{{ event.id }}/rsvp">Start your RSVP</a>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="{{ url_for('static', path='qrcode.min.js') }}"></script>
 <script>
   (() => {
     const container = document.getElementById("rsvp-qr");
