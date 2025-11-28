@@ -9,6 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from sqlalchemy.exc import OperationalError
 import typer
 import uvicorn
 
@@ -45,8 +46,21 @@ def admin_token() -> None:
 @app.command("rotate-admin-token")
 def rotate_admin_token() -> None:
     """Rotate the root admin token."""
-    init_db()
-    token = rotate_root_token()
+    try:
+        init_db()
+        token = rotate_root_token()
+    except OperationalError as exc:
+        message = str(getattr(exc, "orig", exc)).lower()
+        if "readonly" in message or "read-only" in message:
+            typer.secho(
+                "Unable to rotate the root admin token because the database is read-only. "
+                f"Ensure the process can write to {settings.database_path} "
+                "(run with sudo or adjust file ownership/permissions).",
+                err=True,
+                fg=typer.colors.RED,
+            )
+            raise typer.Exit(code=1)
+        raise
     typer.echo(token)
 
 
