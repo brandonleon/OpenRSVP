@@ -33,6 +33,31 @@ def _elapsed_days(reference: datetime, now: datetime) -> float:
     return max(delta.total_seconds() / SECONDS_PER_DAY, 0.0)
 
 
+def _event_grace_expires_at(event: Event) -> datetime:
+    """Return the datetime after which the event can be removed."""
+
+    anchor = event.end_time or event.start_time or event.created_at
+    return _ensure_aware(anchor) + timedelta(days=settings.delete_grace_days_after_end)
+
+
+def _event_start_reference(event: Event) -> datetime:
+    return _ensure_aware(event.start_time or event.created_at)
+
+
+def _can_delete_event(event: Event, now: datetime, *, age_days: float) -> bool:
+    """Check whether an event is eligible for deletion."""
+
+    if settings.protect_upcoming_events and _event_start_reference(event) > _ensure_aware(
+        now
+    ):
+        return False
+    if _ensure_aware(now) < _event_grace_expires_at(event):
+        return False
+    if age_days < settings.delete_after_days:
+        return False
+    return event.score <= settings.delete_threshold
+
+
 def run_decay_cycle() -> dict:
     """Apply exponential decay and purge expired entities."""
     stats = {
@@ -47,6 +72,7 @@ def run_decay_cycle() -> dict:
     }
     now = datetime.now(timezone.utc)
     decay_cutoff = now - timedelta(days=settings.delete_after_days)
+    now_naive = now.replace(tzinfo=None)
 
     logger.info(
         "Decay cycle started (decay_factor=%.4f, delete_threshold=%.4f, delete_after_days=%d)",
@@ -62,6 +88,8 @@ def run_decay_cycle() -> dict:
         delete_event_filter = and_(
             Event.score <= settings.delete_threshold, Event.created_at < decay_cutoff
         )
+        if settings.protect_upcoming_events:
+            delete_event_filter = and_(delete_event_filter, Event.start_time <= now_naive)
         covered_event_filter = or_(active_events_filter, delete_event_filter)
         total_events = session.scalar(select(func.count()).select_from(Event)) or 0
         covered_events = (
@@ -114,10 +142,7 @@ def run_decay_cycle() -> dict:
                 stats["events_updated"] += 1
                 # RSVPs inherit lifecycle from their event; we avoid per-RSVP decay to reduce churn.
                 age_days = _elapsed_days(event.created_at, now)
-                if (
-                    event.score <= settings.delete_threshold
-                    and age_days >= settings.delete_after_days
-                ):
+                if _can_delete_event(event, now, age_days=age_days):
                     logger.debug(
                         "Deleting event %s (%s): score %.4f age %.2f days",
                         event.id,
@@ -153,13 +178,15 @@ def run_decay_cycle() -> dict:
             if not deletion_batch:
                 break
             for event in deletion_batch:
-                logger.debug(
-                    "Deleting event %s (%s) below threshold with no prior decay pass",
-                    event.id,
-                    event.title,
-                )
-                session.delete(event)
-                stats["events_deleted"] += 1
+                age_days = _elapsed_days(event.created_at, now)
+                if _can_delete_event(event, now, age_days=age_days):
+                    logger.debug(
+                        "Deleting event %s (%s) below threshold with no prior decay pass",
+                        event.id,
+                        event.title,
+                    )
+                    session.delete(event)
+                    stats["events_deleted"] += 1
             last_event_seen = (deletion_batch[-1].created_at, deletion_batch[-1].id)
             stats["event_batches"] += 1
             session.commit()

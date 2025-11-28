@@ -8,6 +8,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .config import settings
 from .models import Channel, Event, Message, RSVP
 from .utils import slugify, utcnow
 
@@ -69,7 +70,7 @@ def ensure_channel(
         name=name,
         slug=slug,
         visibility=visibility,
-        score=100.0,
+        score=settings.initial_channel_score,
         created_at=_now(),
         last_used_at=_now(),
     )
@@ -100,7 +101,7 @@ def create_event(
         start_time=start_time,
         end_time=end_time,
         location=location,
-        score=100.0,
+        score=settings.initial_event_score,
         channel=channel,
     )
     session.add(event)

@@ -178,3 +178,8 @@ external worker.
 - **Email Delivery Agent** – send RSVP confirmations and optional reminders.
 - **Worker Container Agent** – offload decay tasks and long running processes.
 - **Metrics Agent** (optional) – capture aggregated, non identifying stats.
+
+## Documentation Targeting
+
+- `/help` is written for end users (guests and event owners) inside the app.
+- `/docs` is written for administrators/operators deploying or maintaining OpenRSVP.

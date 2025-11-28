@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import logging
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from .config import settings
 from .decay import run_decay_cycle, vacuum_database
 
 _scheduler: BackgroundScheduler | None = None
+logger = logging.getLogger("uvicorn.error")
 
 
 def start_scheduler() -> BackgroundScheduler:
     global _scheduler
+    if not settings.enable_scheduler:
+        logger.info("Scheduler disabled via configuration; skipping start")
+        return _scheduler
     if _scheduler and _scheduler.running:
         return _scheduler
     scheduler = BackgroundScheduler(timezone="UTC")

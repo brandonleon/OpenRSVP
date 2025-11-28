@@ -96,8 +96,8 @@ templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 templates.env.filters["markdown"] = render_markdown
 
-ADMIN_EVENTS_PER_PAGE = 25
-EVENTS_PER_PAGE = 10
+ADMIN_EVENTS_PER_PAGE = settings.admin_events_per_page
+EVENTS_PER_PAGE = settings.events_per_page
 RECENT_EVENTS_LIMIT = 5
 CHANNEL_SUGGESTION_LIMIT = 12
 
