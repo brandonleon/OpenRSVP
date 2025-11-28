@@ -121,6 +121,18 @@ def _parse_datetime(raw: str) -> datetime:
         raise HTTPException(status_code=400, detail="Invalid datetime") from exc
 
 
+def _parse_iso_datetime_param(name: str, raw: str | None) -> datetime | None:
+    """Parse an ISO8601 datetime query parameter or raise a 400."""
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid {name}; use ISO8601 format"
+        ) from exc
+
+
 def _local_to_utc(dt: datetime, offset_minutes: int) -> datetime:
     """Normalize a naive local datetime to UTC (still naive)."""
     try:
@@ -1709,6 +1721,45 @@ def help_page(request: Request):
 
 
 # -------- JSON API (v1) --------
+
+
+@app.get("/api/v1/events")
+def api_list_public_events(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(EVENTS_PER_PAGE, ge=1, le=50),
+    start_after: str | None = Query(None),
+    start_before: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    start_after_dt = _parse_iso_datetime_param("start_after", start_after)
+    start_before_dt = _parse_iso_datetime_param("start_before", start_before)
+    if start_after_dt and start_before_dt and start_before_dt < start_after_dt:
+        raise HTTPException(
+            status_code=400, detail="start_before must be after start_after"
+        )
+    now = utcnow()
+    filters = _visible_event_filters(
+        include_private=False, channel_id=None, now=now
+    )
+    if start_after_dt:
+        filters.append(Event.start_time >= start_after_dt)
+    if start_before_dt:
+        filters.append(Event.start_time <= start_before_dt)
+    events, pagination = paginate_events(
+        db,
+        filters=filters,
+        order_by=Event.start_time.asc(),
+        per_page=per_page,
+        page=page,
+    )
+    return {
+        "events": [_serialize_event(event) for event in events],
+        "pagination": pagination,
+        "filters": {
+            "start_after": start_after_dt.isoformat() if start_after_dt else None,
+            "start_before": start_before_dt.isoformat() if start_before_dt else None,
+        },
+    }
 
 
 @app.post("/api/v1/events", status_code=201)

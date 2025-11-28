@@ -26,6 +26,10 @@ def _datetime_str(dt: datetime) -> str:
     return dt.replace(microsecond=0).strftime("%Y-%m-%dT%H:%M")
 
 
+def _iso(dt: datetime) -> str:
+    return dt.replace(microsecond=0).isoformat()
+
+
 def test_submit_event_creates_event_and_channel(client):
     start = utcnow().replace(microsecond=0)
     end = start + timedelta(hours=1)
@@ -251,6 +255,96 @@ def test_event_page_counts_public_and_private_party_sizes(client):
     assert "+ 2 private people (1 RSVP" in event_page.text
 
     session.close()
+
+
+def test_list_public_events_excludes_private_and_paginates(client):
+    session = database.SessionLocal()
+    now = utcnow().replace(microsecond=0)
+    public_event = create_event(
+        session,
+        title="Open To All",
+        description="",
+        start_time=now + timedelta(days=1),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+    )
+    create_event(
+        session,
+        title="Secret Event",
+        description="",
+        start_time=now + timedelta(days=2),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=True,
+    )
+    session.commit()
+
+    response = client.get("/api/v1/events?per_page=1&page=1")
+    assert response.status_code == 200
+    data = response.json()
+    event_ids = [evt["id"] for evt in data["events"]]
+    assert public_event.id in event_ids
+    assert data["pagination"]["per_page"] == 1
+    assert data["pagination"]["total_events"] == 1
+
+    session.close()
+
+
+def test_list_public_events_supports_date_filters(client):
+    session = database.SessionLocal()
+    now = utcnow().replace(microsecond=0)
+    early = create_event(
+        session,
+        title="Early",
+        description="",
+        start_time=now + timedelta(days=5),
+        end_time=None,
+        location="Here",
+        channel=None,
+        is_private=False,
+    )
+    create_event(
+        session,
+        title="Later",
+        description="",
+        start_time=now + timedelta(days=12),
+        end_time=None,
+        location="There",
+        channel=None,
+        is_private=False,
+    )
+    session.commit()
+
+    start_after = _iso(now + timedelta(days=2))
+    start_before = _iso(now + timedelta(days=9))
+    response = client.get(
+        f"/api/v1/events?start_after={start_after}&start_before={start_before}"
+    )
+    assert response.status_code == 200
+    data = response.json()
+    returned_titles = {evt["title"] for evt in data["events"]}
+    assert returned_titles == {early.title}  # only early falls within bounds
+    assert data["filters"]["start_after"].startswith(start_after)
+    assert data["filters"]["start_before"].startswith(start_before)
+
+    session.close()
+
+
+def test_list_public_events_rejects_invalid_date_range(client):
+    start_after = _iso(utcnow())
+    start_before = _iso(utcnow() - timedelta(days=1))
+    response = client.get(
+        f"/api/v1/events?start_after={start_after}&start_before={start_before}"
+    )
+    assert response.status_code == 400
+
+
+def test_list_public_events_per_page_limit_enforced(client):
+    response = client.get("/api/v1/events?per_page=200")
+    assert response.status_code == 422
 
 
 def test_pending_rsvp_hidden_until_approved(client):
