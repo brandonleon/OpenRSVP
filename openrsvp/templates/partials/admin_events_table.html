@@ -37,15 +37,14 @@
         {% set totals = namespace(yes=0, maybe=0) %}
         {% set pending_count = event.rsvps | selectattr('approval_status', 'equalto', 'pending') | list | length %}
         {% for rsvp in event.rsvps %}
-          {% if rsvp.approval_status != 'approved' %}
-            {% continue %}
-          {% endif %}
-          {% set status = (rsvp.attendance_status or '').lower() %}
-          {% set party_size = (rsvp.guest_count or 0) + 1 %}
-          {% if status == 'yes' %}
-            {% set totals.yes = totals.yes + party_size %}
-          {% elif status == 'maybe' %}
-            {% set totals.maybe = totals.maybe + party_size %}
+          {% if rsvp.approval_status == 'approved' %}
+            {% set status = (rsvp.attendance_status or '').lower() %}
+            {% set party_size = (rsvp.guest_count or 0) + 1 %}
+            {% if status == 'yes' %}
+              {% set totals.yes = totals.yes + party_size %}
+            {% elif status == 'maybe' %}
+              {% set totals.maybe = totals.maybe + party_size %}
+            {% endif %}
           {% endif %}
         {% endfor %}
         <tr>

@@ -353,7 +353,7 @@ wheels = [
 
 [[package]]
 name = "openrsvp"
-version = "0.8.3"
+version = "0.8.4"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
