@@ -47,6 +47,7 @@ from .utils import (
     render_markdown,
     utcnow,
 )
+from .utils.ics import generate_ics
 
 # Use uvicorn's error logger so messages get the level prefix in the default log
 # format (needed for downstream filtering like Loki).
@@ -2095,6 +2096,19 @@ def api_get_event(event_id: str, db: Session = Depends(get_db)):
             include_messages=public_messages,
         )
     }
+
+
+@app.get("/api/v1/events/{event_id}/event.ics")
+def api_get_event_ics(event_id: str, db: Session = Depends(get_db)):
+    """Serve an event as a downloadable ICS file."""
+
+    event = _ensure_event(db, event_id)
+    event.last_accessed = utcnow()
+    db.add(event)
+    ics_text = generate_ics(event)
+    filename = f'event_{event_id}.ics'
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return Response(content=ics_text, media_type="text/calendar", headers=headers)
 
 
 @app.patch("/api/v1/events/{event_id}")
