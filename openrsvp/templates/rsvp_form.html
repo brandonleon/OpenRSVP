@@ -1,13 +1,16 @@
 {% extends "base.html" %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-    <div>
+  <div class="d-flex flex-column flex-lg-row align-items-start gap-4">
+    <div class="flex-grow-1">
       <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">RSVP</p>
       <h1 class="display-6 fw-semibold text-white mb-2">{{ event.title }}</h1>
-      <div class="text-secondary small">You’ll get a magic link to manage this RSVP—keep it safe.</div>
+      <div class="text-secondary small mb-3">You’ll get a magic link to manage this RSVP—keep it safe.</div>
+      {% include "partials/event_hero_details.html" %}
     </div>
-    <a class="btn btn-outline-light" href="/e/{{ event.id }}">Back to event</a>
+    <div class="d-flex flex-column align-items-end gap-2">
+      <a class="btn btn-outline-light" href="/e/{{ event.id }}">Back to event</a>
+    </div>
   </div>
 </section>
 

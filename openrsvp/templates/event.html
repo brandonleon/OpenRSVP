@@ -6,47 +6,7 @@
     <div class="flex-grow-1">
       <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Event</p>
       <h1 class="display-6 fw-semibold mb-3 text-white">{{ event.title }}</h1>
-      <div
-        class="d-flex flex-wrap align-items-center gap-3 text-secondary js-event-time"
-        data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
-      >
-        <div>
-          <div class="text-white fw-semibold">Starts</div>
-          <div class="js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
-          <div class="small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
-        </div>
-        {% if event.end_time %}
-        <div class="vr opacity-50"></div>
-        <div>
-          <div class="text-white fw-semibold">Duration</div>
-          <div class="small">{{ event.start_time|duration(event.end_time) }}</div>
-        </div>
-        {% endif %}
-        <div class="vr opacity-50"></div>
-        <div>
-          <div class="text-white fw-semibold">Location</div>
-          <div class="small">{{ event.location or 'Location TBD' }}</div>
-        </div>
-        {% if event.admin_approval_required %}
-        <div class="vr opacity-50"></div>
-        <div>
-          <div class="text-white fw-semibold">Approval</div>
-          <div class="small">RSVPs require host approval</div>
-        </div>
-        {% endif %}
-      </div>
-      {% if event.channel and not (not event.is_private and event.channel.visibility == 'private') %}
-      <div class="mt-3 d-flex flex-wrap align-items-center gap-2">
-        {% if event.channel.visibility == 'private' %}
-        {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
-        <span class="badge badge-private text-uppercase">Private channel</span>
-        {% else %}
-        {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
-        <span class="badge bg-primary text-uppercase">Public channel</span>
-        {% endif %}
-        <a href="{{ channel_url }}" class="fw-semibold link-light text-decoration-none">{{ event.channel.name }}</a>
-      </div>
-      {% endif %}
+      {% include "partials/event_hero_details.html" %}
     </div>
     <div class="text-end d-flex flex-column align-items-end gap-2" id="event-action-area">
       {% if event.max_attendees %}
