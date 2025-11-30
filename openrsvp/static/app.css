@@ -273,6 +273,10 @@
         color: var(--text);
       }
 
+      [data-theme="latte"] .hero-panel .stat-value {
+        color: rgba(255, 255, 255, 0.92);
+      }
+
       .nav-link {
         letter-spacing: 0.02em;
       }
