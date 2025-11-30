@@ -130,33 +130,7 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{{ url_for('static', path='qrcode.min.js') }}"></script>
-<script>
-  (() => {
-    const container = document.getElementById("rsvp-qr");
-    if (!container) return;
-    const target = container.getAttribute("data-rsvp-url");
-    if (!target) return;
-
-    function renderQr() {
-      const styles = getComputedStyle(document.documentElement);
-      const colorDark = styles.getPropertyValue("--accent").trim() || "#1e66f5";
-      const colorLight = styles.getPropertyValue("--surface").trim() || "#ffffff";
-      container.innerHTML = "";
-      /* global QRCode */
-      if (typeof QRCode === "undefined") return;
-      new QRCode(container, {
-        text: target,
-        width: 168,
-        height: 168,
-        colorDark,
-        colorLight,
-        correctLevel: QRCode.CorrectLevel.H,
-      });
-    }
-
-    renderQr();
-    document.addEventListener("themechange", renderQr);
-  })();
-</script>
+  {{ super() }}
+  <script src="{{ url_for('static', path='qrcode.min.js') }}"></script>
+  <script src="{{ url_for('static', path='event-page.js') }}" defer></script>
 {% endblock %}

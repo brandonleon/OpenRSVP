@@ -505,3 +505,8 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', path='event-admin.js') }}" defer></script>
+{% endblock %}
