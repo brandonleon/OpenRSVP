@@ -299,12 +299,25 @@
                   <span class="badge bg-dark text-uppercase">Private</span>
                   {% endif %}
                 </div>
-                <div class="d-flex flex-wrap justify-content-end gap-1 mt-2">
+                <form
+                  id="reject-form-{{ rsvp.id }}"
+                  method="post"
+                  action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/reject"
+                  class="mb-2"
+                >
+                  <input
+                    type="text"
+                    name="reason"
+                    class="form-control form-control-sm"
+                    placeholder="Rejection reason (optional)"
+                  >
+                </form>
+                <div class="d-flex flex-wrap justify-content-end gap-2">
                   <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/approve">
                     <button class="btn btn-outline-success btn-sm" type="submit">Approve</button>
                   </form>
                   <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/pending">
-                    <button class="btn btn-outline-secondary btn-sm" type="submit">Pending</button>
+                    <button class="btn btn-outline-warning btn-sm" type="submit">Pending</button>
                   </form>
                   {% if event.max_attendees and rsvp.attendance_status != 'yes' %}
                   <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/force_accept">
@@ -313,22 +326,22 @@
                     </button>
                   </form>
                   {% endif %}
+                  <button class="btn btn-outline-danger btn-sm" type="submit" form="reject-form-{{ rsvp.id }}">Reject</button>
                 </div>
-                <form
-                  method="post"
-                  action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/reject"
-                  class="mt-2 d-flex flex-wrap gap-2"
-                >
-                  <input type="text" name="reason" class="form-control form-control-sm" placeholder="Rejection reason (optional)">
-                  <button class="btn btn-outline-danger btn-sm" type="submit">Reject</button>
-                </form>
                 <form
                   method="post"
                   action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/delete"
                   onsubmit="return confirm('Delete this RSVP?');"
                   class="mt-2"
                 >
-                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    type="submit"
+                    data-bs-toggle="tooltip"
+                    title="Deletes this RSVP; guest must submit a new one to rejoin."
+                  >
+                    Delete
+                  </button>
                 </form>
               </div>
             </div>
