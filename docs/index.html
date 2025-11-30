@@ -77,9 +77,9 @@
               <div class="callout mb-3">
                 <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
               </div>
-              <p class="mb-0"><strong>Admin link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code>. Save it—there are no accounts to recover it later.</p>
-              <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until you approve or reject them in the admin view.</p>
-              <p class="mb-0 text-muted small mt-2">The admin page lets owners edit details or delete the event entirely (which also removes all RSVPs).</p>
+              <p class="mb-0"><strong>Event owner link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code> and acts as the owner/admin console. Save it—there are no accounts to recover it later.</p>
+              <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until the event owner approves or rejects them in the owner view.</p>
+              <p class="mb-0 text-muted small mt-2">The event owner page lets hosts edit details or delete the event entirely (which also removes all RSVPs).</p>
             </div>
           </div>
           <div class="col-lg-4">
@@ -111,9 +111,9 @@
           <div class="col-lg-6">
             <div class="section-card h-100">
               <h3 class="h5">Magic links, privacy, and preferences</h3>
-              <p>The UI stores admin/RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
+              <p>The UI stores event owner (admin) / RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
               <p class="mb-2">Catppuccin themes are available in the app; this docs site sticks to Latte for consistency.</p>
-              <p class="mb-0 text-muted small">Never share admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
+              <p class="mb-0 text-muted small">Never share event owner/admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
             </div>
           </div>
           <div class="col-lg-6">
@@ -145,7 +145,7 @@
           <div class="col-lg-6">
             <div class="section-card h-100">
               <h3 class="h5">Backend details</h3>
-              <p>Event admins and attendees can now export an event in .ics iCalendar format.</p>
+              <p>Event owners and attendees can now export an event in .ics iCalendar format.</p>
               <ul class="mb-0">
                 <li>ICS file served via: <code>GET /api/v1/events/{event_id}/event.ics</code></li>
                 <li>Times are normalized to UTC per RFC 5545.</li>
@@ -176,7 +176,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
             <p class="text-uppercase text-muted mb-1 small fw-semibold">Attendance</p>
-            <h2 class="fw-bold mb-0">Event Attendance Caps (Admin)</h2>
+            <h2 class="fw-bold mb-0">Event Attendance Caps (Event owners)</h2>
             <p class="text-muted mb-0">Optional limits for Yes RSVPs with predictable overrides.</p>
           </div>
           <span class="pill"><span class="text-primary">Capacity</span> Optional</span>
@@ -207,14 +207,14 @@
           <div class="col-lg-6">
             <div class="section-card h-100">
               <h3 class="h5">Force Accept &amp; API usage</h3>
-              <p>Bypass the cap with an admin token when you deliberately want to add someone above the limit.</p>
+              <p>Bypass the cap with an event owner token (admin token) when you deliberately want to add someone above the limit.</p>
               <ul class="mb-3">
-                <li>Admin UI includes a <strong>Force Accept</strong> button next to each RSVP when a cap is set.</li>
-                <li>API: add <code>?force_accept=true</code> and send <code>Authorization: Bearer &lt;admin_token&gt;</code>.</li>
-                <li>Each override writes an admin-visible <code>force_accept</code> message for auditability.</li>
+                <li>The event owner UI includes a <strong>Force Accept</strong> button next to each RSVP when a cap is set.</li>
+                <li>API: add <code>?force_accept=true</code> and send <code>Authorization: Bearer &lt;event-owner-token&gt;</code> (a.k.a. <code>&lt;admin_token&gt;</code>).</li>
+                <li>Each override writes an owner-visible <code>force_accept</code> message for auditability.</li>
               </ul>
               <pre class="mb-3"><code>POST /api/v1/events/{event_id}/rsvps?force_accept=true
-Authorization: Bearer &lt;admin_token&gt;
+Authorization: Bearer &lt;event-owner-token&gt;
 {
   "name": "Guest Name",
   "attendance_status": "yes",
@@ -382,28 +382,29 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
             <div class="section-card h-100">
               <h3 class="h5">Authentication</h3>
               <ul class="mb-3">
-                <li><strong>Event admin token</strong> → required for editing/deleting events or listing/deleting RSVPs: <code>Authorization: Bearer &lt;admin-token&gt;</code>.</li>
+                <li><strong>Event owner token</strong> (admin token) → required for editing/deleting events or listing/deleting RSVPs: <code>Authorization: Bearer &lt;event-owner-token&gt;</code>.</li>
                 <li><strong>RSVP token</strong> → required for managing your own RSVP at <code>/events/{event_id}/rsvps/self</code>.</li>
                 <li>No root-level API; root admin stays CLI-only.</li>
               </ul>
+              <p class="mb-2 text-muted small"><strong>Note:</strong> the root admin token can stand in anywhere an event owner token is required.</p>
               <div class="callout mb-2">
                 <strong>Tip:</strong> send ISO timestamps; include <code>timezone_offset_minutes</code> when creating/updating events so local times are stored correctly in UTC.
               </div>
-              <p class="mb-0 text-muted small">Private RSVPs are hidden from <code>GET /api/v1/events/{id}</code> but are visible when using admin endpoints.</p>
+              <p class="mb-0 text-muted small">Private RSVPs are hidden from <code>GET /api/v1/events/{id}</code> but are visible when using the event owner endpoints.</p>
             </div>
           </div>
           <div class="col-lg-6">
             <div class="section-card h-100">
               <h3 class="h5">Key endpoints</h3>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events</span> Create event; returns admin token + links.</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events</span> Create event; returns the event owner (admin) token + links.</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events</span> List public events with pagination and date filters.</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}</span> Public event detail + public RSVPs.</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">PATCH</span>/api/v1/events/{event_id}</span> Update event (admin bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">DELETE</span>/api/v1/events/{event_id}</span> Delete event (admin bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}/rsvps</span> List RSVPs + stats (admin bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">PATCH</span>/api/v1/events/{event_id}</span> Update event (event owner bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">DELETE</span>/api/v1/events/{event_id}</span> Delete event (event owner bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}/rsvps</span> List RSVPs + stats (event owner bearer).</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps</span> Create RSVP; returns token + links.</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET/PATCH/DELETE</span>/api/v1/events/{event_id}/rsvps/self</span> Manage your own RSVP (rsvp bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve|reject|pending</span> Update approval state (admin bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve|reject|pending</span> Update approval state (event owner bearer).</div>
               <div class="mb-0"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels</span> Public channels with pagination; filter via <code>?q=</code>.</div>
               <div class="mt-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels/{slug}</span> Channel detail + events (public or private based on slug visibility).</div>
             </div>
@@ -429,7 +430,7 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
     "is_private": false
   }'</code></pre>
               <div class="callout mb-0">
-                Response includes <code>admin_token</code> plus <code>links.admin</code> for the UI admin page and <code>links.public</code> for the guest view.
+                Response includes <code>admin_token</code> (the event owner token) plus <code>links.admin</code> for the owner page and <code>links.public</code> for the guest view.
               </div>
             </div>
           </div>
@@ -478,11 +479,11 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
         <div class="row g-4 mt-1">
           <div class="col-lg-6">
             <div class="section-card h-100">
-              <h3 class="h5">Admin actions on events</h3>
-              <p class="mb-2">Use the admin token as a bearer to edit or delete.</p>
-              <p class="mb-2 text-muted small">Third-party apps can delete events the same way the admin UI does by calling the DELETE endpoint with the admin token.</p>
+              <h3 class="h5">Event owner actions on events</h3>
+              <p class="mb-2">Use the event owner token (admin token) as a bearer to edit or delete.</p>
+              <p class="mb-2 text-muted small">Third-party apps can delete events the same way the owner UI does by calling the DELETE endpoint with the event owner token.</p>
               <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id} \
-  -H "Authorization: Bearer &lt;admin-token&gt;" \
+  -H "Authorization: Bearer &lt;event-owner-token&gt;" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Updated title",
@@ -495,10 +496,10 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
           </div>
           <div class="col-lg-6">
             <div class="section-card h-100">
-              <h3 class="h5">List RSVPs with stats (admin)</h3>
+              <h3 class="h5">List RSVPs with stats (event owner)</h3>
               <p class="mb-2">Returns RSVP records (including private ones) plus convenience counts.</p>
               <pre><code>curl http://localhost:8000/api/v1/events/{event_id}/rsvps \
-  -H "Authorization: Bearer &lt;admin-token&gt;"</code></pre>
+  -H "Authorization: Bearer &lt;event-owner-token&gt;"</code></pre>
               <p class="mb-2">Events with approval enabled include <code>approval_status</code> on each RSVP; pending/rejected entries stay off the public attendee list.</p>
               <p class="mb-2">Example stats payload:</p>
               <pre><code>{
@@ -510,7 +511,7 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
     "no_count": 1
   }
 }</code></pre>
-              <p class="mb-0 text-muted small">Admins can delete specific RSVPs via <code>DELETE /api/v1/events/{event_id}/rsvps/{rsvp_token}</code>.</p>
+              <p class="mb-0 text-muted small">Event owners can delete specific RSVPs via <code>DELETE /api/v1/events/{event_id}/rsvps/{rsvp_token}</code>.</p>
             </div>
           </div>
         </div>
@@ -519,15 +520,15 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
           <div class="col-lg-12">
             <div class="section-card h-100">
               <h3 class="h5">Approve or reject pending RSVPs</h3>
-              <p class="mb-2">When <strong>Require admin approval</strong> is enabled, new RSVPs enter the pending queue until an event admin (or root admin token) sends one of the approval endpoints below.</p>
+              <p class="mb-2">When <strong>Require admin approval</strong> is enabled, new RSVPs enter the pending queue until an event owner (or root admin token) sends one of the approval endpoints below.</p>
               <ul class="mb-3">
-                <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/approve</code> &mdash; marks the RSVP approved and adds an admin log entry.</li>
+                <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/approve</code> &mdash; marks the RSVP approved and adds an owner-visible log entry.</li>
                 <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/reject</code> &mdash; accepts optional JSON body <code>{"reason": "Capacity reached"}</code> that is shared with the attendee.</li>
                 <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/pending</code> &mdash; moves the RSVP back into the pending state.</li>
               </ul>
-              <p class="mb-2 text-muted small">All three routes require <code>Authorization: Bearer &lt;event-admin-token&gt;</code> or the root admin token from <code>docker exec openrsvp openrsvp admin-token</code>. Responses return the updated RSVP plus its attendee-facing messages.</p>
+              <p class="mb-2 text-muted small">All three routes require <code>Authorization: Bearer &lt;event-owner-token&gt;</code> or the root admin token from <code>docker exec openrsvp openrsvp admin-token</code>. Responses return the updated RSVP plus its attendee-facing messages.</p>
               <pre><code>curl -X POST http://localhost:8000/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve \
-  -H "Authorization: Bearer &lt;admin-token&gt;"</code></pre>
+  -H "Authorization: Bearer &lt;event-owner-token&gt;"</code></pre>
             </div>
           </div>
         </div>
@@ -540,7 +541,7 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
               <h3 class="h5">Token safety</h3>
               <ul class="mb-2">
                 <li>Tokens are capability links; treat them like passwords.</li>
-                <li>Never email or log admin tokens; share directly with organizers.</li>
+                <li>Never email or log event owner/admin tokens; share directly with organizers.</li>
                 <li>Guests get RSVP tokens once; they should bookmark or store them locally.</li>
               </ul>
               <p class="mb-0 text-muted small">The platform is intentionally accountless. Losing a token means creating a fresh event or RSVP.</p>
