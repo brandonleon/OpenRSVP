@@ -403,7 +403,7 @@ openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}/rsvps</span> List RSVPs + stats (admin bearer).</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps</span> Create RSVP; returns token + links.</div>
               <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET/PATCH/DELETE</span>/api/v1/events/{event_id}/rsvps/self</span> Manage your own RSVP (rsvp bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve|reject|pending</span> Update approval state (admin or root bearer).</div>
+              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve|reject|pending</span> Update approval state (admin bearer).</div>
               <div class="mb-0"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels</span> Public channels with pagination; filter via <code>?q=</code>.</div>
               <div class="mt-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels/{slug}</span> Channel detail + events (public or private based on slug visibility).</div>
             </div>
