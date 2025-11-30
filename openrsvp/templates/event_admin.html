@@ -42,7 +42,52 @@
       </div>
     </div>
   </div>
+  <div class="mt-4">
+    <div class="row row-cols-1 row-cols-sm-2 g-2 mb-3">
+      <div class="col">
+        <div class="p-3 h-100 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-50">
+          <div class="fw-semibold text-success text-uppercase small">Yes</div>
+          <div class="fs-4 stat-value">{{ rsvp_stats.yes_total }}</div>
+          <div class="small text-secondary">{{ rsvp_stats.yes_count }} RSVP(s)</div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="p-3 h-100 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-50">
+          <div class="fw-semibold text-warning text-uppercase small">Maybe</div>
+          <div class="fs-4 stat-value">{{ rsvp_stats.maybe_total }}</div>
+          <div class="small text-secondary">{{ rsvp_stats.maybe_count }} RSVP(s)</div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex flex-wrap gap-3 small text-secondary">
+      <span>Pending: {{ approval_counts.pending }}</span>
+      <span>Approved: {{ approval_counts.approved }}</span>
+      <span>Rejected: {{ approval_counts.rejected }}</span>
+    </div>
+    {% if event.max_attendees %}
+    <div class="alert {% if event_is_full %}alert-warning{% else %}alert-info{% endif %} small mt-3 mb-0" role="alert">
+      <div class="fw-semibold">Capacity: {{ event.yes_count }} / {{ event.max_attendees }} spots filled</div>
+      {% if event_is_full %}
+      <div class="mb-0">Event is currently at capacity.</div>
+      {% else %}
+      <div class="mb-0">{{ available_yes_slots }} spot{% if available_yes_slots != 1 %}s{% endif %} remaining for Yes RSVPs.</div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
 </section>
+{% if approval_counts.pending > 0 %}
+<div class="alert alert-warning alert-dismissible fade show d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4" role="alert">
+  <div>
+    <div class="fw-semibold">Pending RSVPs need review</div>
+    <div class="small mb-0">Approve or reject the {{ approval_counts.pending }} awaiting response{% if approval_counts.pending == 1 %} RSVP{% else %} RSVPs{% endif %}.</div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a class="btn btn-warning btn-sm" href="#rsvp-section" data-rsvp-pending-link>Review pending RSVPs</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+</div>
+{% endif %}
 <div
   class="d-none"
   data-event-admin-token
@@ -50,129 +95,149 @@
   data-admin-token="{{ admin_token }}"
 ></div>
 <div class="row g-4">
-  <div class="col-lg-7">
+  <div class="col-12">
     <div class="p-4 bg-white border rounded-3 shadow-sm">
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <h3 class="h5 mb-0">Event details</h3>
-        <a class="btn btn-outline-secondary btn-sm" href="/e/{{ event.id }}">View event</a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="badge badge-soft text-uppercase">Organizer tools</div>
+          <a class="btn btn-outline-secondary btn-sm" href="/e/{{ event.id }}">View event</a>
+        </div>
       </div>
       <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}">
-        <div class="mb-3">
-          <label class="form-label">Title</label>
-          <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Basics</div>
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="{{ event.title }}" required>
+          </div>
+          <div>
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="3">{{ event.description or '' }}</textarea>
+            <div class="form-text">Supports basic Markdown.</div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Description</label>
-          <textarea name="description" class="form-control" rows="3">{{ event.description or '' }}</textarea>
-          <div class="form-text">Supports basic Markdown.</div>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Schedule</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Start Time</label>
+              <input
+                type="datetime-local"
+                name="start_time"
+                class="form-control"
+                value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}"
+                data-utc-input="{{ event.start_time.isoformat(timespec='seconds') }}Z"
+                required
+              >
+              <input type="hidden" name="timezone_offset_minutes" data-tz-input>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">End Time (optional)</label>
+              <input
+                type="datetime-local"
+                name="end_time"
+                class="form-control"
+                value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') if event.end_time else '' }}"
+                data-utc-input="{{ event.end_time.isoformat(timespec='seconds') + 'Z' if event.end_time else '' }}"
+              >
+              <div class="form-text">Leave blank if this event does not have a defined end.</div>
+            </div>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Start Time</label>
-          <input
-            type="datetime-local"
-            name="start_time"
-            class="form-control"
-            value="{{ event.start_time.strftime('%Y-%m-%dT%H:%M') }}"
-            data-utc-input="{{ event.start_time.isoformat(timespec='seconds') }}Z"
-            required
-          >
-          <input type="hidden" name="timezone_offset_minutes" data-tz-input>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">End Time (optional)</label>
-          <input
-            type="datetime-local"
-            name="end_time"
-            class="form-control"
-            value="{{ event.end_time.strftime('%Y-%m-%dT%H:%M') if event.end_time else '' }}"
-            data-utc-input="{{ event.end_time.isoformat(timespec='seconds') + 'Z' if event.end_time else '' }}"
-          >
-          <div class="form-text">Leave blank if this event does not have a defined end.</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Location</label>
-          <input type="text" name="location" class="form-control" value="{{ event.location or '' }}">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Maximum Attendees (optional)</label>
-          <input
-            type="number"
-            name="max_attendees"
-            class="form-control"
-            min="1"
-            value="{{ event.max_attendees or '' }}"
-            placeholder="Leave blank for unlimited"
-          >
-          <div class="form-text">Only YES RSVPs count toward this limit.</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label" for="admin-channel-name">Channel Name</label>
-          <div class="input-group">
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Location & capacity</div>
+          <div class="mb-3">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" value="{{ event.location or '' }}">
+          </div>
+          <div>
+            <label class="form-label">Maximum Attendees (optional)</label>
             <input
-              type="text"
-              id="admin-channel-name"
-              name="channel_name"
+              type="number"
+              name="max_attendees"
               class="form-control"
-              value="{{ event.channel.name if event.channel else '' }}"
-              list="admin-channel-options"
-              placeholder="Pick or type a channel"
+              min="1"
+              value="{{ event.max_attendees or '' }}"
+              placeholder="Leave blank for unlimited"
             >
-            {% if event.channel %}
-            {% if event.channel.visibility == 'private' %}
-            {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
-            {% else %}
-            {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
-            {% endif %}
-            <a class="btn btn-outline-primary" href="{{ channel_url }}">View channel</a>
+            <div class="form-text">Only YES RSVPs count toward this limit.</div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Channel & privacy</div>
+          <div class="mb-3">
+            <label class="form-label" for="admin-channel-name">Channel Name</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="admin-channel-name"
+                name="channel_name"
+                class="form-control"
+                value="{{ event.channel.name if event.channel else '' }}"
+                list="admin-channel-options"
+                placeholder="Pick or type a channel"
+              >
+              {% if event.channel %}
+              {% if event.channel.visibility == 'private' %}
+              {% set channel_url = request.url_for('channel_page_private', slug=event.channel.slug) %}
+              {% else %}
+              {% set channel_url = request.url_for('channel_page', slug=event.channel.slug) %}
+              {% endif %}
+              <a class="btn btn-outline-primary" href="{{ channel_url }}">View channel</a>
+              {% endif %}
+            </div>
+            <div class="form-text">Private channels never appear in this list—type them manually. Showing the top public options; type to search beyond the default suggestions.</div>
+            <datalist id="admin-channel-options">
+              {% for channel in public_channels %}
+              <option value="{{ channel.name }}"></option>
+              {% endfor %}
+            </datalist>
+            {% if not event.channel %}
+            <div class="small mt-1 text-muted">No channel assigned yet.</div>
             {% endif %}
           </div>
-          <div class="form-text">Private channels never appear in this list—type them manually. Showing the top public options; type to search beyond the default suggestions.</div>
-          <datalist id="admin-channel-options">
-            {% for channel in public_channels %}
-            <option value="{{ channel.name }}"></option>
-            {% endfor %}
-          </datalist>
-          {% if not event.channel %}
-          <div class="small mt-1 text-muted">No channel assigned yet.</div>
-          {% endif %}
-        </div>
-        <div class="mb-3">
-          <label class="form-label d-block">Channel Visibility</label>
           {% set current_visibility = event.channel.visibility if event.channel else 'public' %}
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-public" value="public" data-channel-visibility="admin-channel" {% if current_visibility == 'public' %}checked{% endif %}>
-            <label class="form-check-label" for="admin-channel-public">Public</label>
+          <div class="mb-3">
+            <label class="form-label d-block">Channel Visibility</label>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-public" value="public" data-channel-visibility="admin-channel" {% if current_visibility == 'public' %}checked{% endif %}>
+              <label class="form-check-label" for="admin-channel-public">Public</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-private" value="private" data-channel-visibility="admin-channel" {% if current_visibility == 'private' %}checked{% endif %}>
+              <label class="form-check-label" for="admin-channel-private">Private</label>
+            </div>
           </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="channel_visibility" id="admin-channel-private" value="private" data-channel-visibility="admin-channel" {% if current_visibility == 'private' %}checked{% endif %}>
-            <label class="form-check-label" for="admin-channel-private">Private</label>
+          <div class="alert alert-warning {% if current_visibility != 'private' %}d-none{% endif %}" role="alert" data-channel-alert="admin-channel">
+            <div class="fw-semibold">Private channels rely on link secrecy.</div>
+            <div class="small mb-0">
+              Use a distinctive slug, share it only with trusted people, and keep the full link—there is no login or recovery. Inactive private channels can purge automatically.
+            </div>
+          </div>
+          <div
+            class="alert alert-info {% if current_visibility != 'private' %}d-none{% endif %}"
+            role="alert"
+            data-channel-event-alert="admin-channel"
+            data-event-private-toggle="#admin-private"
+          >
+            <div class="fw-semibold">Private channel: event set to private by default.</div>
+            <div class="small mb-0">
+              We set the event to private when the channel is private. You can switch it back to public if needed; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
+            </div>
           </div>
         </div>
-        <div class="alert alert-warning {% if current_visibility != 'private' %}d-none{% endif %}" role="alert" data-channel-alert="admin-channel">
-          <div class="fw-semibold">Private channels rely on link secrecy.</div>
-          <div class="small mb-0">
-            Use a distinctive slug, share it only with trusted people, and keep the full link—there is no login or recovery. Inactive private channels can purge automatically.
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Access control</div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" id="admin-approval-required" name="admin_approval_required" value="true" {% if event.admin_approval_required %}checked{% endif %}>
+            <label class="form-check-label" for="admin-approval-required">Require admin approval for new RSVPs</label>
+            <div class="form-text">Pending RSVPs stay hidden until you approve them.</div>
           </div>
-        </div>
-        <div
-          class="alert alert-info {% if current_visibility != 'private' %}d-none{% endif %}"
-          role="alert"
-          data-channel-event-alert="admin-channel"
-          data-event-private-toggle="#admin-private"
-        >
-          <div class="fw-semibold">Private channel: event set to private by default.</div>
-          <div class="small mb-0">
-            We set the event to private when the channel is private. You can switch it back to public if needed; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
+            <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
           </div>
-        </div>
-        <div class="form-check form-switch mb-3">
-          <input class="form-check-input" type="checkbox" id="admin-approval-required" name="admin_approval_required" value="true" {% if event.admin_approval_required %}checked{% endif %}>
-          <label class="form-check-label" for="admin-approval-required">Require admin approval for new RSVPs</label>
-          <div class="form-text">Pending RSVPs stay hidden until you approve them.</div>
-        </div>
-        <div class="form-check form-switch mb-4">
-          <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
-          <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-primary" type="submit">Save Event</button>
@@ -181,110 +246,8 @@
       </form>
     </div>
   </div>
-  <div class="col-lg-5">
-    <div class="p-4 card-flush rounded-3 shadow-sm mb-4">
-      <div class="row row-cols-1 row-cols-sm-3 g-2 mb-3">
-        <div class="col">
-          <div class="p-3 h-100 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-50">
-            <div class="fw-semibold text-success text-uppercase small">Yes</div>
-            <div class="fs-4 stat-value">{{ rsvp_stats.yes_total }}</div>
-            <div class="small text-secondary">{{ rsvp_stats.yes_count }} RSVP(s)</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="p-3 h-100 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-50">
-            <div class="fw-semibold text-warning text-uppercase small">Maybe</div>
-            <div class="fs-4 stat-value">{{ rsvp_stats.maybe_total }}</div>
-            <div class="small text-secondary">{{ rsvp_stats.maybe_count }} RSVP(s)</div>
-          </div>
-        </div>
-        <div class="col">
-          <div class="p-3 h-100 rounded-3 bg-light bg-opacity-10 border border-secondary border-opacity-50">
-            <div class="fw-semibold text-uppercase small text-secondary">No</div>
-            <div class="fs-4 stat-value">{{ rsvp_stats.no_total }}</div>
-            <div class="small text-secondary">{{ rsvp_stats.no_count }} RSVP(s)</div>
-          </div>
-        </div>
-      </div>
-      <div class="small text-muted">
-        Pending: {{ approval_counts.pending }} &middot; Approved: {{ approval_counts.approved }} &middot; Rejected: {{ approval_counts.rejected }}
-      </div>
-      {% if event.max_attendees %}
-      <div class="alert {% if event_is_full %}alert-warning{% else %}alert-info{% endif %} small mb-3" role="alert">
-        <div class="fw-semibold">Capacity: {{ event.yes_count }} / {{ event.max_attendees }} spots filled</div>
-        {% if event_is_full %}
-        <div class="mb-0">Event is currently at capacity.</div>
-        {% else %}
-        <div class="mb-0">{{ available_yes_slots }} spot{% if available_yes_slots != 1 %}s{% endif %} remaining for Yes RSVPs.</div>
-        {% endif %}
-      </div>
-      {% endif %}
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <div class="fw-semibold">Admin link</div>
-          <div class="small text-secondary">Keep admin link private.</div>
-        </div>
-        <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#admin-links" aria-expanded="false" aria-controls="admin-links">
-          Reveal admin link
-        </button>
-      </div>
-      <div class="collapse" id="admin-links">
-        <div class="small">
-          <div class="fw-semibold">Admin link</div>
-          <button class="btn btn-sm btn-outline-warning" type="button" data-copy-link="{{ admin_link }}">Copy admin link</button>
-          <div class="text-secondary mt-2">Keep this private—only share with trusted event organizers. Anyone with it can edit/delete the event.</div>
-        </div>
-      </div>
-    </div>
-    <div class="p-4 bg-white border rounded-3 shadow-sm mb-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3 class="h6 text-uppercase text-muted mb-0">Event messages</h3>
-        <span class="badge bg-light text-dark">{{ admin_messages|length }} total</span>
-      </div>
-      <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/messages" class="mb-3">
-        <div class="row g-2">
-          <div class="col-sm-6">
-            <label class="form-label small">Visibility</label>
-            <select name="visibility" class="form-select form-select-sm">
-              <option value="public">Public announcement</option>
-              <option value="admin">Admin only</option>
-            </select>
-          </div>
-          <div class="col-sm-6">
-            <label class="form-label small">Type</label>
-            <select name="message_type" class="form-select form-select-sm">
-              <option value="event_update">Event update</option>
-              <option value="event_internal">Internal note</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-2">
-          <label class="form-label small">Content</label>
-          <textarea name="content" class="form-control" rows="2" required></textarea>
-        </div>
-        <div class="mt-2 d-flex justify-content-end">
-          <button class="btn btn-primary btn-sm" type="submit">Post message</button>
-        </div>
-      </form>
-      {% if admin_messages %}
-      <div class="list-group list-group-flush">
-        {% for message in admin_messages %}
-        <div class="list-group-item px-0">
-          <div class="d-flex justify-content-between align-items-start gap-2">
-            <div>
-              <div class="fw-semibold">{{ message.content }}</div>
-              <div class="small text-muted">{{ message.created_at|relative_time }} &middot; {{ message.visibility }}</div>
-            </div>
-            <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <p class="text-muted mb-0 small">No messages yet.</p>
-      {% endif %}
-    </div>
-    <div class="p-4 bg-white border rounded-3 shadow-sm">
+  <div class="col-lg-7 order-lg-1">
+    <div class="p-4 bg-white border rounded-3 shadow-sm" id="rsvp-section">
       <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div>
           <h3 class="h6 text-uppercase text-muted mb-0">RSVPs</h3>
@@ -314,84 +277,89 @@
       <ul class="list-group list-group-flush" id="admin-rsvp-list">
         {% for rsvp in rsvps %}
         {% set messages = rsvp_messages.get(rsvp.id) or [] %}
-        <li class="list-group-item" data-approval-status="{{ rsvp.approval_status }}">
-          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-              <div class="fw-semibold">{{ rsvp.name }}</div>
-              {% if rsvp.pronouns %}<div class="text-muted small">{{ rsvp.pronouns }}</div>{% endif %}
-              <div class="text-muted small">Guests: {{ rsvp.guest_count }}</div>
-              <div class="text-muted small">Attendance: {{ rsvp.attendance_status|capitalize }}</div>
-            </div>
-            <div class="text-end">
-              <div class="d-flex flex-wrap justify-content-end gap-1">
-                <span class="badge {% if rsvp.approval_status == 'approved' %}bg-success{% elif rsvp.approval_status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} text-uppercase">
-                  {{ rsvp.approval_status }}
-                </span>
-                <span class="badge bg-secondary text-uppercase">{{ rsvp.attendance_status }}</span>
-                {% if rsvp.is_private %}
-                <span class="badge bg-dark text-uppercase">Private</span>
-                {% endif %}
+        <li
+          class="list-group-item border-0 px-0 py-0"
+          data-approval-status="{{ rsvp.approval_status }}"
+        >
+          <div class="rsvp-card border rounded-3 p-3 shadow-sm {% if loop.index0 % 2 == 1 %}bg-dark bg-opacity-10 alt-row{% endif %}">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <div class="fw-semibold">{{ rsvp.name }}</div>
+                {% if rsvp.pronouns %}<div class="text-muted small">{{ rsvp.pronouns }}</div>{% endif %}
+                <div class="text-muted small">Guests: {{ rsvp.guest_count }}</div>
+                <div class="text-muted small">Attendance: {{ rsvp.attendance_status|capitalize }}</div>
               </div>
-              <div class="d-flex flex-wrap justify-content-end gap-1 mt-2">
-                <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/approve">
-                  <button class="btn btn-outline-success btn-sm" type="submit">Approve</button>
-                </form>
-                <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/pending">
-                  <button class="btn btn-outline-secondary btn-sm" type="submit">Pending</button>
-                </form>
-                {% if event.max_attendees and rsvp.attendance_status != 'yes' %}
-                <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/force_accept">
-                  <button class="btn btn-outline-warning btn-sm" type="submit" {% if not event_is_full %}data-bs-toggle="tooltip" title="Bypass the cap and mark as Yes"{% endif %}>
-                    Force Accept
-                  </button>
-                </form>
-                {% endif %}
-              </div>
-              <form
-                method="post"
-                action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/reject"
-                class="mt-2 d-flex flex-wrap gap-2"
-              >
-                <input type="text" name="reason" class="form-control form-control-sm" placeholder="Rejection reason (optional)">
-                <button class="btn btn-outline-danger btn-sm" type="submit">Reject</button>
-              </form>
-              <form
-                method="post"
-                action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/delete"
-                onsubmit="return confirm('Delete this RSVP?');"
-                class="mt-2"
-              >
-                <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
-              </form>
-            </div>
-          </div>
-          <div class="mt-3">
-            <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/note">
-              <label class="form-label small fw-semibold">Add admin note</label>
-              <div class="d-flex gap-2 flex-wrap">
-                <textarea name="content" class="form-control" rows="2" placeholder="Private note for admins" required></textarea>
-                <button class="btn btn-primary" type="submit">Save</button>
-              </div>
-            </form>
-          </div>
-          {% if messages %}
-          <div class="mt-3">
-            <div class="small text-muted text-uppercase mb-1">Messages</div>
-            <div class="list-group list-group-flush">
-              {% for message in messages %}
-              <div class="list-group-item px-0">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                  <div>
-                    <div class="fw-semibold">{{ message.content }}</div>
-                    <div class="small text-muted">{{ message.created_at|relative_time }} &middot; {{ message.visibility }}</div>
-                  </div>
-                  <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
+              <div class="text-end">
+                <div class="d-flex flex-wrap justify-content-end gap-1">
+                  <span class="badge {% if rsvp.approval_status == 'approved' %}bg-success{% elif rsvp.approval_status == 'rejected' %}bg-danger{% else %}bg-warning text-dark{% endif %} text-uppercase">
+                    {{ rsvp.approval_status }}
+                  </span>
+                  <span class="badge bg-secondary text-uppercase">{{ rsvp.attendance_status }}</span>
+                  {% if rsvp.is_private %}
+                  <span class="badge bg-dark text-uppercase">Private</span>
+                  {% endif %}
                 </div>
+                <div class="d-flex flex-wrap justify-content-end gap-1 mt-2">
+                  <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/approve">
+                    <button class="btn btn-outline-success btn-sm" type="submit">Approve</button>
+                  </form>
+                  <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/pending">
+                    <button class="btn btn-outline-secondary btn-sm" type="submit">Pending</button>
+                  </form>
+                  {% if event.max_attendees and rsvp.attendance_status != 'yes' %}
+                  <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/force_accept">
+                    <button class="btn btn-outline-warning btn-sm" type="submit" {% if not event_is_full %}data-bs-toggle="tooltip" title="Bypass the cap and mark as Yes"{% endif %}>
+                      Force Accept
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+                <form
+                  method="post"
+                  action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/reject"
+                  class="mt-2 d-flex flex-wrap gap-2"
+                >
+                  <input type="text" name="reason" class="form-control form-control-sm" placeholder="Rejection reason (optional)">
+                  <button class="btn btn-outline-danger btn-sm" type="submit">Reject</button>
+                </form>
+                <form
+                  method="post"
+                  action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/delete"
+                  onsubmit="return confirm('Delete this RSVP?');"
+                  class="mt-2"
+                >
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                </form>
               </div>
-              {% endfor %}
             </div>
+            <div class="mt-3">
+              <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/note">
+                <label class="form-label small fw-semibold">Add admin note</label>
+                <div class="d-flex gap-2 flex-wrap">
+                  <textarea name="content" class="form-control" rows="2" placeholder="Private note for admins" required></textarea>
+                  <button class="btn btn-primary" type="submit">Save</button>
+                </div>
+              </form>
+            </div>
+            {% if messages %}
+            <div class="mt-3">
+              <div class="small text-muted text-uppercase mb-1">Messages</div>
+              <div class="list-group list-group-flush">
+                {% for message in messages %}
+                <div class="list-group-item px-0">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ message.content }}</div>
+                      <div class="small text-muted">{{ message.created_at|relative_time }} &middot; {{ message.visibility }}</div>
+                    </div>
+                    <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
         </li>
         {% endfor %}
       </ul>
@@ -416,21 +384,109 @@
         buttons.forEach((btn) => {
           btn.addEventListener("click", () => update(btn.getAttribute("data-rsvp-filter") || "all"));
         });
+        const pendingLinks = document.querySelectorAll("[data-rsvp-pending-link]");
+        pendingLinks.forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            update("pending");
+            const hash = link.getAttribute("href") || "#rsvp-section";
+            if (hash.startsWith("#")) {
+              const targetEl = document.querySelector(hash);
+              if (targetEl && targetEl.scrollIntoView) {
+                targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+              } else {
+                window.location.hash = hash;
+              }
+            } else {
+              window.location.hash = "#rsvp-section";
+            }
+          });
+        });
       })();
     </script>
-    <div class="p-4 card-flush rounded-3 shadow-sm">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div>
-          <div class="fw-semibold">Delete event</div>
-          <div class="small text-secondary">Removes the event and all RSVPs. This cannot be undone.</div>
+  </div>
+  <div class="col-lg-5 order-lg-2">
+    <div class="d-flex flex-column gap-4">
+      <div class="p-4 bg-white border rounded-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <div class="fw-semibold">Admin link</div>
+            <div class="small text-secondary">Keep admin link private.</div>
+          </div>
+          <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#admin-links" aria-expanded="false" aria-controls="admin-links">
+            Reveal link
+          </button>
         </div>
-        <form
-          method="post"
-          action="/e/{{ event.id }}/admin/{{ admin_token }}/delete"
-          onsubmit="return confirm('Delete this event and all RSVPs? This cannot be undone.');"
-        >
-          <button class="btn btn-outline-danger btn-sm" type="submit">Delete event</button>
+        <div class="collapse" id="admin-links">
+          <div class="small">
+            <div class="fw-semibold">Admin link</div>
+            <button class="btn btn-sm btn-outline-warning" type="button" data-copy-link="{{ admin_link }}">Copy admin link</button>
+            <div class="text-secondary mt-2">Keep this private—only share with trusted event organizers. Anyone with it can edit/delete the event.</div>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 bg-white border rounded-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="h6 text-uppercase text-muted mb-0">Event messages</h3>
+          <span class="badge bg-light text-dark">{{ admin_messages|length }} total</span>
+        </div>
+        <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/messages" class="mb-3">
+          <div class="row g-2">
+            <div class="col-sm-6">
+              <label class="form-label small">Visibility</label>
+              <select name="visibility" class="form-select form-select-sm">
+                <option value="public">Public announcement</option>
+                <option value="admin">Admin only</option>
+              </select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small">Type</label>
+              <select name="message_type" class="form-select form-select-sm">
+                <option value="event_update">Event update</option>
+                <option value="event_internal">Internal note</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-2">
+            <label class="form-label small">Content</label>
+            <textarea name="content" class="form-control" rows="2" required></textarea>
+          </div>
+          <div class="mt-2 d-flex justify-content-end">
+            <button class="btn btn-primary btn-sm" type="submit">Post message</button>
+          </div>
         </form>
+        {% if admin_messages %}
+        <div class="list-group list-group-flush">
+          {% for message in admin_messages %}
+          <div class="list-group-item px-0">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">{{ message.content }}</div>
+                <div class="small text-muted">{{ message.created_at|relative_time }} &middot; {{ message.visibility }}</div>
+              </div>
+              <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0 small">No messages yet.</p>
+        {% endif %}
+      </div>
+      <div class="p-4 card-flush rounded-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <div class="fw-semibold">Delete event</div>
+            <div class="small text-secondary">Removes the event and all RSVPs. This cannot be undone.</div>
+          </div>
+          <form
+            method="post"
+            action="/e/{{ event.id }}/admin/{{ admin_token }}/delete"
+            onsubmit="return confirm('Delete this event and all RSVPs? This cannot be undone.');"
+          >
+            <button class="btn btn-outline-danger btn-sm" type="submit">Delete event</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>

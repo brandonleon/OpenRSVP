@@ -483,6 +483,34 @@
         color: var(--badge-accent-fg);
       }
 
+      #admin-rsvp-list .list-group-item {
+        border: 0;
+        background: transparent;
+        padding: 0;
+      }
+
+      #admin-rsvp-list .list-group-item + .list-group-item {
+        margin-top: 1rem;
+      }
+
+      #admin-rsvp-list .rsvp-card {
+        background: var(--surface);
+        border-color: var(--border-soft);
+      }
+
+      [data-theme="latte"] .hero-panel .stat-value.text-success {
+        color: #1d722f !important;
+      }
+
+      [data-theme="latte"] #admin-rsvp-list .rsvp-card.alt-row {
+        background: rgba(0, 0, 0, 0.04) !important;
+        color: #151515 !important;
+      }
+
+      [data-theme="latte"] #admin-rsvp-list .rsvp-card.alt-row .fw-semibold {
+        color: #151515 !important;
+      }
+
       .dropdown-menu .form-check-input:checked {
         background-color: var(--accent);
         border-color: var(--accent);

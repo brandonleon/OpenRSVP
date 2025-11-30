@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .models import Channel, Event, Message, RSVP
-from .utils import slugify, utcnow
+from .utils import slugify, to_naive_utc, utcnow
 
 CHANNEL_VISIBILITIES = {"public", "private"}
 VALID_APPROVAL_STATUSES = {"pending", "approved", "rejected"}
@@ -93,6 +93,8 @@ def create_event(
     max_attendees: int | None = None,
 ) -> Event:
     """Create and persist a new event."""
+    normalized_start = to_naive_utc(start_time)
+    normalized_end = to_naive_utc(end_time)
     event = Event(
         admin_token=secrets.token_urlsafe(32),
         is_private=is_private,
@@ -100,8 +102,8 @@ def create_event(
         max_attendees=max_attendees,
         title=title,
         description=description,
-        start_time=start_time,
-        end_time=end_time,
+        start_time=normalized_start,
+        end_time=normalized_end,
         location=location,
         score=settings.initial_event_score,
         channel=channel,
@@ -126,10 +128,12 @@ def update_event(
     max_attendees: int | None = None,
 ) -> Event:
     """Update an existing event."""
+    normalized_start = to_naive_utc(start_time)
+    normalized_end = to_naive_utc(end_time)
     event.title = title
     event.description = description
-    event.start_time = start_time
-    event.end_time = end_time
+    event.start_time = normalized_start
+    event.end_time = normalized_end
     event.location = location
     event.is_private = is_private
     event.admin_approval_required = admin_approval_required

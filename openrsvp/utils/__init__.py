@@ -24,6 +24,16 @@ def utcnow() -> datetime:
     return datetime.now(UTC).replace(tzinfo=None)
 
 
+def to_naive_utc(value: datetime | None) -> datetime | None:
+    """Return a timezone-aware datetime converted to naive UTC."""
+
+    if not value:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=None)
+    return value.astimezone(UTC).replace(tzinfo=None)
+
+
 def slugify(value: str) -> str:
     """Return a canonical slug suitable for URLs."""
     value = (

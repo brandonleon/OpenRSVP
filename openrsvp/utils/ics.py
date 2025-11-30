@@ -51,7 +51,7 @@ def _escape_text(value: str | None) -> str:
         normalized.replace("\\", "\\\\")
         .replace(";", r"\;")
         .replace(",", r"\,")
-        .replace("\n", "\\n")
+        .replace("\n", "\\\\n")
     )
     return escaped
 
