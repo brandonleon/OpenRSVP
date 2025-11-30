@@ -2204,6 +2204,7 @@ def _update_status_and_serialize(
 
 
 @app.post("/events/{event_id}/rsvps/{rsvp_id}/approve")
+@app.post("/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve")
 def api_approve_rsvp(
     event_id: str,
     rsvp_id: str,
@@ -2221,6 +2222,7 @@ def api_approve_rsvp(
 
 
 @app.post("/events/{event_id}/rsvps/{rsvp_id}/reject")
+@app.post("/api/v1/events/{event_id}/rsvps/{rsvp_id}/reject")
 def api_reject_rsvp(
     event_id: str,
     rsvp_id: str,
@@ -2238,6 +2240,7 @@ def api_reject_rsvp(
 
 
 @app.post("/events/{event_id}/rsvps/{rsvp_id}/pending")
+@app.post("/api/v1/events/{event_id}/rsvps/{rsvp_id}/pending")
 def api_pending_rsvp(
     event_id: str,
     rsvp_id: str,

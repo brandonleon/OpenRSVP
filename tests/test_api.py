@@ -408,7 +408,7 @@ def test_pending_rsvp_hidden_until_approved(client):
 
     rsvp_id = admin_rsvp["id"]
     approve_resp = client.post(
-        f"/events/{event.id}/rsvps/{rsvp_id}/approve", headers=headers
+        f"/api/v1/events/{event.id}/rsvps/{rsvp_id}/approve", headers=headers
     )
     assert approve_resp.status_code == 200
     approved_rsvp = approve_resp.json()["rsvp"]
@@ -461,7 +461,7 @@ def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
 
     reason = "Invite list is full"
     reject_resp = client.post(
-        f"/events/{event.id}/rsvps/{rsvp_id}/reject",
+        f"/api/v1/events/{event.id}/rsvps/{rsvp_id}/reject",
         headers=headers,
         json={"reason": reason},
     )
