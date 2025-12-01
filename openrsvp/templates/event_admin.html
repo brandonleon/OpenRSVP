@@ -476,7 +476,7 @@
                     <div>
                       <div class="fw-semibold">{{ message.content }}</div>
                       <div class="small text-muted">
-                        {% if message.message_type == 'user_note' and message.rsvp %}
+                        {% if message.rsvp and message.message_type in ['user_note', 'rsvp_status_change'] %}
                         <span class="fw-semibold message-user-note-name">{{ message.rsvp.name }}</span>
                         &middot;
                         {% endif %}
