@@ -477,7 +477,7 @@
                       <div class="fw-semibold">{{ message.content }}</div>
                       <div class="small text-muted">
                         {% if message.message_type == 'user_note' and message.rsvp %}
-                        <span class="fw-semibold text-body">{{ message.rsvp.name }}</span>
+                        <span class="fw-semibold message-user-note-name">{{ message.rsvp.name }}</span>
                         &middot;
                         {% endif %}
                         {{ message.created_at|relative_time }} &middot; {{ message.visibility }}

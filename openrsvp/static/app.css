@@ -562,3 +562,7 @@
       .toast-info {
         background: linear-gradient(135deg, #1e66f5, #8839ef);
       }
+
+      .message-user-note-name {
+        color: var(--text);
+      }
