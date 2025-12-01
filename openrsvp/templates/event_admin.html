@@ -469,18 +469,24 @@
           </div>
         </form>
         {% if admin_messages %}
-        <div class="list-group list-group-flush">
-          {% for message in admin_messages %}
-          <div class="list-group-item px-0">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
-                <div class="fw-semibold">{{ message.content }}</div>
-                <div class="small text-muted">{{ message.created_at|relative_time }} &middot; {{ message.visibility }}</div>
-              </div>
-              <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
-            </div>
-          </div>
-          {% endfor %}
+              <div class="list-group list-group-flush">
+                {% for message in admin_messages %}
+                <div class="list-group-item px-0">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ message.content }}</div>
+                      <div class="small text-muted">
+                        {% if message.message_type == 'user_note' and message.rsvp %}
+                        <span class="fw-semibold text-body">{{ message.rsvp.name }}</span>
+                        &middot;
+                        {% endif %}
+                        {{ message.created_at|relative_time }} &middot; {{ message.visibility }}
+                      </div>
+                    </div>
+                    <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
+                  </div>
+                </div>
+                {% endfor %}
         </div>
         {% else %}
         <p class="text-muted mb-0 small">No messages yet.</p>
