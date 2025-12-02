@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenRSVP Docs – Decay & Cleanup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">OpenRSVP Docs</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+            <li class="nav-item"><a class="nav-link" href="web-app.html">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="decay.html">Decay</a></li>
+            <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="tokens.html">Tokens</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-5">
+      <section class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Lifecycle</p>
+            <h1 class="fw-bold mb-0">Decay, hiding, and cleanup</h1>
+            <p class="text-muted mb-0">Scores decay exponentially to hide stale items before deleting them. Low-touch events shrink fastest.</p>
+          </div>
+          <span class="pill"><span class="text-primary">Scheduler</span> Hourly</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Event score decay</h3>
+              <p class="mb-2">Every hour APScheduler runs <code>run_decay_cycle</code>, which walks events in batches (200 at a time) and applies an exponential drop to <code>score</code> based on days since it was last opened.</p>
+              <pre><code>new_score = current_score * (decay_factor ** elapsed_days)</code></pre>
+              <ul class="mb-0">
+                <li>Default <code>decay_factor</code> is 0.92/day; recently viewed events (<code>last_accessed</code>) decay slower than idle ones.</li>
+                <li>Events are kept in the decay loop if their score is above the delete threshold or they are newer than <code>delete_after_days</code>.</li>
+                <li>Deletion is only considered after the event starts and its end time plus a grace window has passed (default 30 days).</li>
+                <li>After decay, items older than <code>delete_after_days</code> with a score at/below the delete threshold are purged once the grace window expires.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Visibility and deletion rules</h3>
+              <p class="mb-2">Score controls whether an event appears in listings before it is deleted outright.</p>
+              <ul class="mb-2">
+                <li>Listings show events whose score is above the hide threshold, or anything created in the last <code>hide_after_days</code> (defaults: 10 and 7).</li>
+                <li>Deletion requires both age (<code>delete_after_days</code>, default 30) and low score (<code>delete_threshold</code>, default 2), and it waits for the event to end plus the grace window (<code>delete_grace_days_after_end</code>, default 30).</li>
+                <li>Upcoming events are skipped entirely when deciding deletions.</li>
+                <li>Nothing is restored after purge; RSVPs tied to the event are removed with it.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Scores update when visitors view events via the UI or <code>GET /api/v1/events/{id}</code>, because that touch refreshes <code>last_accessed</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Channel lifecycle</h3>
+              <p class="mb-2">Channels decay the same way, using <code>last_used_at</code> (bumped when events are created or opened).</p>
+              <ul class="mb-0">
+                <li>Exponential decay reuses the same factor/thresholds as events.</li>
+                <li>Channels below the delete threshold disappear only when empty; active events keep a channel alive.</li>
+                <li>Private/public visibility does not affect decay, only listings.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Controls &amp; tuning</h3>
+              <p class="mb-2">Configuration lives in <code>openrsvp.toml</code> (override with <code>OPENRSVP_CONFIG</code>) and can be edited via CLI:</p>
+              <pre><code>openrsvp config --show
+openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
+              <p class="mb-2">Environment variables still override file values when set.</p>
+              <ul class="mb-2">
+                <li><code>OPENRSVP_EVENTS_PER_PAGE</code> &amp; <code>OPENRSVP_ADMIN_EVENTS_PER_PAGE</code> control pagination sizes.</li>
+                <li><code>OPENRSVP_SEED_CHANNELS</code>, <code>OPENRSVP_SEED_EVENTS_PER_CHANNEL</code>, <code>OPENRSVP_SEED_EXTRA_EVENTS</code>, <code>OPENRSVP_SEED_RSVPS_PER_EVENT</code>, <code>OPENRSVP_SEED_PRIVATE_PERCENT</code>, <code>OPENRSVP_SEED_PRIVATE_RSVP_PERCENT</code> tune the <code>seed-data</code> command defaults.</li>
+                <li><code>OPENRSVP_ENABLE_SCHEDULER</code> toggles APScheduler (decay/vacuum) for environments that run it externally.</li>
+                <li><code>OPENRSVP_INITIAL_EVENT_SCORE</code> and <code>OPENRSVP_INITIAL_CHANNEL_SCORE</code> set starting scores for new records.</li>
+                <li><code>OPENRSVP_DECAY_FACTOR</code> (default 0.92), <code>OPENRSVP_DECAY_INTERVAL_HOURS</code> (default 1)</li>
+                <li><code>OPENRSVP_HIDE_THRESHOLD</code> (10) &amp; <code>OPENRSVP_HIDE_AFTER_DAYS</code> (7)</li>
+                <li><code>OPENRSVP_DELETE_THRESHOLD</code> (2), <code>OPENRSVP_DELETE_AFTER_DAYS</code> (30), and <code>OPENRSVP_DELETE_GRACE_DAYS_AFTER_END</code> (30)</li>
+                <li><code>OPENRSVP_PROTECT_UPCOMING_EVENTS</code> defaults to <code>true</code> so future events never purge.</li>
+                <li><code>OPENRSVP_VACUUM_HOURS</code> (12) schedules SQLite <code>VACUUM</code> alongside decay.</li>
+              </ul>
+              <p class="mb-0">Use <code>openrsvp decay</code> to trigger a cycle manually; add <code>--vacuum</code> to run SQLite cleanup right after.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider my-5"></div>
+      <p class="footer text-center mb-4">
+        <a href="https://openrsvp.kaotic.cc/">OpenRSVP</a> ·
+        <a href="https://fastapi.tiangolo.com/">FastAPI</a> ·
+        <a href="https://www.sqlite.org/">SQLite</a> ·
+        <a href="https://catppuccin.com/">Catppuccin Latte</a>
+      </p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

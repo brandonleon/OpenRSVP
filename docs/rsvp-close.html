@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenRSVP Docs – Closing RSVPs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">OpenRSVP Docs</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+            <li class="nav-item"><a class="nav-link" href="web-app.html">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
+            <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
+            <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="tokens.html">Tokens</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-5">
+      <section class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">RSVP window</p>
+            <h1 class="fw-bold mb-0">Closing the RSVP form</h1>
+            <p class="text-muted mb-0">Manual toggle or scheduled cutoff for new submissions.</p>
+          </div>
+          <span class="pill"><span class="text-primary">Controls</span> Owner UI</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Manual vs. scheduled close</h3>
+              <p>Every event owner page includes a <strong>Close RSVPs</strong> switch that instantly hides the RSVP form from the public view and blocks new submissions.</p>
+              <ul class="mb-3">
+                <li>Use the toggle when you need a hard stop regardless of capacity (e.g., venue deadlines).</li>
+                <li>Set an optional auto-close timestamp during creation or editing; once the moment passes the backend flips the toggle for you and clears the scheduled time.</li>
+                <li>Times respect the timezone you enter in the UI but save as UTC to keep the cutoff consistent even if the server time differs.</li>
+                <li>Existing guests still have full access via their magic links to edit, hide/unhide, or delete their RSVP.</li>
+                <li>Reopen the form by turning the toggle back off or by scheduling a new date/time.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Closing RSVPs is separate from attendance caps—you can run both simultaneously or use closing alone for simple deadlines.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">API &amp; automation details</h3>
+              <ul class="mb-3">
+                <li><code>rsvps_closed</code> (bool) and <code>rsvp_close_at</code> (ISO8601 string) live on the <code>Event</code> model.</li>
+                <li>UI forms and the API accept <code>timezone_offset_minutes</code> so local times convert to UTC before storing <code>rsvp_close_at</code>.</li>
+                <li>Whenever events are read (homepage, channels, admin listings, or REST calls) the backend checks pending <code>rsvp_close_at</code> values and toggles them if the timestamp is in the past.</li>
+                <li>Closed events return <code>HTTP 403</code> with <code>{"error":"RSVPsClosed"}</code> from <code>POST /e/{event_id}/rsvp</code> and <code>/api/v1/events/{event_id}/rsvps</code>; the HTML view shows the same warning instead of the form.</li>
+                <li>Event owners (or root admins) can reopen the form through the UI or by calling <code>PATCH /api/v1/events/{event_id}</code> with <code>{"rsvps_closed": false}</code> and optional new schedule.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Because the close state is part of the event payload, downstream integrations can surface accurate “RSVPs Closed” banners without duplicating logic.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider my-5"></div>
+      <p class="footer text-center mb-4">
+        <a href="https://openrsvp.kaotic.cc/">OpenRSVP</a> ·
+        <a href="https://fastapi.tiangolo.com/">FastAPI</a> ·
+        <a href="https://www.sqlite.org/">SQLite</a> ·
+        <a href="https://catppuccin.com/">Catppuccin Latte</a>
+      </p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

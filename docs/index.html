@@ -13,27 +13,28 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark py-3">
       <div class="container">
-        <a class="navbar-brand" href="#">OpenRSVP Docs</a>
+        <a class="navbar-brand" href="index.html">OpenRSVP Docs</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="nav">
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="#overview">Overview</a></li>
-            <li class="nav-item"><a class="nav-link" href="#web-app">Web App</a></li>
-            <li class="nav-item"><a class="nav-link" href="#ics">ICS Export</a></li>
-            <li class="nav-item"><a class="nav-link" href="#capacity">Capacity</a></li>
-            <li class="nav-item"><a class="nav-link" href="#rsvp-close">RSVP Close</a></li>
-            <li class="nav-item"><a class="nav-link" href="#decay">Decay</a></li>
-            <li class="nav-item"><a class="nav-link" href="#api">API</a></li>
-            <li class="nav-item"><a class="nav-link" href="#tokens">Tokens</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.html">Overview</a></li>
+            <li class="nav-item"><a class="nav-link" href="web-app.html">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
+            <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
+            <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="tokens.html">Tokens</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <main class="container my-5">
-      <section class="hero mb-5" id="overview">
+      <section class="hero mb-5">
         <div class="row align-items-center g-4">
           <div class="col-lg-7">
             <span class="badge rounded-pill badge-soft mb-3">Latte look · Bootstrap 5</span>
@@ -42,8 +43,8 @@
               FastAPI + SQLite powered RSVPs built around capability links. Operator-focused docs live here; guests and event owners should use the in-app <code>/help</code> page for end-user guidance.
             </p>
             <div class="d-flex flex-wrap gap-3 mt-4">
-              <a href="#web-app" class="btn btn-primary px-4">Web app guide</a>
-              <a href="#api" class="btn btn-outline-primary px-4">API for builders</a>
+              <a href="web-app.html" class="btn btn-primary px-4">Web app guide</a>
+              <a href="api.html" class="btn btn-outline-primary px-4">API for builders</a>
             </div>
           </div>
           <div class="col-lg-5">
@@ -61,546 +62,100 @@
         </div>
       </section>
 
-      <section class="mb-4" id="web-app">
+      <section class="my-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
           <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">Web app</p>
-            <h2 class="fw-bold mb-0">Using OpenRSVP in the browser</h2>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Documentation Map</p>
+            <h2 class="fw-bold mb-0">Pick a guide</h2>
+            <p class="text-muted mb-0">Each topic now lives on its own page while keeping the same Latte styling.</p>
           </div>
-          <span class="pill"><span class="text-primary">UI</span> Latte theme</span>
+          <span class="pill"><span class="text-primary">Structure</span> Multi-page</span>
         </div>
 
         <div class="row g-4">
-          <div class="col-lg-4">
-            <div class="section-card h-100">
-              <h3 class="h5">Create an event</h3>
-              <p>Pick a title, optional description, start/end time, location, and channel. The app slugifies the channel name and reuses it when the slug + visibility match.</p>
-              <div class="callout mb-3">
-                <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
-              </div>
-              <p class="mb-0"><strong>Event owner link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code> and acts as the owner/admin console. Save it—there are no accounts to recover it later.</p>
-              <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until the event owner approves or rejects them in the owner view.</p>
-              <p class="mb-0 mt-2"><strong>RSVP window</strong>: flip “Close RSVPs” at any time or schedule an auto-close timestamp that toggles the switch for you.</p>
-              <p class="mb-0 text-muted small mt-2">The event owner page lets hosts edit details or delete the event entirely (which also removes all RSVPs).</p>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="web-app.html">
+              <p class="text-uppercase text-muted small mb-1">UI</p>
+              <h3 class="h5 text-dark">Web App</h3>
+              <p class="text-secondary mb-0">Event creation, channels, themes, and attendee UX.</p>
+            </a>
           </div>
-          <div class="col-lg-4">
-            <div class="section-card h-100">
-              <h3 class="h5">RSVP flow</h3>
-              <p>Guests submit name, pronouns, status (yes/maybe/no), guest count, and notes. They immediately see their RSVP magic link and can store it locally for quick edits.</p>
-              <ul class="mb-0">
-                <li>Public vs. private RSVPs (hide from attendee list; organizers still see them).</li>
-                <li>Edit or delete your own RSVP anytime using the token link.</li>
-                <li>Events with approval enabled hold new RSVPs as <strong>pending</strong> until the host marks them approved or rejected.</li>
-                <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
-                <li>Hosts may close RSVPs entirely (manually or scheduled); existing guests retain edit/delete access via their token.</li>
-              </ul>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="calendar.html">
+              <p class="text-uppercase text-muted small mb-1">Calendar</p>
+              <h3 class="h5 text-dark">ICS Export</h3>
+              <p class="text-secondary mb-0">Universal .ics downloads and implementation details.</p>
+            </a>
           </div>
-          <div class="col-lg-4">
-            <div class="section-card h-100">
-              <h3 class="h5">Channels & browsing</h3>
-              <p>Channels keep related events together without accounts.</p>
-              <ul class="mb-0">
-                <li>Public channels appear on the homepage filter and <code>/channel/&lt;slug&gt;</code>.</li>
-                <li>Private channels never list publicly; they are reachable only by URL.</li>
-                <li>Channel badge hides on public events inside private channels to avoid leaking the slug.</li>
-              </ul>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="capacity.html">
+              <p class="text-uppercase text-muted small mb-1">Attendance</p>
+              <h3 class="h5 text-dark">Caps &amp; Overrides</h3>
+              <p class="text-secondary mb-0">Optional attendance limits with force-accept guidance.</p>
+            </a>
           </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Magic links, privacy, and preferences</h3>
-              <p>The UI stores event owner (admin) / RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
-              <p class="mb-2">Catppuccin themes are available in the app; this docs site sticks to Latte for consistency.</p>
-              <p class="mb-0 text-muted small">Never share event owner/admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="rsvp-close.html">
+              <p class="text-uppercase text-muted small mb-1">RSVP Window</p>
+              <h3 class="h5 text-dark">Closing Forms</h3>
+              <p class="text-secondary mb-0">Manual toggles, schedules, and API behavior.</p>
+            </a>
           </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Decay and cleanup</h3>
-              <p>APScheduler runs hourly to decay scores for events, RSVPs, and channels. Low-score or expired items disappear from listings and are purged when empty.</p>
-              <ul class="mb-2">
-                <li>Upcoming events are never purged; deletion waits for the event to finish plus a grace window.</li>
-                <li>Root admins can trigger <code>openrsvp decay</code> manually.</li>
-                <li>Deleted events and purged data are not recoverable.</li>
-              </ul>
-              <p class="mb-0 text-muted small">This keeps deployments lean—no long-lived analytics or accounts.</p>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="cli.html">
+              <p class="text-uppercase text-muted small mb-1">Operations</p>
+              <h3 class="h5 text-dark">CLI &amp; Roles</h3>
+              <p class="text-secondary mb-0">Common Typer commands, including <code>upgrade-container</code>.</p>
+            </a>
           </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="ics">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">Calendar export</p>
-            <h2 class="fw-bold mb-0">ICS Calendar Export</h2>
-            <p class="text-muted mb-0">Universal .ics downloads for every event.</p>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="decay.html">
+              <p class="text-uppercase text-muted small mb-1">Lifecycle</p>
+              <h3 class="h5 text-dark">Decay &amp; Cleanup</h3>
+              <p class="text-secondary mb-0">Scheduler behavior, scoring rules, and tuning knobs.</p>
+            </a>
           </div>
-          <span class="pill"><span class="text-primary">Calendar</span> ICS</span>
-        </div>
-
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Backend details</h3>
-              <p>Event owners and attendees can now export an event in .ics iCalendar format.</p>
-              <ul class="mb-0">
-                <li>ICS file served via: <code>GET /api/v1/events/{event_id}/event.ics</code></li>
-                <li>Times are normalized to UTC per RFC 5545.</li>
-                <li>The ICS file includes: title, description, location, and event duration.</li>
-              </ul>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="api.html">
+              <p class="text-uppercase text-muted small mb-1">Builders</p>
+              <h3 class="h5 text-dark">JSON API</h3>
+              <p class="text-secondary mb-0">Endpoint catalog with auth tips and curl snippets.</p>
+            </a>
           </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Frontend details</h3>
-              <p>A single “Add to Calendar” button appears on each event page. No platform autodetection is needed because .ics is universally supported.</p>
-              <ul class="mb-3">
-                <li>Works with iPhone / iPad (Apple Calendar), Android Calendar, Google Calendar (import), macOS Calendar, and Windows Outlook.</li>
-                <li>Clicking the file prompts the device to add the event with its start/end time, title, description, and location.</li>
-              </ul>
-              <h4 class="h6 text-uppercase text-muted">Future enhancements (design consideration)</h4>
-              <ul class="mb-0">
-                <li>Support for reminders/alarms</li>
-                <li>Adding a URL back to the event</li>
-                <li>Adding organizer metadata</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="capacity">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">Attendance</p>
-            <h2 class="fw-bold mb-0">Event Attendance Caps (Event owners)</h2>
-            <p class="text-muted mb-0">Optional limits for Yes RSVPs with predictable overrides.</p>
-          </div>
-          <span class="pill"><span class="text-primary">Capacity</span> Optional</span>
-        </div>
-
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Enabling a cap</h3>
-              <ul class="mb-3">
-                <li>Use the <strong>Maximum Attendees</strong> field when creating or editing an event.</li>
-                <li>Leave it blank for unlimited attendance.</li>
-              </ul>
-              <h4 class="h6 text-uppercase text-muted">How capacity works</h4>
-              <ul class="mb-3">
-                <li>Only <strong>Yes</strong> RSVPs count toward the limit; Maybe/No do not.</li>
-                <li>When full, standard users cannot submit a Yes RSVP.</li>
-                <li>Admins can still force-accept guests above the cap.</li>
-                <li>Need a hard cutoff instead of a cap? Use the “Close RSVPs” toggle or schedule an auto-close time.</li>
-              </ul>
-              <h4 class="h6 text-uppercase text-muted">EventFull response</h4>
-              <pre><code>HTTP 400
-{
-  "error": "EventFull",
-  "message": "This event has reached its maximum number of attendees."
-}</code></pre>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Force Accept &amp; API usage</h3>
-              <p>Bypass the cap with an event owner token (admin token) when you deliberately want to add someone above the limit.</p>
-              <ul class="mb-3">
-                <li>The event owner UI includes a <strong>Force Accept</strong> button next to each RSVP when a cap is set.</li>
-                <li>API: add <code>?force_accept=true</code> and send <code>Authorization: Bearer &lt;event-owner-token&gt;</code> (a.k.a. <code>&lt;admin_token&gt;</code>).</li>
-                <li>Each override writes an owner-visible <code>force_accept</code> message for auditability.</li>
-              </ul>
-              <pre class="mb-3"><code>POST /api/v1/events/{event_id}/rsvps?force_accept=true
-Authorization: Bearer &lt;event-owner-token&gt;
-{
-  "name": "Guest Name",
-  "attendance_status": "yes",
-  "guest_count": 0,
-  "is_private_rsvp": false
-}</code></pre>
-              <div class="callout">
-                <h6 class="fw-bold mb-1">FAQ</h6>
-                <ul class="mb-0 small">
-                  <li>Override the cap? Yes—use Force Accept.</li>
-                  <li>Do MAYBEs auto-promote? No, guests switch to Yes when space exists.</li>
-                  <li>Waitlist? Not yet; support is planned for a future update.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="rsvp-close">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">RSVP Window</p>
-            <h2 class="fw-bold mb-0">Closing the RSVP form</h2>
-            <p class="text-muted mb-0">Manual toggle or scheduled cutoff for new submissions.</p>
-          </div>
-          <span class="pill"><span class="text-primary">Controls</span> Owner UI</span>
-        </div>
-
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Manual vs. scheduled close</h3>
-              <p>Every event owner page includes a <strong>Close RSVPs</strong> switch that instantly hides the RSVP form from the public view and blocks new submissions.</p>
-              <ul class="mb-3">
-                <li>Use the toggle when you need a hard stop regardless of capacity (e.g., venue deadlines).</li>
-                <li>Set an optional auto-close timestamp during creation or editing; once the moment passes the backend flips the toggle for you and clears the scheduled time.</li>
-                <li>Times respect the timezone you enter in the UI but save as UTC to keep the cutoff consistent even if the server time differs.</li>
-                <li>Existing guests still have full access via their magic links to edit, hide/unhide, or delete their RSVP.</li>
-                <li>Reopen the form by turning the toggle back off or by scheduling a new date/time.</li>
-              </ul>
-              <p class="mb-0 text-muted small">Closing RSVPs is separate from attendance caps—you can run both simultaneously or use closing alone for simple deadlines.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">API &amp; automation details</h3>
-              <ul class="mb-3">
-                <li><code>rsvps_closed</code> (bool) and <code>rsvp_close_at</code> (ISO8601 string) live on the <code>Event</code> model.</li>
-                <li>UI forms and the API accept <code>timezone_offset_minutes</code> so local times convert to UTC before storing <code>rsvp_close_at</code>.</li>
-                <li>Whenever events are read (homepage, channels, admin listings, or REST calls) the backend checks pending <code>rsvp_close_at</code> values and toggles them if the timestamp is in the past.</li>
-                <li>Closed events return <code>HTTP 403</code> with <code>{"error":"RSVPsClosed"}</code> from <code>POST /e/{event_id}/rsvp</code> and <code>/api/v1/events/{event_id}/rsvps</code>; the HTML view shows the same warning instead of the form.</li>
-                <li>Event owners (or root admins) can reopen the form through the UI or by calling <code>PATCH /api/v1/events/{event_id}</code> with <code>{"rsvps_closed": false}</code> and optional new schedule.</li>
-              </ul>
-              <p class="mb-0 text-muted small">Because the close state is part of the event payload, downstream integrations can surface accurate “RSVPs Closed” banners without duplicating logic.</p>
-            </div>
+          <div class="col-md-6 col-lg-4">
+            <a class="section-card h-100 text-decoration-none d-block" href="tokens.html">
+              <p class="text-uppercase text-muted small mb-1">Security</p>
+              <h3 class="h5 text-dark">Tokens &amp; Privacy</h3>
+              <p class="text-secondary mb-0">Capability safety, private RSVPs, and default data policy.</p>
+            </a>
           </div>
         </div>
       </section>
 
       <section class="my-5">
-        <div class="row g-4 align-items-stretch">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">CLI snippets</h3>
-              <p>Use the Typer CLI for local control.</p>
-              <pre><code># run the server (FastAPI + scheduler)
-openrsvp runserver
-
-# fetch the root admin token
-openrsvp admin-token
-
-# seed fake data for demos
-openrsvp seed-data --channels 4 --max-events 3 --max-rsvps 5
-
-# force decay and optional vacuum
-openrsvp decay --vacuum
-
-# inspect or edit configuration (writes openrsvp.toml)
-openrsvp config --show
-openrsvp config --delete-grace-days-after-end 45</code></pre>
-              <p class="mb-0 text-muted small">Root admin is CLI-only and can view everything but never edits guest content.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5 mb-3">Roles at a glance</h3>
-              <div class="row row-cols-1 row-cols-sm-2 g-3">
-                <div class="col">
-                  <div class="callout h-100">
-                    <h6 class="fw-bold mb-1">Root admin</h6>
-                    <p class="mb-0 small">Full visibility, decay control, and delete powers. No guest impersonation.</p>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="callout h-100">
-                    <h6 class="fw-bold mb-1">Event owner</h6>
-                    <p class="mb-0 small">Edit event details, view RSVPs, delete entries, and reveal magic links.</p>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="callout h-100">
-                    <h6 class="fw-bold mb-1">RSVP guest</h6>
-                    <p class="mb-0 small">Edit/cancel their own RSVP, set privacy, and view event info.</p>
-                  </div>
-                </div>
-                <div class="col">
-                  <div class="callout h-100">
-                    <h6 class="fw-bold mb-1">Public visitor</h6>
-                    <p class="mb-0 small">Browse public events/channels, create new RSVPs.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="decay">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">Lifecycle</p>
-            <h2 class="fw-bold mb-0">Decay, hiding, and cleanup</h2>
-            <p class="text-muted mb-0">Scores decay exponentially to hide stale items before deleting them. Low-touch events shrink fastest.</p>
-          </div>
-          <span class="pill"><span class="text-primary">Scheduler</span> Hourly</span>
-        </div>
-
         <div class="row g-4">
           <div class="col-lg-6">
             <div class="section-card h-100">
-              <h3 class="h5">Event score decay</h3>
-              <p class="mb-2">Every hour APScheduler runs <code>run_decay_cycle</code>, which walks events in batches (200 at a time) and applies an exponential drop to <code>score</code> based on days since it was last opened.</p>
-              <pre><code>new_score = current_score * (decay_factor ** elapsed_days)</code></pre>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Philosophy</p>
+              <h3 class="h5">Why OpenRSVP stays accountless</h3>
+              <p class="mb-2">Capability links keep friction low for organizers and guests. Tokens are the single source of truth&mdash;there are no usernames, passwords, or analytics tags.</p>
               <ul class="mb-0">
-                <li>Default <code>decay_factor</code> is 0.92/day; recently viewed events (<code>last_accessed</code>) decay slower than idle ones.</li>
-                <li>Events are kept in the decay loop if their score is above the delete threshold or they are newer than <code>delete_after_days</code>.</li>
-                <li>Deletion is only considered after the event starts and its end time plus a grace window has passed (default 30 days).</li>
-                <li>After decay, items older than <code>delete_after_days</code> with a score at/below the delete threshold are purged once the grace window expires.</li>
+                <li>Guests own their RSVP state; organizers can delete but never edit on their behalf.</li>
+                <li>Root admins provide visibility and decay control rather than impersonation powers.</li>
+                <li>Ephemeral storage is intentional: events decay and disappear without manual pruning.</li>
               </ul>
             </div>
           </div>
           <div class="col-lg-6">
             <div class="section-card h-100">
-              <h3 class="h5">Visibility and deletion rules</h3>
-              <p class="mb-2">Score controls whether an event appears in listings before it is deleted outright.</p>
-              <ul class="mb-2">
-                <li>Listings show events whose score is above the hide threshold, or anything created in the last <code>hide_after_days</code> (defaults: 10 and 7).</li>
-                <li>Deletion requires both age (<code>delete_after_days</code>, default 30) and low score (<code>delete_threshold</code>, default 2), and it waits for the event to end plus the grace window (<code>delete_grace_days_after_end</code>, default 30).</li>
-                <li>Upcoming events are skipped entirely when deciding deletions.</li>
-                <li>Nothing is restored after purge; RSVPs tied to the event are removed with it.</li>
-              </ul>
-              <p class="mb-0 text-muted small">Scores update when visitors view events via the UI or <code>GET /api/v1/events/{id}</code>, because that touch refreshes <code>last_accessed</code>.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Channel lifecycle</h3>
-              <p class="mb-2">Channels decay the same way, using <code>last_used_at</code> (bumped when events are created or opened).</p>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Deployment</p>
+              <h3 class="h5">Single-container friendly</h3>
+              <p class="mb-2">FastAPI, APScheduler, and SQLite live in one Docker image. Use <code>openrsvp upgrade-container</code> to rebuild, restart, and prune the dev container with a single command.</p>
               <ul class="mb-0">
-                <li>Exponential decay reuses the same factor/thresholds as events.</li>
-                <li>Channels below the delete threshold disappear only when empty; active events keep a channel alive.</li>
-                <li>Private/public visibility does not affect decay, only listings.</li>
+                <li>Dockerfile is based on <code>ghcr.io/astral-sh/uv:python3.12-bookworm-slim</code>.</li>
+                <li><code>uv sync</code> runs during build so the runtime image carries a ready-to-use virtualenv.</li>
+                <li>Mount <code>~/OpenRSVP/data</code> (or any path) to persist SQLite data across rebuilds.</li>
               </ul>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Controls & tuning</h3>
-              <p class="mb-2">Configuration lives in <code>openrsvp.toml</code> (override with <code>OPENRSVP_CONFIG</code>) and can be edited via CLI:</p>
-              <pre><code>openrsvp config --show
-openrsvp config --delete-grace-days-after-end 45 --decay-factor 0.9</code></pre>
-              <p class="mb-2">Environment variables still override file values when set.</p>
-              <ul class="mb-2">
-                <li><code>OPENRSVP_EVENTS_PER_PAGE</code> &amp; <code>OPENRSVP_ADMIN_EVENTS_PER_PAGE</code> control pagination sizes.</li>
-                <li><code>OPENRSVP_SEED_CHANNELS</code>, <code>OPENRSVP_SEED_EVENTS_PER_CHANNEL</code>, <code>OPENRSVP_SEED_EXTRA_EVENTS</code>, <code>OPENRSVP_SEED_RSVPS_PER_EVENT</code>, <code>OPENRSVP_SEED_PRIVATE_PERCENT</code>, <code>OPENRSVP_SEED_PRIVATE_RSVP_PERCENT</code> tune the <code>seed-data</code> command defaults.</li>
-                <li><code>OPENRSVP_ENABLE_SCHEDULER</code> toggles APScheduler (decay/vacuum) for environments that run it externally.</li>
-                <li><code>OPENRSVP_INITIAL_EVENT_SCORE</code> and <code>OPENRSVP_INITIAL_CHANNEL_SCORE</code> set starting scores for new records.</li>
-                <li><code>OPENRSVP_DECAY_FACTOR</code> (default 0.92), <code>OPENRSVP_DECAY_INTERVAL_HOURS</code> (default 1)</li>
-                <li><code>OPENRSVP_HIDE_THRESHOLD</code> (10) &amp; <code>OPENRSVP_HIDE_AFTER_DAYS</code> (7)</li>
-                <li><code>OPENRSVP_DELETE_THRESHOLD</code> (2), <code>OPENRSVP_DELETE_AFTER_DAYS</code> (30), and <code>OPENRSVP_DELETE_GRACE_DAYS_AFTER_END</code> (30)</li>
-                <li><code>OPENRSVP_PROTECT_UPCOMING_EVENTS</code> defaults to <code>true</code> so future events never purge.</li>
-                <li><code>OPENRSVP_VACUUM_HOURS</code> (12) schedules SQLite <code>VACUUM</code> alongside decay.</li>
-              </ul>
-              <p class="mb-0">Use <code>openrsvp decay</code> to trigger a cycle manually; add <code>--vacuum</code> to run SQLite cleanup right after.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="api">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <p class="text-uppercase text-muted mb-1 small fw-semibold">API</p>
-            <h2 class="fw-bold mb-0">JSON API for third-party builders</h2>
-            <p class="text-muted mb-0">Base path: <code>/api/v1</code> · JSON only · Bearer tokens for capability links</p>
-          </div>
-          <span class="pill"><span class="text-primary">Auth</span> Bearer token</span>
-        </div>
-
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Authentication</h3>
-              <ul class="mb-3">
-                <li><strong>Event owner token</strong> (admin token) → required for editing/deleting events or listing/deleting RSVPs: <code>Authorization: Bearer &lt;event-owner-token&gt;</code>.</li>
-                <li><strong>RSVP token</strong> → required for managing your own RSVP at <code>/events/{event_id}/rsvps/self</code>.</li>
-                <li>No root-level API; root admin stays CLI-only.</li>
-              </ul>
-              <p class="mb-2 text-muted small"><strong>Note:</strong> the root admin token can stand in anywhere an event owner token is required.</p>
-              <div class="callout mb-2">
-                <strong>Tip:</strong> send ISO timestamps; include <code>timezone_offset_minutes</code> when creating/updating events so local times are stored correctly in UTC.
-              </div>
-              <p class="mb-0 text-muted small">Private RSVPs are hidden from <code>GET /api/v1/events/{id}</code> but are visible when using the event owner endpoints.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Key endpoints</h3>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events</span> Create event; returns the event owner (admin) token + links.</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events</span> List public events with pagination and date filters.</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}</span> Public event detail + public RSVPs.</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">PATCH</span>/api/v1/events/{event_id}</span> Update event (event owner bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">DELETE</span>/api/v1/events/{event_id}</span> Delete event (event owner bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/events/{event_id}/rsvps</span> List RSVPs + stats (event owner bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps</span> Create RSVP; returns token + links.</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">GET/PATCH/DELETE</span>/api/v1/events/{event_id}/rsvps/self</span> Manage your own RSVP (rsvp bearer).</div>
-              <div class="mb-2"><span class="endpoint"><span class="method text-primary">POST</span>/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve|reject|pending</span> Update approval state (event owner bearer).</div>
-              <div class="mb-0"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels</span> Public channels with pagination; filter via <code>?q=</code>.</div>
-              <div class="mt-2"><span class="endpoint"><span class="method text-primary">GET</span>/api/v1/channels/{slug}</span> Channel detail + events (public or private based on slug visibility).</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Create an event</h3>
-              <p class="mb-2">Send ISO8601 times. Pass <code>timezone_offset_minutes</code> (e.g., browser timezone offset) so local times normalize to UTC.</p>
-              <pre><code>curl -X POST http://localhost:8000/api/v1/events \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Cedar Social: Cigar Night",
-    "description": "Monthly hang at the lounge.",
-    "start_time": "2024-08-22T19:00:00",
-    "end_time": "2024-08-22T21:30:00",
-    "timezone_offset_minutes": -300,
-    "location": "Cedar Social, Austin",
-    "channel_name": "ATX Cigars",
-    "channel_visibility": "public",
-    "is_private": false
-  }'</code></pre>
-              <div class="callout mb-0">
-                Response includes <code>admin_token</code> (the event owner token) plus <code>links.admin</code> for the owner page and <code>links.public</code> for the guest view.
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Create an RSVP</h3>
-              <p class="mb-2">No auth required to submit; the response includes the RSVP token.</p>
-              <pre><code>curl -X POST http://localhost:8000/api/v1/events/{event_id}/rsvps \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Sky",
-    "status": "yes",
-    "pronouns": "they/them",
-    "guest_count": 1,
-    "notes": "Can bring a projector",
-    "is_private_rsvp": false
-  }'</code></pre>
-              <p class="mb-2">Guests manage their own entry at <code>/api/v1/events/{event_id}/rsvps/self</code> using <code>Authorization: Bearer &lt;rsvp-token&gt;</code>. Responses include <code>approval_status</code> (approved/pending/rejected).</p>
-              <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id}/rsvps/self \
-  -H "Authorization: Bearer &lt;rsvp-token&gt;" \
-  -H "Content-Type: application/json" \
-  -d '{"status": "no", "notes": "Out of town"}'</code></pre>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">List public events</h3>
-              <p class="mb-2">Returns only public (non-private) events with pagination. <code>per_page</code> is capped to prevent huge responses.</p>
-              <pre><code>curl "http://localhost:8000/api/v1/events?page=1&per_page=10"</code></pre>
-              <p class="mb-0 text-muted small">Private events never appear in this listing; they remain reachable only via their exact IDs or the root admin UI.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Filter by date range</h3>
-              <p class="mb-2">Use ISO8601 timestamps to bound start times. Both parameters are optional.</p>
-              <pre><code>curl "http://localhost:8000/api/v1/events?start_after=2024-08-01T00:00:00&start_before=2024-08-31T23:59:59"</code></pre>
-              <p class="mb-0 text-muted small"><code>start_before</code> must be after <code>start_after</code>. The response echoes pagination and the applied filters.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Event owner actions on events</h3>
-              <p class="mb-2">Use the event owner token (admin token) as a bearer to edit or delete.</p>
-              <p class="mb-2 text-muted small">Third-party apps can delete events the same way the owner UI does by calling the DELETE endpoint with the event owner token.</p>
-              <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id} \
-  -H "Authorization: Bearer &lt;event-owner-token&gt;" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Updated title",
-    "channel_name": "Private Circle",
-    "channel_visibility": "private",
-    "is_private": true
-  }'</code></pre>
-              <p class="mb-0 text-muted small">Deleting an event (<code>DELETE /api/v1/events/{id}</code>) removes the event and all RSVPs. This is irreversible.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">List RSVPs with stats (event owner)</h3>
-              <p class="mb-2">Returns RSVP records (including private ones) plus convenience counts.</p>
-              <pre><code>curl http://localhost:8000/api/v1/events/{event_id}/rsvps \
-  -H "Authorization: Bearer &lt;event-owner-token&gt;"</code></pre>
-              <p class="mb-2">Events with approval enabled include <code>approval_status</code> on each RSVP; pending/rejected entries stay off the public attendee list.</p>
-              <p class="mb-2">Example stats payload:</p>
-              <pre><code>{
-  "stats": {
-    "yes_count": 6,
-    "yes_guest_count": 3,
-    "yes_total": 9,
-    "maybe_count": 2,
-    "no_count": 1
-  }
-}</code></pre>
-              <p class="mb-0 text-muted small">Event owners can delete specific RSVPs via <code>DELETE /api/v1/events/{event_id}/rsvps/{rsvp_token}</code>.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4 mt-1">
-          <div class="col-lg-12">
-            <div class="section-card h-100">
-              <h3 class="h5">Approve or reject pending RSVPs</h3>
-              <p class="mb-2">When <strong>Require admin approval</strong> is enabled, new RSVPs enter the pending queue until an event owner (or root admin token) sends one of the approval endpoints below.</p>
-              <ul class="mb-3">
-                <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/approve</code> &mdash; marks the RSVP approved and adds an owner-visible log entry.</li>
-                <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/reject</code> &mdash; accepts optional JSON body <code>{"reason": "Capacity reached"}</code> that is shared with the attendee.</li>
-                <li><code>POST /api/v1/events/{event_id}/rsvps/{rsvp_id}/pending</code> &mdash; moves the RSVP back into the pending state.</li>
-              </ul>
-              <p class="mb-2 text-muted small">All three routes require <code>Authorization: Bearer &lt;event-owner-token&gt;</code> or the root admin token from <code>docker exec openrsvp openrsvp admin-token</code>. Responses return the updated RSVP plus its attendee-facing messages.</p>
-              <pre><code>curl -X POST http://localhost:8000/api/v1/events/{event_id}/rsvps/{rsvp_id}/approve \
-  -H "Authorization: Bearer &lt;event-owner-token&gt;"</code></pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="my-5" id="tokens">
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Token safety</h3>
-              <ul class="mb-2">
-                <li>Tokens are capability links; treat them like passwords.</li>
-                <li>Never email or log event owner/admin tokens; share directly with organizers.</li>
-                <li>Guests get RSVP tokens once; they should bookmark or store them locally.</li>
-              </ul>
-              <p class="mb-0 text-muted small">The platform is intentionally accountless. Losing a token means creating a fresh event or RSVP.</p>
-            </div>
-          </div>
-          <div class="col-lg-6">
-            <div class="section-card h-100">
-              <h3 class="h5">Privacy defaults</h3>
-              <ul class="mb-2">
-                <li>Only name, pronouns, status, guest count, and notes are collected.</li>
-                <li>Private RSVPs hide from public lists but remain visible to organizers.</li>
-                <li>Private channels rely on secrecy of the slug; share carefully.</li>
-              </ul>
-              <p class="mb-0 text-muted small">Transparency is deliberate: organizers cannot silently alter guest responses.</p>
             </div>
           </div>
         </div>

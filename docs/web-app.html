@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenRSVP Docs – Web App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">OpenRSVP Docs</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="web-app.html">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
+            <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
+            <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
+            <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="tokens.html">Tokens</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-5">
+      <section class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Web app</p>
+            <h1 class="fw-bold mb-0">Using OpenRSVP in the browser</h1>
+            <p class="text-muted mb-0">Event creation, RSVPs, and channels with a Catppuccin Latte coat of paint.</p>
+          </div>
+          <span class="pill"><span class="text-primary">UI</span> Latte theme</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">Create an event</h3>
+              <p>Pick a title, optional description, start/end time, location, and channel. The app slugifies the channel name and reuses it when the slug + visibility match.</p>
+              <div class="callout mb-3">
+                <strong>Visibility</strong>: private events stay hidden from public listings; public events show up on the homepage and their channel if the channel is public.
+              </div>
+              <p class="mb-0"><strong>Event owner link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code> and acts as the owner/admin console. Save it—there are no accounts to recover it later.</p>
+              <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until the event owner approves or rejects them in the owner view.</p>
+              <p class="mb-0 mt-2"><strong>RSVP window</strong>: flip “Close RSVPs” at any time or schedule an auto-close timestamp that toggles the switch for you.</p>
+              <p class="mb-0 text-muted small mt-2">The event owner page lets hosts edit details or delete the event entirely (which also removes all RSVPs).</p>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">RSVP flow</h3>
+              <p>Guests submit name, pronouns, status (yes/maybe/no), guest count, and notes. They immediately see their RSVP magic link and can store it locally for quick edits.</p>
+              <ul class="mb-0">
+                <li>Public vs. private RSVPs (hide from attendee list; organizers still see them).</li>
+                <li>Edit or delete your own RSVP anytime using the token link.</li>
+                <li>Events with approval enabled hold new RSVPs as <strong>pending</strong> until the host marks them approved or rejected.</li>
+                <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
+                <li>Hosts may close RSVPs entirely (manually or scheduled); existing guests retain edit/delete access via their token.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="section-card h-100">
+              <h3 class="h5">Channels &amp; browsing</h3>
+              <p>Channels keep related events together without accounts.</p>
+              <ul class="mb-0">
+                <li>Public channels appear on the homepage filter and <code>/channel/&lt;slug&gt;</code>.</li>
+                <li>Private channels never list publicly; they are reachable only by URL.</li>
+                <li>Channel badge hides on public events inside private channels to avoid leaking the slug.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Magic links, privacy, and preferences</h3>
+              <p>The UI stores event owner (admin) / RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
+              <p class="mb-2">Catppuccin themes are available in the app; this docs site sticks to Latte for consistency.</p>
+              <p class="mb-0 text-muted small">Never share event owner/admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Decay and cleanup overview</h3>
+              <p>APScheduler runs hourly to decay scores for events, RSVPs, and channels. Low-score or expired items disappear from listings and are purged when empty.</p>
+              <ul class="mb-2">
+                <li>Upcoming events are never purged; deletion waits for the event to finish plus a grace window.</li>
+                <li>Root admins can trigger <code>openrsvp decay</code> manually.</li>
+                <li>Deleted events and purged data are not recoverable.</li>
+              </ul>
+              <p class="mb-0 text-muted small">See the dedicated <a href="decay.html">decay &amp; cleanup</a> page for deeper tuning guidance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider my-5"></div>
+      <p class="footer text-center mb-4">
+        <a href="https://openrsvp.kaotic.cc/">OpenRSVP</a> ·
+        <a href="https://fastapi.tiangolo.com/">FastAPI</a> ·
+        <a href="https://www.sqlite.org/">SQLite</a> ·
+        <a href="https://catppuccin.com/">Catppuccin Latte</a>
+      </p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenRSVP Docs – Capacity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">OpenRSVP Docs</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="index.html">Overview</a></li>
+            <li class="nav-item"><a class="nav-link" href="web-app.html">Web App</a></li>
+            <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
+            <li class="nav-item"><a class="nav-link active" aria-current="page" href="capacity.html">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
+            <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
+            <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
+            <li class="nav-item"><a class="nav-link" href="tokens.html">Tokens</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-5">
+      <section class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Attendance</p>
+            <h1 class="fw-bold mb-0">Event attendance caps</h1>
+            <p class="text-muted mb-0">Optional limits for Yes RSVPs with predictable overrides.</p>
+          </div>
+          <span class="pill"><span class="text-primary">Capacity</span> Optional</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Enabling a cap</h3>
+              <ul class="mb-3">
+                <li>Use the <strong>Maximum Attendees</strong> field when creating or editing an event.</li>
+                <li>Leave it blank for unlimited attendance.</li>
+              </ul>
+              <h4 class="h6 text-uppercase text-muted">How capacity works</h4>
+              <ul class="mb-3">
+                <li>Only <strong>Yes</strong> RSVPs count toward the limit; Maybe/No do not.</li>
+                <li>When full, standard users cannot submit a Yes RSVP.</li>
+                <li>Admins can still force-accept guests above the cap.</li>
+                <li>Need a hard cutoff instead of a cap? Use the “Close RSVPs” toggle or schedule an auto-close time.</li>
+              </ul>
+              <h4 class="h6 text-uppercase text-muted">EventFull response</h4>
+              <pre><code>HTTP 400
+{
+  "error": "EventFull",
+  "message": "This event has reached its maximum number of attendees."
+}</code></pre>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Force Accept &amp; API usage</h3>
+              <p>Bypass the cap with an event owner token (admin token) when you deliberately want to add someone above the limit.</p>
+              <ul class="mb-3">
+                <li>The event owner UI includes a <strong>Force Accept</strong> button next to each RSVP when a cap is set.</li>
+                <li>API: add <code>?force_accept=true</code> and send <code>Authorization: Bearer &lt;event-owner-token&gt;</code> (a.k.a. <code>&lt;admin_token&gt;</code>).</li>
+                <li>Each override writes an owner-visible <code>force_accept</code> message for auditability.</li>
+              </ul>
+              <pre class="mb-3"><code>POST /api/v1/events/{event_id}/rsvps?force_accept=true
+Authorization: Bearer &lt;event-owner-token&gt;
+{
+  "name": "Guest Name",
+  "attendance_status": "yes",
+  "guest_count": 0,
+  "is_private_rsvp": false
+}</code></pre>
+              <div class="callout">
+                <h6 class="fw-bold mb-1">FAQ</h6>
+                <ul class="mb-0 small">
+                  <li>Override the cap? Yes—use Force Accept.</li>
+                  <li>Do MAYBEs auto-promote? No, guests switch to Yes when space exists.</li>
+                  <li>Waitlist? Not yet; support is planned for a future update.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider my-5"></div>
+      <p class="footer text-center mb-4">
+        <a href="https://openrsvp.kaotic.cc/">OpenRSVP</a> ·
+        <a href="https://fastapi.tiangolo.com/">FastAPI</a> ·
+        <a href="https://www.sqlite.org/">SQLite</a> ·
+        <a href="https://catppuccin.com/">Catppuccin Latte</a>
+      </p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
