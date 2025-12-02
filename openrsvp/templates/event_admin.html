@@ -77,6 +77,17 @@
     {% endif %}
   </div>
 </section>
+<nav class="mb-4" aria-label="Admin sections">
+  <div class="d-flex flex-wrap align-items-center gap-2 small text-uppercase fw-semibold text-muted">
+    <a class="link-secondary text-decoration-none" href="#details-section">Details</a>
+    <span class="text-secondary">&middot;</span>
+    <a class="link-secondary text-decoration-none" href="#access-control-section">Access Control</a>
+    <span class="text-secondary">&middot;</span>
+    <a class="link-secondary text-decoration-none" href="#rsvp-section">RSVP List</a>
+    <span class="text-secondary">&middot;</span>
+    <a class="link-secondary text-decoration-none" href="#messages-section">Messages</a>
+  </div>
+</nav>
 {% include "partials/admin_pending_alert.html" %}
 <div
   class="d-none"
@@ -86,15 +97,15 @@
 ></div>
 <div class="row g-4">
   <div class="col-12">
-    <div class="p-4 bg-white border rounded-3 shadow-sm">
-      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <h3 class="h5 mb-0">Event details</h3>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <div class="badge badge-soft text-uppercase">Organizer tools</div>
-          <a class="btn btn-outline-secondary btn-sm" href="/e/{{ event.id }}">View event</a>
+    <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}">
+      <section class="p-4 bg-white border rounded-3 shadow-sm mb-4" id="details-section">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <h3 class="h5 mb-0">Event details</h3>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <div class="badge badge-soft text-uppercase">Organizer tools</div>
+            <a class="btn btn-outline-secondary btn-sm" href="/e/{{ event.id }}">View event</a>
+          </div>
         </div>
-      </div>
-      <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}">
         <div class="mb-4">
           <div class="fw-semibold text-uppercase text-muted small mb-2">Basics</div>
           <div class="mb-3">
@@ -154,7 +165,7 @@
             <div class="form-text">Only YES RSVPs count toward this limit.</div>
           </div>
         </div>
-        <div class="mb-4">
+        <div>
           <div class="fw-semibold text-uppercase text-muted small mb-2">Channel & privacy</div>
           <div class="mb-3">
             <label class="form-label" for="admin-channel-name">Channel Name</label>
@@ -217,8 +228,14 @@
             </div>
           </div>
         </div>
+      </section>
+      <section class="p-4 bg-white border rounded-3 shadow-sm" id="access-control-section">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <h3 class="h5 mb-0">Access control</h3>
+          <div class="text-muted small">Manage approvals, privacy, and RSVP windows.</div>
+        </div>
         <div class="mb-4">
-          <div class="fw-semibold text-uppercase text-muted small mb-2">Access control</div>
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Visibility & approvals</div>
           <div class="form-check form-switch mb-3">
             <input class="form-check-input" type="checkbox" id="admin-approval-required" name="admin_approval_required" value="true" {% if event.admin_approval_required %}checked{% endif %}>
             <label class="form-check-label" for="admin-approval-required">Require admin approval for new RSVPs</label>
@@ -228,33 +245,40 @@
             <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
             <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
           </div>
-          <div class="form-check form-switch mt-3 mb-3">
-            <input class="form-check-input" type="checkbox" id="admin-rsvps-closed" name="rsvps_closed" value="true" {% if event.rsvps_closed %}checked{% endif %}>
-            <label class="form-check-label" for="admin-rsvps-closed">Close RSVPs (pause new submissions)</label>
-            <div class="form-text">Guests can still edit or delete their existing RSVP, but new entries are blocked until you reopen.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="admin-close-at">Auto-close RSVPs at (optional)</label>
-            <input
-              type="datetime-local"
-              id="admin-close-at"
-              name="rsvp_close_at"
-              class="form-control"
-              value="{{ event.rsvp_close_at.strftime('%Y-%m-%dT%H:%M') if event.rsvp_close_at else '' }}"
-              data-utc-input="{{ event.rsvp_close_at.isoformat(timespec='seconds') + 'Z' if event.rsvp_close_at else '' }}"
-            >
-            <div class="form-text">Set a future time to flip the toggle automatically. Clear the field to remove the schedule.</div>
-            {% if event.rsvp_close_at %}
-            <div class="form-text text-muted">Currently set to {{ event.rsvp_close_at|relative_time }}.</div>
-            {% endif %}
+        </div>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">RSVP flow</div>
+          <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="admin-rsvps-closed" name="rsvps_closed" value="true" {% if event.rsvps_closed %}checked{% endif %}>
+                <label class="form-check-label" for="admin-rsvps-closed">Close RSVPs (pause new submissions)</label>
+              </div>
+              <div class="form-text">Guests can still edit or delete their existing RSVP, but new entries are blocked until you reopen.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="admin-close-at">Auto-close RSVPs at (optional)</label>
+              <input
+                type="datetime-local"
+                id="admin-close-at"
+                name="rsvp_close_at"
+                class="form-control"
+                value="{{ event.rsvp_close_at.strftime('%Y-%m-%dT%H:%M') if event.rsvp_close_at else '' }}"
+                data-utc-input="{{ event.rsvp_close_at.isoformat(timespec='seconds') + 'Z' if event.rsvp_close_at else '' }}"
+              >
+              <div class="form-text">Set a future time to flip the toggle automatically. Clear the field to remove the schedule.</div>
+              {% if event.rsvp_close_at %}
+              <div class="form-text text-muted">Currently set to {{ event.rsvp_close_at|relative_time }}.</div>
+              {% endif %}
+            </div>
           </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-primary" type="submit">Save Event</button>
           <a class="btn btn-outline-secondary" href="/e/{{ event.id }}">Cancel</a>
         </div>
-      </form>
-    </div>
+      </section>
+    </form>
   </div>
   <div class="col-lg-7 order-lg-1">
     <div class="p-4 bg-white border rounded-3 shadow-sm" id="rsvp-section">
@@ -304,7 +328,7 @@
           </div>
         </div>
       </div>
-      <div class="p-4 bg-white border rounded-3 shadow-sm">
+      <div class="p-4 bg-white border rounded-3 shadow-sm" id="messages-section">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3 class="h6 text-uppercase text-muted mb-0">Event messages</h3>
           <span class="badge bg-light text-dark">{{ admin_messages|length }} total</span>
