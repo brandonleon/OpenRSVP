@@ -54,6 +54,12 @@ def test_humanize_time_handles_future_and_past():
     assert humanize_time(past, now=now) == "moments ago"
 
 
+def test_humanize_time_prefers_days_over_inexact_week():
+    now = datetime(2025, 12, 1, 12, 0, 0)
+    future = now + timedelta(days=11)
+    assert humanize_time(future, now=now) == "in 11 days"
+
+
 def test_duration_between_formats_hours_and_minutes():
     start = datetime(2024, 1, 1, 10, 0, 0)
     end = start + timedelta(hours=1, minutes=30)

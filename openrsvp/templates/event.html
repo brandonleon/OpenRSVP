@@ -131,6 +131,6 @@
 
 {% block extra_scripts %}
   {{ super() }}
-  <script src="{{ url_for('static', path='qrcode.min.js') }}"></script>
-  <script src="{{ url_for('static', path='event-page.js') }}" defer></script>
+  <script src="{{ url_for('static', path='qrcode.min.js') }}?v={{ asset_version('qrcode.min.js') if asset_version is defined else app_version }}"></script>
+  <script src="{{ url_for('static', path='event-page.js') }}?v={{ asset_version('event-page.js') if asset_version is defined else app_version }}" defer></script>
 {% endblock %}

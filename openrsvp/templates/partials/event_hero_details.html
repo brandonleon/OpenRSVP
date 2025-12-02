@@ -5,7 +5,7 @@
   <div>
     <div class="text-white fw-semibold">Starts</div>
     <div class="js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</div>
-    <div class="small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+    <div class="small js-event-relative" data-placeholder="Calculating...">{{ event.start_time|relative_time }}</div>
   </div>
   {% if event.end_time %}
   <div class="vr opacity-50"></div>

@@ -355,5 +355,5 @@
 
 {% block extra_scripts %}
   {{ super() }}
-  <script src="{{ url_for('static', path='event-admin.js') }}" defer></script>
+  <script src="{{ url_for('static', path='event-admin.js') }}?v={{ asset_version('event-admin.js') if asset_version is defined else app_version }}" defer></script>
 {% endblock %}

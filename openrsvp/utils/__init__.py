@@ -167,11 +167,17 @@ def humanize_time(value: datetime | None, *, now: datetime | None = None) -> str
 
     amount = 0
     label = "minute"
-    for name, step in units:
+    for index, (name, step) in enumerate(units):
         value_count = int(seconds // step)
         if value_count >= 1:
             amount = value_count
             label = name
+            if name == "week" and value_count == 1 and index + 1 < len(units):
+                # Surface days instead of an imprecise "in 1 week" when the
+                # event is more than a week away.
+                next_name, next_step = units[index + 1]
+                amount = max(1, int(seconds // next_step))
+                label = next_name
             break
     else:
         return "in moments" if not past else "moments ago"

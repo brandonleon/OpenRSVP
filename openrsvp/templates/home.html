@@ -84,7 +84,7 @@
           data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
         >
           <span class="badge bg-light text-dark js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
-          <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+          <div class="text-muted small js-event-relative" data-placeholder="Calculating...">{{ event.start_time|relative_time }}</div>
           {% if event.end_time %}
           <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
           {% endif %}
@@ -150,7 +150,7 @@
         data-event-utc="{{ event.start_time.isoformat(timespec='seconds') }}Z"
       >
         <span class="badge bg-light text-dark js-event-absolute">{{ event.start_time.strftime('%Y-%m-%d %H:%M') }}</span>
-        <div class="text-muted small js-event-relative" data-placeholder="Calculating...">Calculating...</div>
+        <div class="text-muted small js-event-relative" data-placeholder="Calculating...">{{ event.start_time|relative_time }}</div>
         {% if event.end_time %}
         <div class="text-muted small">Duration: {{ event.start_time|duration(event.end_time) }}</div>
         {% endif %}

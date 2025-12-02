@@ -407,10 +407,17 @@
       ["hour", 3600],
       ["minute", 60],
     ];
-    for (const [label, size] of units) {
-      const value = Math.floor(absSeconds / size);
+    for (let index = 0; index < units.length; index += 1) {
+      const [label, size] = units[index];
+      let value = Math.floor(absSeconds / size);
       if (value >= 1) {
-        const unit = value === 1 ? label : `${label}s`;
+        let unitLabel = label;
+        if (label === "week" && value === 1 && index + 1 < units.length) {
+          const [nextLabel, nextSize] = units[index + 1];
+          value = Math.max(1, Math.floor(absSeconds / nextSize));
+          unitLabel = nextLabel;
+        }
+        const unit = value === 1 ? unitLabel : `${unitLabel}s`;
         return past ? `${value} ${unit} ago` : `in ${value} ${unit}`;
       }
     }

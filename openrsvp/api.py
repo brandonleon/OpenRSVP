@@ -6,6 +6,7 @@ import logging
 from collections.abc import Iterable, Sequence
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from hashlib import blake2s
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 from pathlib import Path
 import tomllib
@@ -119,8 +120,42 @@ app = FastAPI(title="OpenRSVP", version=APP_VERSION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+
+def _asset_version(filename: str) -> str:
+    file_path = static_dir / filename
+    if not file_path.is_file():
+        return APP_VERSION
+    hasher = blake2s()
+    with file_path.open("rb") as handle:
+        while True:
+            chunk = handle.read(8192)
+            if not chunk:
+                break
+            hasher.update(chunk)
+    digest = hasher.hexdigest()[:12]
+    mtime = int(file_path.stat().st_mtime)
+    return f"{digest}{mtime}"
+
+
+ASSET_FILES = [
+    "app.css",
+    "app.js",
+    "theme-init.js",
+    "event-page.js",
+    "event-admin.js",
+    "qrcode.min.js",
+]
+ASSET_VERSIONS = {name: _asset_version(name) for name in ASSET_FILES}
+
+
+def asset_version(filename: str) -> str:
+    return ASSET_VERSIONS.get(filename, APP_VERSION)
+
+
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["repo_url"] = get_repo_url()
+templates.env.globals["asset_version"] = asset_version
 templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 templates.env.filters["markdown"] = render_markdown
