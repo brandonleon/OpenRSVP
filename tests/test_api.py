@@ -506,6 +506,41 @@ def test_admin_approve_non_htmx_redirects(client):
     session.close()
 
 
+def test_api_rsvp_creation_logs_admin_event_message(client):
+    session = database.SessionLocal()
+    event = _make_event(session, title="Message Logging Event")
+    event_id = event.id
+    session.close()
+
+    payload = {
+        "name": "Message Watcher",
+        "attendance_status": "yes",
+        "guest_count": 1,
+        "note": "Can't wait",
+        "is_private_rsvp": False,
+    }
+    response = client.post(f"/api/v1/events/{event_id}/rsvps", json=payload)
+    assert response.status_code == 201
+
+    verify_session = database.SessionLocal()
+    messages = (
+        verify_session.query(Message)
+        .filter(
+            Message.event_id == event_id,
+            Message.message_type == "rsvp_created",
+        )
+        .all()
+    )
+    assert len(messages) == 1
+    message = messages[0]
+    assert message.visibility == "admin"
+    assert message.rsvp_id is not None
+    assert message.rsvp is not None
+    assert message.rsvp.name == payload["name"]
+    assert "RSVP created" in message.content
+    verify_session.close()
+
+
 def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
     session = database.SessionLocal()
     event = create_event(

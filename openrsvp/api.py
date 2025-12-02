@@ -708,6 +708,27 @@ def _create_message_if_content(
     )
 
 
+def _log_rsvp_created(db: Session, *, event: Event, rsvp: RSVP):
+    guest_count = rsvp.guest_count or 0
+    guest_phrase = (
+        "no guests"
+        if guest_count == 0
+        else f"{guest_count} guest{'s' if guest_count != 1 else ''}"
+    )
+    attendance = rsvp.attendance_status.capitalize()
+    approval = rsvp.approval_status
+    content = f"RSVP created ({attendance}; approval {approval}; {guest_phrase})"
+    return create_message(
+        db,
+        event=event,
+        rsvp=rsvp,
+        author_id=None,
+        message_type="rsvp_created",
+        visibility="admin",
+        content=content,
+    )
+
+
 def _log_force_accept(db: Session, *, event: Event, rsvp: RSVP):
     spots = (
         f"{event.yes_count}/{event.max_attendees}"
@@ -1457,6 +1478,7 @@ def create_rsvp_view(
         guest_count=guest_count,
         is_private=is_private_rsvp,
     )
+    _log_rsvp_created(db, event=event, rsvp=rsvp)
     _create_message_if_content(
         db,
         event=event,
@@ -2580,6 +2602,7 @@ def api_create_rsvp(
     )
     if forced:
         _log_force_accept(db, event=event, rsvp=rsvp)
+    _log_rsvp_created(db, event=event, rsvp=rsvp)
     _create_message_if_content(
         db,
         event=event,
