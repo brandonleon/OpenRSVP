@@ -309,7 +309,9 @@ def upgrade_container(
 
     if prune_images:
         if not new_image_id:
-            typer.echo("Unable to identify the newly built Docker image; skipping prune.")
+            typer.echo(
+                "Unable to identify the newly built Docker image; skipping prune."
+            )
         else:
             stale_ids = [img_id for img_id in old_image_ids if img_id != new_image_id]
             if stale_ids:
