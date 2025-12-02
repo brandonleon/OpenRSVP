@@ -267,6 +267,7 @@ def upgrade_container(
     build_cmd.append(".")
     typer.echo(f"Building Docker image '{image}'...")
     _run_command(build_cmd, f"Failed to build Docker image '{image}'")
+    new_image_id = _current_image_id(image)
 
     if _container_exists(container_name):
         typer.echo(f"Stopping and removing existing container '{container_name}'")
@@ -294,10 +295,15 @@ def upgrade_container(
     )
     _run_command(run_cmd, f"Failed to start container '{container_name}'")
 
-    if prune_images and old_image_ids:
-        _remove_images(old_image_ids)
-    elif prune_images:
-        typer.echo("No prior Docker image found to prune.")
+    if prune_images:
+        if not new_image_id:
+            typer.echo("Unable to identify the newly built Docker image; skipping prune.")
+        else:
+            stale_ids = [img_id for img_id in old_image_ids if img_id != new_image_id]
+            if stale_ids:
+                _remove_images(stale_ids)
+            else:
+                typer.echo("No prior Docker image found to prune.")
 
 
 @app.command("config")
@@ -491,6 +497,11 @@ def _docker_image_ids(image: str) -> list[str]:
     ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
     # Deduplicate while preserving order
     return list(dict.fromkeys(ids))
+
+
+def _current_image_id(image: str) -> str | None:
+    ids = _docker_image_ids(image)
+    return ids[0] if ids else None
 
 
 def _container_exists(container_name: str) -> bool:
