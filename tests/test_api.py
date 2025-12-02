@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from openrsvp import api, database
 from openrsvp.crud import create_event, ensure_channel
-from openrsvp.models import Event, Message
+from openrsvp.models import Event, Message, RSVP
 from openrsvp.utils import utcnow
 from openrsvp import crud
 
@@ -46,6 +46,28 @@ def _make_event(session, *, max_attendees: int | None = None, title: str = "Capa
     )
     session.commit()
     return event
+
+
+def _create_pending_rsvp(
+    session,
+    event: Event,
+    *,
+    name: str = "Pending Guest",
+    attendance_status: str = "yes",
+    is_private: bool = False,
+) -> RSVP:
+    rsvp = crud.create_rsvp(
+        session,
+        event=event,
+        name=name,
+        attendance_status=attendance_status,
+        pronouns=None,
+        guest_count=0,
+        is_private=is_private,
+        approval_status="pending",
+    )
+    session.flush()
+    return rsvp
 
 
 def test_submit_event_creates_event_and_channel(client):
@@ -424,6 +446,59 @@ def test_pending_rsvp_hidden_until_approved(client):
     assert len(event_after["rsvps"]) == 1
     assert event_after["rsvps"][0]["name"] == "Pending Guest"
 
+    session.close()
+
+
+def test_admin_approve_htmx_returns_partial_update(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="HTMX Event",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    first = _create_pending_rsvp(session, event, name="HTMX Guest")
+    _create_pending_rsvp(session, event, name="Pending Friend")
+    session.commit()
+
+    url = f"/e/{event.id}/admin/{event.admin_token}/rsvp/{first.id}/approve"
+    response = client.post(url, headers={"HX-Request": "true"})
+
+    assert response.status_code == 200
+    body = response.text
+    assert 'data-approval-status="approved"' in body
+    assert 'Pending (1)' in body  # second guest still pending
+    assert 'hx-swap-oob="outerHTML"' in body
+    assert "HTMX Guest" in body
+    session.close()
+
+
+def test_admin_approve_non_htmx_redirects(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Classic Event",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    rsvp = _create_pending_rsvp(session, event, name="Classic Guest")
+    session.commit()
+
+    url = f"/e/{event.id}/admin/{event.admin_token}/rsvp/{rsvp.id}/approve"
+    response = client.post(url, follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"].startswith(f"/e/{event.id}/admin/{event.admin_token}")
     session.close()
 
 
