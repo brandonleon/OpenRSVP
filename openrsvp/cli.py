@@ -4,10 +4,17 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
+
+try:  # Python 3.11+
+    import tomllib  # type: ignore[attr-defined]
+except ModuleNotFoundError:  # pragma: no cover - fallback for Python <3.11
+    tomllib = None  # type: ignore
 
 from sqlalchemy.exc import OperationalError
 import typer
@@ -30,7 +37,15 @@ from .storage import (
     upgrade_database,
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PYPROJECT_PATH = PROJECT_ROOT / "pyproject.toml"
+
+ReleaseLevel = Literal["patch", "minor", "major"]
+VERSION_FALLBACK_PATTERN = re.compile(r'^version\s*=\s*"(?P<version>[^"]+)"', re.MULTILINE)
+
 app = typer.Typer(help="OpenRSVP command-line interface")
+release_app = typer.Typer(help="Version bump and tagging helpers")
+app.add_typer(release_app, name="release")
 
 
 @app.callback(invoke_without_command=True)
@@ -326,6 +341,95 @@ def configure(
         effective = settings_as_dict(settings_ref)
         effective["config_path"] = str(target_path)
         typer.echo(json.dumps(effective, indent=2))
+
+
+def _run_command(command: list[str], error_message: str) -> None:
+    """Run a subprocess command with consistent error handling."""
+    try:
+        subprocess.run(command, cwd=PROJECT_ROOT, check=True)
+    except FileNotFoundError:
+        typer.secho(
+            f"{error_message}: command '{command[0]}' not found.",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+    except subprocess.CalledProcessError as exc:
+        typer.secho(error_message, err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=exc.returncode or 1)
+
+
+def _read_project_version() -> str:
+    if not PYPROJECT_PATH.exists():
+        typer.secho(
+            f"pyproject.toml not found at {PYPROJECT_PATH}",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    if tomllib is not None:
+        with PYPROJECT_PATH.open("rb") as handle:
+            try:
+                data = tomllib.load(handle)
+            except Exception as exc:  # pragma: no cover - corrupted pyproject
+                typer.secho(
+                    f"Unable to parse pyproject.toml: {exc}",
+                    err=True,
+                    fg=typer.colors.RED,
+                )
+                raise typer.Exit(code=1)
+        project = data.get("project") if isinstance(data, dict) else None
+        version = project.get("version") if isinstance(project, dict) else None
+        if isinstance(version, str):
+            return version
+
+    text = PYPROJECT_PATH.read_text(encoding="utf-8")
+    match = VERSION_FALLBACK_PATTERN.search(text)
+    if match:
+        return match.group("version")
+
+    typer.secho(
+        "Unable to determine project version from pyproject.toml.",
+        err=True,
+        fg=typer.colors.RED,
+    )
+    raise typer.Exit(code=1)
+
+
+def _perform_release(level: ReleaseLevel) -> None:
+    uv_command = ["uv", "version", "--bump", level]
+    _run_command(
+        uv_command, f"Failed to update project version using: {' '.join(uv_command)}"
+    )
+
+    new_version = _read_project_version()
+    tag_name = f"v{new_version}"
+    _run_command(["git", "tag", tag_name], f"Failed to create git tag {tag_name}")
+
+    typer.secho(
+        f"Bumped version to {new_version} and created tag {tag_name}. "
+        "Amend your previous commit if needed.",
+        fg=typer.colors.GREEN,
+    )
+
+
+@release_app.command("patch")
+def release_patch() -> None:
+    """Bump the patch version and tag the current commit."""
+    _perform_release("patch")
+
+
+@release_app.command("minor")
+def release_minor() -> None:
+    """Bump the minor version and tag the current commit."""
+    _perform_release("minor")
+
+
+@release_app.command("major")
+def release_major() -> None:
+    """Bump the major version and tag the current commit."""
+    _perform_release("major")
 
 
 @app.command("test")
