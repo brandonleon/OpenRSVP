@@ -214,6 +214,92 @@ def seed_data(
     )
 
 
+@app.command("upgrade-container")
+def upgrade_container(
+    image: str = typer.Option(
+        "openrsvp", "--image", help="Docker image tag/name to build and run"
+    ),
+    container_name: str = typer.Option(
+        "openrsvp", "--container-name", help="Name of the running Docker container"
+    ),
+    host_port: int = typer.Option(
+        8000,
+        "--host-port",
+        help="Host port that forwards to the container",
+    ),
+    container_port: int = typer.Option(
+        settings.app_port,
+        "--container-port",
+        help="Container port exposed by the OpenRSVP app",
+    ),
+    data_dir: Path = typer.Option(
+        settings.data_dir,
+        "--data-dir",
+        help="Host directory to mount into the container for persistent data",
+    ),
+    mount_path: str = typer.Option(
+        "/data",
+        "--mount-path",
+        help="Path inside the container for the mounted data directory",
+    ),
+    dockerfile: Path | None = typer.Option(
+        None,
+        "--dockerfile",
+        help="Optional Dockerfile path (defaults to ./Dockerfile)",
+    ),
+    prune_images: bool = typer.Option(
+        True,
+        "--prune-images/--no-prune-images",
+        help="Remove the image that previously backed this container",
+    ),
+) -> None:
+    """Rebuild, restart, and clean up the Docker container."""
+
+    data_dir = data_dir.expanduser()
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
+        typer.echo(f"Created data directory at {data_dir}")
+
+    old_image_ids = _docker_image_ids(image)
+    build_cmd = ["docker", "build", "-t", image]
+    if dockerfile:
+        build_cmd.extend(["-f", str(dockerfile)])
+    build_cmd.append(".")
+    typer.echo(f"Building Docker image '{image}'...")
+    _run_command(build_cmd, f"Failed to build Docker image '{image}'")
+
+    if _container_exists(container_name):
+        typer.echo(f"Stopping and removing existing container '{container_name}'")
+        _run_command(
+            ["docker", "rm", "--force", container_name],
+            f"Failed to remove existing container '{container_name}'",
+        )
+    else:
+        typer.echo(f"No existing container named '{container_name}' to remove.")
+
+    run_cmd = [
+        "docker",
+        "run",
+        "-d",
+        "--name",
+        container_name,
+        "-p",
+        f"{host_port}:{container_port}",
+        "-v",
+        f"{os.fspath(data_dir)}:{mount_path}",
+    ]
+    run_cmd.append(image)
+    typer.echo(
+        f"Starting container '{container_name}' on {host_port}->{container_port} using image '{image}'."
+    )
+    _run_command(run_cmd, f"Failed to start container '{container_name}'")
+
+    if prune_images and old_image_ids:
+        _remove_images(old_image_ids)
+    elif prune_images:
+        typer.echo("No prior Docker image found to prune.")
+
+
 @app.command("config")
 def configure(
     show: bool = typer.Option(
@@ -369,6 +455,78 @@ def _run_command(command: list[str], error_message: str) -> None:
     except subprocess.CalledProcessError as exc:
         typer.secho(error_message, err=True, fg=typer.colors.RED)
         raise typer.Exit(code=exc.returncode or 1)
+
+
+def _run_command_with_output(
+    command: list[str], error_message: str
+) -> subprocess.CompletedProcess[str]:
+    """Run a command and capture stdout/stderr."""
+    try:
+        return subprocess.run(
+            command,
+            cwd=PROJECT_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        typer.secho(
+            f"{error_message}: command '{command[0]}' not found.",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+    except subprocess.CalledProcessError as exc:
+        typer.secho(error_message, err=True, fg=typer.colors.RED)
+        if exc.stderr:
+            typer.secho(exc.stderr.strip(), err=True, fg=typer.colors.RED)
+        raise typer.Exit(code=exc.returncode or 1)
+
+
+def _docker_image_ids(image: str) -> list[str]:
+    result = _run_command_with_output(
+        ["docker", "images", image, "--format", "{{.ID}}"],
+        "Unable to inspect Docker images",
+    )
+    ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    # Deduplicate while preserving order
+    return list(dict.fromkeys(ids))
+
+
+def _container_exists(container_name: str) -> bool:
+    result = _run_command_with_output(
+        [
+            "docker",
+            "ps",
+            "-a",
+            "--filter",
+            f"name=^{container_name}$",
+            "--format",
+            "{{.ID}}",
+        ],
+        f"Unable to inspect Docker containers for '{container_name}'",
+    )
+    return bool(result.stdout.strip())
+
+
+def _remove_images(image_ids: list[str]) -> None:
+    typer.echo(f"Removing replaced Docker image(s): {' '.join(image_ids)}")
+    result = subprocess.run(
+        ["docker", "rmi", *image_ids],
+        cwd=PROJECT_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        typer.echo("Old Docker image(s) removed.")
+    else:
+        typer.secho(
+            "Unable to remove old Docker images (they might still be in use).",
+            err=True,
+            fg=typer.colors.YELLOW,
+        )
+        if result.stderr:
+            typer.secho(result.stderr.strip(), err=True, fg=typer.colors.YELLOW)
 
 
 def _read_project_version() -> str:
