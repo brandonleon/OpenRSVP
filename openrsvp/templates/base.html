@@ -89,13 +89,10 @@
       <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2 small">
         <span>OpenRSVP</span>
         <span>
-          {% if repo_url %}
-          <a class="link-light text-decoration-none" href="{{ repo_url }}" target="_blank" rel="noopener">
+          {% set version_url = repo_url or 'https://github.com/brandonleon/OpenRSVP' %}
+          <a class="link-light text-decoration-none" href="{{ version_url }}" target="_blank" rel="noopener">
             Version {{ app_version }}
           </a>
-          {% else %}
-          Version {{ app_version }}
-          {% endif %}
         </span>
       </div>
     </footer>
