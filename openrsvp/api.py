@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from importlib.metadata import PackageNotFoundError, version as pkg_version
@@ -753,6 +753,47 @@ def _require_rsvp_from_header(event: Event, request: Request, db: Session) -> RS
     return _ensure_rsvp(db, event, token)
 
 
+def _is_htmx(request: Request) -> bool:
+    return request.headers.get("hx-request", "").lower() == "true"
+
+
+def _approval_counts(rsvps: Sequence[RSVP]) -> dict[str, int]:
+    return {
+        "approved": sum(1 for r in rsvps if r.approval_status == "approved"),
+        "pending": sum(1 for r in rsvps if r.approval_status == "pending"),
+        "rejected": sum(1 for r in rsvps if r.approval_status == "rejected"),
+    }
+
+
+def _admin_rsvp_partial_response(
+    request: Request,
+    *,
+    event: Event,
+    admin_token: str,
+    rsvp: RSVP,
+):
+    rsvps = list(event.rsvps)
+    approval_counts = _approval_counts(rsvps)
+    available_yes_slots = _available_yes_slots(event)
+    event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
+    messages = _rsvp_messages(rsvp, visibilities={"public", "attendee", "admin"})
+    response = templates.TemplateResponse(
+        request,
+        "partials/admin_rsvp_response.html",
+        {
+            "request": request,
+            "event": event,
+            "admin_token": admin_token,
+            "rsvp": rsvp,
+            "messages": messages,
+            "approval_counts": approval_counts,
+            "rsvp_total": len(rsvps),
+            "event_is_full": event_is_full,
+        },
+    )
+    return _no_cache(response)
+
+
 def _channel_search_clause(query: str | None):
     if not query:
         return None
@@ -1422,11 +1463,7 @@ def event_admin(
     rsvp_stats = _rsvp_stats(rsvps)
     available_yes_slots = _available_yes_slots(event)
     event_is_full = available_yes_slots == 0 if available_yes_slots is not None else False
-    approval_counts = {
-        "approved": sum(1 for r in rsvps if r.approval_status == "approved"),
-        "pending": sum(1 for r in rsvps if r.approval_status == "pending"),
-        "rejected": sum(1 for r in rsvps if r.approval_status == "rejected"),
-    }
+    approval_counts = _approval_counts(rsvps)
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
@@ -1663,6 +1700,10 @@ def approve_rsvp_admin(
     _require_admin_or_root(event, admin_token)
     rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
     _apply_rsvp_status_change(db, event=event, rsvp=rsvp, new_status="approved")
+    if _is_htmx(request):
+        return _admin_rsvp_partial_response(
+            request, event=event, admin_token=admin_token, rsvp=rsvp
+        )
     params = urlencode({"message": "RSVP approved", "message_class": "alert-success"})
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
@@ -1684,6 +1725,10 @@ def reject_rsvp_admin(
     _apply_rsvp_status_change(
         db, event=event, rsvp=rsvp, new_status="rejected", reason=reason
     )
+    if _is_htmx(request):
+        return _admin_rsvp_partial_response(
+            request, event=event, admin_token=admin_token, rsvp=rsvp
+        )
     params = urlencode({"message": "RSVP rejected", "message_class": "alert-warning"})
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
@@ -1702,6 +1747,10 @@ def pending_rsvp_admin(
     _require_admin_or_root(event, admin_token)
     rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
     _apply_rsvp_status_change(db, event=event, rsvp=rsvp, new_status="pending")
+    if _is_htmx(request):
+        return _admin_rsvp_partial_response(
+            request, event=event, admin_token=admin_token, rsvp=rsvp
+        )
     params = urlencode(
         {"message": "RSVP set to pending", "message_class": "alert-info"}
     )

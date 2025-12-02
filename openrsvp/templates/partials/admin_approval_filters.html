@@ -1,0 +1,22 @@
+{% set swap_oob = swap_oob if swap_oob is defined else False %}
+{% set active_filter = active_filter if active_filter is defined else "all" %}
+<div
+  class="btn-group btn-group-sm"
+  role="group"
+  aria-label="Filter RSVPs"
+  id="approval-filter-buttons"
+  {% if swap_oob %}hx-swap-oob="outerHTML"{% endif %}
+>
+  <button type="button" class="btn btn-outline-secondary {% if active_filter == 'all' %}active{% endif %}" data-rsvp-filter="all">
+    All ({{ rsvp_total }})
+  </button>
+  <button type="button" class="btn btn-outline-secondary {% if active_filter == 'pending' %}active{% endif %}" data-rsvp-filter="pending">
+    Pending ({{ approval_counts.pending }})
+  </button>
+  <button type="button" class="btn btn-outline-secondary {% if active_filter == 'approved' %}active{% endif %}" data-rsvp-filter="approved">
+    Approved ({{ approval_counts.approved }})
+  </button>
+  <button type="button" class="btn btn-outline-secondary {% if active_filter == 'rejected' %}active{% endif %}" data-rsvp-filter="rejected">
+    Rejected ({{ approval_counts.rejected }})
+  </button>
+</div>

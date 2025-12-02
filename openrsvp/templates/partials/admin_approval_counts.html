@@ -1,0 +1,10 @@
+{% set swap_oob = swap_oob if swap_oob is defined else False %}
+<div
+  class="d-flex flex-wrap gap-3 small text-secondary"
+  id="approval-counts-summary"
+  {% if swap_oob %}hx-swap-oob="outerHTML"{% endif %}
+>
+  <span>Pending: <span class="fw-semibold">{{ approval_counts.pending }}</span></span>
+  <span>Approved: <span class="fw-semibold">{{ approval_counts.approved }}</span></span>
+  <span>Rejected: <span class="fw-semibold">{{ approval_counts.rejected }}</span></span>
+</div>
