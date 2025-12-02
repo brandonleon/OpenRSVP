@@ -18,7 +18,9 @@ def upgrade() -> None:
         sa.Column("id", sa.String(length=36), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("slug", sa.String(length=128), nullable=False),
-        sa.Column("visibility", sa.String(length=16), nullable=False, server_default="public"),
+        sa.Column(
+            "visibility", sa.String(length=16), nullable=False, server_default="public"
+        ),
         sa.Column("score", sa.Float(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("last_used_at", sa.DateTime(), nullable=False),

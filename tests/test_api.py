@@ -30,7 +30,9 @@ def _iso(dt: datetime) -> str:
     return dt.replace(microsecond=0).isoformat()
 
 
-def _make_event(session, *, max_attendees: int | None = None, title: str = "Capacity Test"):
+def _make_event(
+    session, *, max_attendees: int | None = None, title: str = "Capacity Test"
+):
     start = utcnow().replace(microsecond=0)
     event = create_event(
         session,
@@ -472,7 +474,7 @@ def test_admin_approve_htmx_returns_partial_update(client):
     assert response.status_code == 200
     body = response.text
     assert 'data-approval-status="approved"' in body
-    assert 'Pending (1)' in body  # second guest still pending
+    assert "Pending (1)" in body  # second guest still pending
     assert 'hx-swap-oob="outerHTML"' in body
     assert "HTMX Guest" in body
     session.close()
@@ -498,7 +500,9 @@ def test_admin_approve_non_htmx_redirects(client):
     response = client.post(url, follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"].startswith(f"/e/{event.id}/admin/{event.admin_token}")
+    assert response.headers["location"].startswith(
+        f"/e/{event.id}/admin/{event.admin_token}"
+    )
     session.close()
 
 

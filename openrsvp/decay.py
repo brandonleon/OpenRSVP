@@ -47,9 +47,9 @@ def _event_start_reference(event: Event) -> datetime:
 def _can_delete_event(event: Event, now: datetime, *, age_days: float) -> bool:
     """Check whether an event is eligible for deletion."""
 
-    if settings.protect_upcoming_events and _event_start_reference(event) > _ensure_aware(
-        now
-    ):
+    if settings.protect_upcoming_events and _event_start_reference(
+        event
+    ) > _ensure_aware(now):
         return False
     if _ensure_aware(now) < _event_grace_expires_at(event):
         return False
@@ -89,7 +89,9 @@ def run_decay_cycle() -> dict:
             Event.score <= settings.delete_threshold, Event.created_at < decay_cutoff
         )
         if settings.protect_upcoming_events:
-            delete_event_filter = and_(delete_event_filter, Event.start_time <= now_naive)
+            delete_event_filter = and_(
+                delete_event_filter, Event.start_time <= now_naive
+            )
         covered_event_filter = or_(active_events_filter, delete_event_filter)
         total_events = session.scalar(select(func.count()).select_from(Event)) or 0
         covered_events = (

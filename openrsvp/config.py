@@ -150,7 +150,9 @@ def _resolve_paths(
     resolved_data = Path(data_dir) if data_dir else resolved_base / "data"
     if not resolved_data.is_absolute():
         resolved_data = resolved_base / resolved_data
-    resolved_db = Path(database_path) if database_path else resolved_data / "openrsvp.db"
+    resolved_db = (
+        Path(database_path) if database_path else resolved_data / "openrsvp.db"
+    )
     if not resolved_db.is_absolute():
         resolved_db = resolved_base / resolved_db
     return resolved_base, resolved_data, resolved_db
@@ -298,7 +300,9 @@ def write_config_file(config: dict[str, Any], *, path: Path) -> None:
     path.write_text("".join(lines), encoding="utf-8")
 
 
-def update_config_file(updates: dict[str, Any], *, path: Path | None = None) -> Settings:
+def update_config_file(
+    updates: dict[str, Any], *, path: Path | None = None
+) -> Settings:
     current_settings = settings if "settings" in globals() else load_settings()
     target_path = path or current_settings.config_path
     existing = _load_toml_config(target_path)

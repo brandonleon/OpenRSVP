@@ -21,7 +21,9 @@ def _patch_db(monkeypatch: pytest.MonkeyPatch, engine: Engine, db_path) -> None:
 def _get_version(engine: Engine) -> str | None:
     with engine.connect() as conn:
         try:
-            return conn.execute(text("select version_num from alembic_version")).scalar()
+            return conn.execute(
+                text("select version_num from alembic_version")
+            ).scalar()
         except Exception:
             return None
 

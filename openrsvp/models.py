@@ -74,9 +74,7 @@ class Event(Base):
     def yes_count(self) -> int:
         """Return the total attending party size (RSVP + guests)."""
         return sum(
-            (r.guest_count or 0) + 1
-            for r in self.rsvps
-            if r.attendance_status == "yes"
+            (r.guest_count or 0) + 1 for r in self.rsvps if r.attendance_status == "yes"
         )
 
 
