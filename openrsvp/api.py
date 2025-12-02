@@ -364,9 +364,16 @@ def _apply_pending_rsvp_close(event: Event, db: Session) -> None:
         or event.rsvp_close_at > utcnow()
     ):
         return
+    scheduled_close = event.rsvp_close_at
     event.rsvps_closed = True
     event.rsvp_close_at = None
     db.add(event)
+    logger.info(
+        "Auto-close job toggled RSVPs closed for event %s (%s) scheduled for %s",
+        event.id,
+        event.title,
+        scheduled_close.isoformat() if scheduled_close else "unknown",
+    )
 
 
 def _sync_rsvp_close_states(events: Iterable[Event], db: Session) -> None:
