@@ -16,6 +16,7 @@ _link_pattern = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 _bold_pattern = re.compile(r"\*\*(.+?)\*\*")
 _italic_pattern = re.compile(r"(?<!\*)\*(?!\*)([^*]+?)(?<!\*)\*(?!\*)")
 _code_pattern = re.compile(r"`([^`]+)`")
+REPO_FALLBACK_URL = "https://github.com/brandonleon/OpenRSVP"
 
 
 def utcnow() -> datetime:
@@ -208,29 +209,34 @@ def duration_between(start: datetime | None, end: datetime | None) -> str:
     return " ".join(parts)
 
 
-def get_repo_url(config_path: Path | None = None) -> str | None:
+def get_repo_url(config_path: Path | None = None) -> str:
     """Return the repository URL derived from the local Git config.
 
     Prefers the origin remote. SSH-style GitHub URLs are converted to HTTPS and
-    trailing ``.git`` suffixes are stripped for cleaner links.
+    trailing ``.git`` suffixes are stripped for cleaner links. Falls back to the
+    upstream repository when no Git data is available.
     """
 
-    config_path = (
-        config_path or Path(__file__).resolve().parent.parent / ".git" / "config"
-    )
+    if config_path is None:
+        resolved = Path(__file__).resolve()
+        try:
+            repo_root = resolved.parents[2]
+        except IndexError:
+            repo_root = resolved.parent
+        config_path = repo_root / ".git" / "config"
     if not config_path.is_file():
-        return None
+        return REPO_FALLBACK_URL
 
     parser = ConfigParser()
     parser.read(config_path)
 
     section = 'remote "origin"'
     if not parser.has_section(section):
-        return None
+        return REPO_FALLBACK_URL
 
     raw_url = parser.get(section, "url", fallback=None)
     if not raw_url:
-        return None
+        return REPO_FALLBACK_URL
 
     cleaned = raw_url.strip()
     if cleaned.startswith("git@github.com:"):
@@ -239,7 +245,7 @@ def get_repo_url(config_path: Path | None = None) -> str | None:
     if cleaned.endswith(".git"):
         cleaned = cleaned[:-4]
 
-    return cleaned or None
+    return cleaned or REPO_FALLBACK_URL
 
 
 __all__ = [
