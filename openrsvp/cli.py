@@ -41,7 +41,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT_PATH = PROJECT_ROOT / "pyproject.toml"
 
 ReleaseLevel = Literal["patch", "minor", "major"]
-VERSION_FALLBACK_PATTERN = re.compile(r'^version\s*=\s*"(?P<version>[^"]+)"', re.MULTILINE)
+VERSION_FALLBACK_PATTERN = re.compile(
+    r'^version\s*=\s*"(?P<version>[^"]+)"', re.MULTILINE
+)
 
 app = typer.Typer(help="OpenRSVP command-line interface")
 release_app = typer.Typer(help="Version bump and tagging helpers")
@@ -143,7 +145,14 @@ def runserver(
     """Start FastAPI with APScheduler."""
     init_db()
     start_scheduler()
-    config = uvicorn.Config("openrsvp.api:app", host=host, port=port, reload=False)
+    config = uvicorn.Config(
+        "openrsvp.api:app",
+        host=host,
+        port=port,
+        reload=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
+    )
     server = uvicorn.Server(config)
     try:
         typer.echo(f"Starting OpenRSVP on {host}:{port}")
@@ -264,7 +273,10 @@ def configure(
         None, "--seed-channels", min=0, help="Default seed-data channels"
     ),
     seed_events_per_channel: int | None = typer.Option(
-        None, "--seed-events-per-channel", min=0, help="Default seed-data events/channel"
+        None,
+        "--seed-events-per-channel",
+        min=0,
+        help="Default seed-data events/channel",
     ),
     seed_extra_events: int | None = typer.Option(
         None, "--seed-extra-events", min=0, help="Default seed-data extra events"
