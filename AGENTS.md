@@ -49,6 +49,7 @@ format `/e/<event-id>/admin/<admin-token>`.
 - Edit event title, description, date, time, and location.
 - View all RSVPs for the event, including notes.
 - Reveal RSVP magic links (hidden behind UI toggles).
+- Toggle “Close RSVPs” to stop new submissions immediately or schedule an auto-close time that flips the toggle once the cutoff passes (times use the event’s timezone but are stored in UTC).
 - Delete RSVP records on request (guests control edits).
 - Delete the event early.
 - Inspect decay status, scores, timestamps, and RSVP notes.

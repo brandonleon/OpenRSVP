@@ -23,6 +23,7 @@
             <li class="nav-item"><a class="nav-link" href="#web-app">Web App</a></li>
             <li class="nav-item"><a class="nav-link" href="#ics">ICS Export</a></li>
             <li class="nav-item"><a class="nav-link" href="#capacity">Capacity</a></li>
+            <li class="nav-item"><a class="nav-link" href="#rsvp-close">RSVP Close</a></li>
             <li class="nav-item"><a class="nav-link" href="#decay">Decay</a></li>
             <li class="nav-item"><a class="nav-link" href="#api">API</a></li>
             <li class="nav-item"><a class="nav-link" href="#tokens">Tokens</a></li>
@@ -232,6 +233,47 @@ Authorization: Bearer &lt;event-owner-token&gt;
                   <li>Waitlist? Not yet; support is planned for a future update.</li>
                 </ul>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="my-5" id="rsvp-close">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">RSVP Window</p>
+            <h2 class="fw-bold mb-0">Closing the RSVP form</h2>
+            <p class="text-muted mb-0">Manual toggle or scheduled cutoff for new submissions.</p>
+          </div>
+          <span class="pill"><span class="text-primary">Controls</span> Owner UI</span>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Manual vs. scheduled close</h3>
+              <p>Every event owner page includes a <strong>Close RSVPs</strong> switch that instantly hides the RSVP form from the public view and blocks new submissions.</p>
+              <ul class="mb-3">
+                <li>Use the toggle when you need a hard stop regardless of capacity (e.g., venue deadlines).</li>
+                <li>Set an optional auto-close timestamp during creation or editing; once the moment passes the backend flips the toggle for you and clears the scheduled time.</li>
+                <li>Times respect the timezone you enter in the UI but save as UTC to keep the cutoff consistent even if the server time differs.</li>
+                <li>Existing guests still have full access via their magic links to edit, hide/unhide, or delete their RSVP.</li>
+                <li>Reopen the form by turning the toggle back off or by scheduling a new date/time.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Closing RSVPs is separate from attendance caps—you can run both simultaneously or use closing alone for simple deadlines.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">API &amp; automation details</h3>
+              <ul class="mb-3">
+                <li><code>rsvps_closed</code> (bool) and <code>rsvp_close_at</code> (ISO8601 string) live on the <code>Event</code> model.</li>
+                <li>UI forms and the API accept <code>timezone_offset_minutes</code> so local times convert to UTC before storing <code>rsvp_close_at</code>.</li>
+                <li>Whenever events are read (homepage, channels, admin listings, or REST calls) the backend checks pending <code>rsvp_close_at</code> values and toggles them if the timestamp is in the past.</li>
+                <li>Closed events return <code>HTTP 403</code> with <code>{"error":"RSVPsClosed"}</code> from <code>POST /e/{event_id}/rsvp</code> and <code>/api/v1/events/{event_id}/rsvps</code>; the HTML view shows the same warning instead of the form.</li>
+                <li>Event owners (or root admins) can reopen the form through the UI or by calling <code>PATCH /api/v1/events/{event_id}</code> with <code>{"rsvps_closed": false}</code> and optional new schedule.</li>
+              </ul>
+              <p class="mb-0 text-muted small">Because the close state is part of the event payload, downstream integrations can surface accurate “RSVPs Closed” banners without duplicating logic.</p>
             </div>
           </div>
         </div>
