@@ -59,7 +59,7 @@ openrsvp config --delete-grace-days-after-end 45
 
 # rebuild + restart the Docker container & prune old images
 openrsvp upgrade-container --host-port 8008 --data-dir ~/OpenRSVP/data</code></pre>
-              <p class="mb-0 text-muted small">Root admin is CLI-only and can view everything but never edits guest content. <code>openrsvp upgrade-container</code> mirrors the documented dev workflow: build, replace the running container, and prune the image it replaced.</p>
+              <p class="mb-0 text-muted small">Root admin is CLI-only and can view everything but never edits guest content. <code>openrsvp upgrade-container</code> mirrors the dev workflow end-to-end: <code>git pull --ff-only</code>, rebuild, replace the running container, and prune the previous image (disable pulling with <code>--no-git-pull</code>).</p>
             </div>
           </div>
           <div class="col-lg-6">

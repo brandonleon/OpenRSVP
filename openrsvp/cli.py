@@ -252,6 +252,11 @@ def upgrade_container(
         "--prune-images/--no-prune-images",
         help="Remove the image that previously backed this container",
     ),
+    git_pull: bool = typer.Option(
+        True,
+        "--git-pull/--no-git-pull",
+        help="Run 'git pull --ff-only' before building the image",
+    ),
 ) -> None:
     """Rebuild, restart, and clean up the Docker container."""
 
@@ -259,6 +264,13 @@ def upgrade_container(
     if not data_dir.exists():
         data_dir.mkdir(parents=True, exist_ok=True)
         typer.echo(f"Created data directory at {data_dir}")
+
+    if git_pull:
+        typer.echo("Fetching latest repository changes (git pull --ff-only)...")
+        _run_command(
+            ["git", "pull", "--ff-only"],
+            "Failed to pull the latest changes from git",
+        )
 
     old_image_ids = _docker_image_ids(image)
     build_cmd = ["docker", "build", "-t", image]
