@@ -81,6 +81,16 @@
             <label class="form-check-label" for="requires-approval">Require admin approval for new RSVPs</label>
             <div class="form-text">Guests will start as pending until you approve or reject them.</div>
           </div>
+          <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" value="true" id="close-rsvps" name="rsvps_closed">
+            <label class="form-check-label" for="close-rsvps">Close RSVPs immediately</label>
+            <div class="form-text">Freeze new submissions until you toggle this back on.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="close-at">Auto-close RSVPs at (optional)</label>
+            <input type="datetime-local" id="close-at" name="rsvp_close_at" class="form-control">
+            <div class="form-text">Pick a future time to flip the toggle for you. Leave blank if you prefer manual control.</div>
+          </div>
           <div class="form-check form-switch mb-4">
             <input class="form-check-input" type="checkbox" value="true" id="is-private" name="is_private">
             <label class="form-check-label" for="is-private">Private event (only accessible via direct link)</label>

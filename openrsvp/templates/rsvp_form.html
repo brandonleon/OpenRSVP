@@ -20,6 +20,11 @@
       {% if message %}
       <div class="alert {{ message_class or 'alert-info' }} mb-3">{{ message }}</div>
       {% endif %}
+      {% if event.rsvps_closed %}
+      <div class="alert alert-danger small" role="alert">
+        The organizer closed RSVPs for this event. You can still browse the details, but new submissions are paused.
+      </div>
+      {% endif %}
       {% if event_is_full %}
       <div class="alert alert-warning small" role="alert">
         This event is full. You can still RSVP as Maybe or No. If a spot opens, you can switch to Yes later.
@@ -30,50 +35,52 @@
       </div>
       {% endif %}
       <form method="post" action="/e/{{ event.id }}/rsvp" class="mt-1">
-        <div class="mb-3">
-          <label class="form-label">Name</label>
-          <input type="text" name="name" class="form-control" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Pronouns</label>
-          <input type="text" name="pronouns" class="form-control" placeholder="Optional">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Status</label>
-          <select name="attendance_status" class="form-select" required>
-            <option value="yes" {% if event_is_full %}disabled{% endif %}>Yes</option>
-            <option value="no">No</option>
-            <option value="maybe">Maybe</option>
-          </select>
-          {% if event_is_full %}
-          <div class="form-text text-warning">Yes is closed right now. Choose Maybe and switch to Yes later if a spot opens.</div>
-          {% elif event.max_attendees %}
-          <div class="form-text">Only Yes counts against the limit; Maybe keeps you flexible.</div>
+        <fieldset {% if event.rsvps_closed %}disabled{% endif %}>
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input type="text" name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Pronouns</label>
+            <input type="text" name="pronouns" class="form-control" placeholder="Optional">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select name="attendance_status" class="form-select" required>
+              <option value="yes" {% if event_is_full %}disabled{% endif %}>Yes</option>
+              <option value="no">No</option>
+              <option value="maybe">Maybe</option>
+            </select>
+            {% if event_is_full %}
+            <div class="form-text text-warning">Yes is closed right now. Choose Maybe and switch to Yes later if a spot opens.</div>
+            {% elif event.max_attendees %}
+            <div class="form-text">Only Yes counts against the limit; Maybe keeps you flexible.</div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Guest Count (extra people with you)</label>
+            <input type="number" name="guest_count" class="form-control" min="0" max="5" value="0">
+            <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests).</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Notes</label>
+            <textarea name="note" class="form-control" rows="3" placeholder="Anything we should know"></textarea>
+            <div class="form-text">Notes are shared privately with the organizer.</div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" value="true" id="rsvp-private" name="is_private_rsvp">
+            <label class="form-check-label" for="rsvp-private">Hide my RSVP from the public list</label>
+            <div class="form-text">The event host will still see it; this only hides it from other guests.</div>
+          </div>
+          {% if event.admin_approval_required %}
+          <div class="alert alert-warning small" role="alert">
+            This organizer reviews RSVPs before approving them. You'll receive a pending status until they decide.
+          </div>
           {% endif %}
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Guest Count (extra people with you)</label>
-          <input type="number" name="guest_count" class="form-control" min="0" max="5" value="0">
-          <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests).</div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Notes</label>
-          <textarea name="note" class="form-control" rows="3" placeholder="Anything we should know"></textarea>
-          <div class="form-text">Notes are shared privately with the organizer.</div>
-        </div>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" value="true" id="rsvp-private" name="is_private_rsvp">
-          <label class="form-check-label" for="rsvp-private">Hide my RSVP from the public list</label>
-          <div class="form-text">The event host will still see it; this only hides it from other guests.</div>
-        </div>
-        {% if event.admin_approval_required %}
-        <div class="alert alert-warning small" role="alert">
-          This organizer reviews RSVPs before approving them. You'll receive a pending status until they decide.
-        </div>
-        {% endif %}
+        </fieldset>
         <div class="d-flex flex-wrap gap-2">
           <a class="btn btn-outline-secondary" href="/e/{{ event.id }}">Cancel</a>
-          <button class="btn btn-primary" type="submit">Create RSVP</button>
+          <button class="btn btn-primary" type="submit" {% if event.rsvps_closed %}disabled{% endif %}>Create RSVP</button>
         </div>
       </form>
     </div>

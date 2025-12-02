@@ -698,6 +698,70 @@ def test_maybe_and_no_allowed_when_full(client):
     session.close()
 
 
+def test_html_rsvp_submission_blocked_when_closed(client):
+    session = database.SessionLocal()
+    event = _make_event(session)
+    event.rsvps_closed = True
+    session.commit()
+    response = client.post(
+        f"/e/{event.id}/rsvp",
+        data={
+            "name": "Blocked Guest",
+            "attendance_status": "yes",
+            "pronouns": "",
+            "guest_count": 0,
+            "note": "",
+            "timezone_offset_minutes": "0",
+        },
+    )
+    assert response.status_code == 403
+    assert "closed RSVPs" in response.text
+    session.close()
+
+
+def test_api_rsvp_submission_blocked_when_closed(client):
+    session = database.SessionLocal()
+    event = _make_event(session)
+    event.rsvps_closed = True
+    session.commit()
+    response = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "API Blocked",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert response.status_code == 403
+    assert response.json() == api.RSVPS_CLOSED_ERROR
+    session.close()
+
+
+def test_auto_close_flip_occurs_on_access(client):
+    session = database.SessionLocal()
+    past = utcnow() - timedelta(hours=1)
+    event = create_event(
+        session,
+        title="Auto Close",
+        description="",
+        start_time=utcnow(),
+        end_time=None,
+        location="Space",
+        channel=None,
+        is_private=False,
+        rsvps_closed=False,
+        rsvp_close_at=past,
+    )
+    session.commit()
+    response = client.get(f"/e/{event.id}")
+    assert response.status_code == 200
+    session.refresh(event)
+    assert event.rsvps_closed is True
+    assert event.rsvp_close_at is None
+    session.close()
+
+
 def test_maybe_to_yes_blocked_when_full(client):
     session = database.SessionLocal()
     event = _make_event(session, max_attendees=1, title="Maybe to Yes Block")

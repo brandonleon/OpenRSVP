@@ -72,6 +72,11 @@ EVENT_FULL_ERROR = {
     "message": "This event has reached its maximum number of attendees.",
 }
 
+RSVPS_CLOSED_ERROR = {
+    "error": "RSVPsClosed",
+    "message": "This organizer closed new RSVPs for this event.",
+}
+
 
 def _normalize_attendance_status(status: str | None) -> str:
     normalized = (status or "").strip().lower() or "yes"
@@ -352,10 +357,28 @@ async def site_webmanifest(request: Request):
     return JSONResponse(manifest, headers=headers)
 
 
+def _apply_pending_rsvp_close(event: Event, db: Session) -> None:
+    if (
+        event.rsvps_closed
+        or not event.rsvp_close_at
+        or event.rsvp_close_at > utcnow()
+    ):
+        return
+    event.rsvps_closed = True
+    event.rsvp_close_at = None
+    db.add(event)
+
+
+def _sync_rsvp_close_states(events: Iterable[Event], db: Session) -> None:
+    for event in events:
+        _apply_pending_rsvp_close(event, db)
+
+
 def _ensure_event(db: Session, event_id: str) -> Event:
     event = db.get(Event, event_id)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    _apply_pending_rsvp_close(event, db)
     return event
 
 
@@ -433,6 +456,24 @@ def _event_full_response(request: Request, template: str | None, context: dict):
     raise HTTPException(status_code=400, detail=EVENT_FULL_ERROR["message"])
 
 
+def _event_closed_response(
+    request: Request, template: str | None, context: dict | None = None
+):
+    if _wants_json(request):
+        return JSONResponse(RSVPS_CLOSED_ERROR, status_code=403)
+    if template:
+        payload = dict(context or {})
+        payload["message"] = RSVPS_CLOSED_ERROR["message"]
+        payload["message_class"] = "alert-danger"
+        return templates.TemplateResponse(
+            request,
+            template,
+            payload,
+            status_code=403,
+        )
+    raise HTTPException(status_code=403, detail=RSVPS_CLOSED_ERROR["message"])
+
+
 def _require_admin_or_root(event: Event, admin_token: str) -> None:
     if admin_token == event.admin_token:
         return
@@ -482,6 +523,17 @@ def _normalize_event_times(
             status_code=400, detail="End time must be after the start time"
         )
     return normalized_start, normalized_end
+
+
+def _normalize_optional_close_time(
+    close_time: str | None, timezone_offset_minutes: int
+) -> datetime | None:
+    if close_time is None:
+        return None
+    if isinstance(close_time, str) and not close_time.strip():
+        return None
+    parsed_close = _parse_datetime(close_time)
+    return _local_to_utc(parsed_close, timezone_offset_minutes)
 
 
 def _serialize_channel(channel: Channel):
@@ -557,6 +609,8 @@ def _serialize_event(
         "score": event.score,
         "max_attendees": event.max_attendees,
         "yes_count": event.yes_count,
+        "rsvps_closed": event.rsvps_closed,
+        "rsvp_close_at": event.rsvp_close_at.isoformat() if event.rsvp_close_at else None,
         "created_at": event.created_at.isoformat(),
         "last_modified": event.last_modified.isoformat(),
         "last_accessed": event.last_accessed.isoformat(),
@@ -713,6 +767,10 @@ class EventCreatePayload(BaseModel):
     max_attendees: int | None = Field(
         None, ge=1, description="Maximum number of YES RSVPs allowed"
     )
+    rsvps_closed: bool = False
+    rsvp_close_at: str | None = Field(
+        None, description="Optional ISO datetime string for auto-closing RSVPs"
+    )
 
 
 class EventUpdatePayload(BaseModel):
@@ -728,6 +786,10 @@ class EventUpdatePayload(BaseModel):
     admin_approval_required: bool | None = None
     max_attendees: int | None = Field(
         None, ge=1, description="Maximum number of YES RSVPs allowed"
+    )
+    rsvps_closed: bool | None = None
+    rsvp_close_at: str | None = Field(
+        None, description="Optional ISO datetime string for auto-closing RSVPs"
     )
 
 
@@ -927,6 +989,7 @@ def paginate_events(
         stmt = stmt.where(condition)
     stmt = stmt.offset(offset).limit(per_page)
     events = db.scalars(stmt).all()
+    _sync_rsvp_close_states(events, db)
     if include_rsvps:
         for event in events:
             _ = list(event.rsvps)
@@ -1085,7 +1148,9 @@ def _recent_events(
     stmt = select(Event).order_by(Event.start_time.desc()).limit(limit)
     for condition in filters:
         stmt = stmt.where(condition)
-    return db.scalars(stmt).all()
+    events = db.scalars(stmt).all()
+    _sync_rsvp_close_states(events, db)
+    return events
 
 
 def _paginate_events(
@@ -1175,6 +1240,8 @@ def submit_event(
     admin_approval_required: bool = Form(False),
     max_attendees: str | None = Form(None),
     end_time: str | None = Form(None),
+    rsvps_closed: bool = Form(False),
+    rsvp_close_at: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
@@ -1216,6 +1283,12 @@ def submit_event(
                 },
                 status_code=400,
             )
+    normalized_close = _normalize_optional_close_time(
+        rsvp_close_at, timezone_offset_minutes
+    )
+    normalized_close = _normalize_optional_close_time(
+        rsvp_close_at, timezone_offset_minutes
+    )
     try:
         normalized_max = _normalize_max_attendees(max_attendees)
     except HTTPException:
@@ -1241,6 +1314,8 @@ def submit_event(
         is_private=is_private,
         admin_approval_required=admin_approval_required,
         max_attendees=normalized_max,
+        rsvps_closed=rsvps_closed,
+        rsvp_close_at=normalized_close,
     )
     return templates.TemplateResponse(
         request,
@@ -1323,6 +1398,21 @@ def create_rsvp_view(
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
+    if event.rsvps_closed:
+        available_yes_slots = _available_yes_slots(event)
+        event_is_full = (
+            available_yes_slots == 0 if available_yes_slots is not None else False
+        )
+        return _event_closed_response(
+            request,
+            "rsvp_form.html",
+            {
+                "request": request,
+                "event": event,
+                "available_yes_slots": available_yes_slots,
+                "event_is_full": event_is_full,
+            },
+        )
     normalized_status = _normalize_attendance_status(attendance_status)
     guest_count = max(0, min(guest_count, 5))
     try:
@@ -1564,8 +1654,10 @@ def save_event_admin(
     channel_visibility: str = Form("public"),
     is_private: bool = Form(False),
     admin_approval_required: bool = Form(False),
+    rsvps_closed: bool = Form(False),
     max_attendees: str | None = Form(None),
     end_time: str | None = Form(None),
+    rsvp_close_at: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
@@ -1616,6 +1708,9 @@ def save_event_admin(
                 },
                 status_code=400,
             )
+    normalized_close = _normalize_optional_close_time(
+        rsvp_close_at, timezone_offset_minutes
+    )
     try:
         normalized_max = _normalize_max_attendees(max_attendees)
     except HTTPException:
@@ -1685,6 +1780,9 @@ def save_event_admin(
         admin_approval_required=admin_approval_required,
         is_private=is_private,
         max_attendees=normalized_max,
+        rsvps_closed=rsvps_closed,
+        rsvp_close_at=normalized_close,
+        update_rsvp_close_at=True,
     )
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)
@@ -2141,6 +2239,9 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         end_time=payload.end_time,
         timezone_offset_minutes=payload.timezone_offset_minutes,
     )
+    normalized_close = _normalize_optional_close_time(
+        payload.rsvp_close_at, payload.timezone_offset_minutes
+    )
     if not normalized_start:
         raise HTTPException(status_code=400, detail="start_time is required")
 
@@ -2155,6 +2256,8 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         is_private=payload.is_private,
         admin_approval_required=payload.admin_approval_required,
         max_attendees=payload.max_attendees,
+        rsvps_closed=payload.rsvps_closed,
+        rsvp_close_at=normalized_close,
     )
     return {
         "event": _serialize_event(event, include_admin_link=True),
@@ -2211,6 +2314,13 @@ def api_update_event(
         end_time=data.get("end_time"),
         timezone_offset_minutes=tz_offset,
     )
+    update_close = False
+    normalized_close = None
+    if "rsvp_close_at" in data:
+        normalized_close = _normalize_optional_close_time(
+            data.get("rsvp_close_at"), tz_offset
+        )
+        update_close = True
     channel = event.channel
     if "channel_name" in data or "channel_visibility" in data:
         cleaned_channel = (data.get("channel_name") or "").strip()
@@ -2241,6 +2351,9 @@ def api_update_event(
         admin_approval_required=admin_approval_required,
         is_private=data.get("is_private", event.is_private),
         max_attendees=data.get("max_attendees", event.max_attendees),
+        rsvps_closed=data.get("rsvps_closed"),
+        rsvp_close_at=normalized_close,
+        update_rsvp_close_at=update_close,
     )
     return {"event": _serialize_event(event, include_admin_link=True)}
 
@@ -2419,6 +2532,13 @@ def api_create_rsvp(
     normalized_status = _normalize_attendance_status(payload.attendance_status)
     guest_count = _clamp_guest_count(payload.guest_count)
     admin_token = _get_bearer_token(request) if force_accept else None
+    if event.rsvps_closed:
+        if force_accept:
+            if not admin_token:
+                raise HTTPException(status_code=403, detail="Invalid admin token")
+            _require_admin_or_root(event, admin_token)
+        else:
+            return JSONResponse(RSVPS_CLOSED_ERROR, status_code=403)
     try:
         forced = _enforce_attendance_capacity(
             event=event,

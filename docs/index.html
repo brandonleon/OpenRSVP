@@ -79,6 +79,7 @@
               </div>
               <p class="mb-0"><strong>Event owner link</strong>: shown once after creation at <code>/e/&lt;event-id&gt;/admin/&lt;admin-token&gt;</code> and acts as the owner/admin console. Save it—there are no accounts to recover it later.</p>
               <p class="mb-0 mt-2"><strong>Approval gate</strong>: toggle “Require admin approval” to keep new RSVPs pending until the event owner approves or rejects them in the owner view.</p>
+              <p class="mb-0 mt-2"><strong>RSVP window</strong>: flip “Close RSVPs” at any time or schedule an auto-close timestamp that toggles the switch for you.</p>
               <p class="mb-0 text-muted small mt-2">The event owner page lets hosts edit details or delete the event entirely (which also removes all RSVPs).</p>
             </div>
           </div>
@@ -91,6 +92,7 @@
                 <li>Edit or delete your own RSVP anytime using the token link.</li>
                 <li>Events with approval enabled hold new RSVPs as <strong>pending</strong> until the host marks them approved or rejected.</li>
                 <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
+                <li>Hosts may close RSVPs entirely (manually or scheduled); existing guests retain edit/delete access via their token.</li>
               </ul>
             </div>
           </div>
@@ -195,6 +197,7 @@
                 <li>Only <strong>Yes</strong> RSVPs count toward the limit; Maybe/No do not.</li>
                 <li>When full, standard users cannot submit a Yes RSVP.</li>
                 <li>Admins can still force-accept guests above the cap.</li>
+                <li>Need a hard cutoff instead of a cap? Use the “Close RSVPs” toggle or schedule an auto-close time.</li>
               </ul>
               <h4 class="h6 text-uppercase text-muted">EventFull response</h4>
               <pre><code>HTTP 400

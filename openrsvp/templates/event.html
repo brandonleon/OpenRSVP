@@ -17,7 +17,20 @@
       </div>
       {% endif %}
       {% endif %}
-      <a class="btn btn-primary btn-lg" href="/e/{{ event.id }}/rsvp">Submit RSVP</a>
+      {% if event.rsvps_closed %}
+      <div class="alert alert-danger small mb-0 text-start w-100">
+        RSVPs are currently closed. Check back later or contact the organizer directly.
+      </div>
+      {% elif event.rsvp_close_at %}
+      <div class="alert alert-info small mb-0 text-start w-100">
+        RSVPs auto-close {{ event.rsvp_close_at|relative_time }}.
+      </div>
+      {% endif %}
+      {% if event.rsvps_closed %}
+      <button class="btn btn-secondary btn-lg w-100" type="button" disabled>RSVPs closed</button>
+      {% else %}
+      <a class="btn btn-primary btn-lg w-100" href="/e/{{ event.id }}/rsvp">Submit RSVP</a>
+      {% endif %}
       <a class="btn btn-outline-secondary btn-lg" href="/api/v1/events/{{ event.id }}/event.ics">Add to Calendar</a>
     </div>
   </div>
@@ -118,12 +131,16 @@
     <div class="p-4 card-flush rounded-3 shadow-sm">
       <h3 class="h6 text-uppercase text-secondary mb-3">Need to edit your RSVP?</h3>
       <p class="text-secondary small mb-3">You'll get a magic link after submitting. Keep it safe—it's your passwordless key.</p>
-      {% if event.admin_approval_required %}
-      <div class="alert alert-warning small" role="alert">
-        This organizer approves RSVPs before they appear here. You'll see your status on your magic link.
-      </div>
-      {% endif %}
+    {% if event.admin_approval_required %}
+    <div class="alert alert-warning small" role="alert">
+      This organizer approves RSVPs before they appear here. You'll see your status on your magic link.
+    </div>
+    {% endif %}
+      {% if event.rsvps_closed %}
+      <button class="btn btn-outline-light w-100" type="button" disabled>RSVPs closed</button>
+      {% else %}
       <a class="btn btn-outline-light w-100" href="/e/{{ event.id }}/rsvp">Start your RSVP</a>
+      {% endif %}
     </div>
   </div>
 </div>

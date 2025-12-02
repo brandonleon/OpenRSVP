@@ -46,6 +46,8 @@ class Event(Base):
     channel_id = Column(String(36), ForeignKey("channels.id"), nullable=True)
     is_private = Column(Boolean, default=False, nullable=False)
     admin_approval_required = Column(Boolean, default=False, nullable=False)
+    rsvps_closed = Column(Boolean, default=False, nullable=False)
+    rsvp_close_at = Column(DateTime, nullable=True)
     max_attendees = Column(Integer, nullable=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)

@@ -91,14 +91,19 @@ def create_event(
     admin_approval_required: bool = False,
     is_private: bool = False,
     max_attendees: int | None = None,
+    rsvps_closed: bool = False,
+    rsvp_close_at: datetime | None = None,
 ) -> Event:
     """Create and persist a new event."""
     normalized_start = to_naive_utc(start_time)
     normalized_end = to_naive_utc(end_time)
+    normalized_close = to_naive_utc(rsvp_close_at)
     event = Event(
         admin_token=secrets.token_urlsafe(32),
         is_private=is_private,
         admin_approval_required=admin_approval_required,
+        rsvps_closed=rsvps_closed,
+        rsvp_close_at=normalized_close,
         max_attendees=max_attendees,
         title=title,
         description=description,
@@ -126,6 +131,9 @@ def update_event(
     admin_approval_required: bool,
     is_private: bool,
     max_attendees: int | None = None,
+    rsvps_closed: bool | None = None,
+    rsvp_close_at: datetime | None = None,
+    update_rsvp_close_at: bool = False,
 ) -> Event:
     """Update an existing event."""
     normalized_start = to_naive_utc(start_time)
@@ -139,6 +147,10 @@ def update_event(
     event.admin_approval_required = admin_approval_required
     event.channel = channel
     event.max_attendees = max_attendees
+    if rsvps_closed is not None:
+        event.rsvps_closed = rsvps_closed
+    if update_rsvp_close_at:
+        event.rsvp_close_at = to_naive_utc(rsvp_close_at)
     event.last_modified = _now()
     session.add(event)
     session.flush()

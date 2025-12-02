@@ -25,6 +25,11 @@
         <div>
           <a class="fw-semibold text-decoration-none text-reset" href="/e/{{ event.id }}">{{ event.title }}</a>
           <div class="text-muted small">{{ event.location or 'Location TBD' }}</div>
+          {% if event.rsvps_closed %}
+          <div class="mt-1"><span class="badge bg-danger text-uppercase">RSVPs closed</span></div>
+          {% elif event.rsvp_close_at %}
+          <div class="mt-1"><span class="badge bg-info text-dark text-uppercase">Auto closes {{ event.rsvp_close_at|relative_time }}</span></div>
+          {% endif %}
         </div>
         <div
           class="text-end js-event-time"

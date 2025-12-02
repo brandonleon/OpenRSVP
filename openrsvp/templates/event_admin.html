@@ -18,6 +18,11 @@
         <div class="mt-2">RSVPs: {{ rsvps|length }}</div>
         {% if event.admin_approval_required %}<div class="mt-1 badge bg-warning text-dark text-uppercase">Approval required</div>{% endif %}
         {% if event.is_private %}<div class="mt-1 badge bg-warning text-dark text-uppercase">Private event</div>{% endif %}
+        {% if event.rsvps_closed %}
+        <div class="mt-1 badge bg-danger text-uppercase">RSVPs closed</div>
+        {% elif event.rsvp_close_at %}
+        <div class="mt-1 badge bg-info text-dark text-uppercase">Auto closes {{ event.rsvp_close_at|relative_time }}</div>
+        {% endif %}
       </div>
       <div class="d-flex flex-column align-items-end gap-1">
         <div class="btn-group">
@@ -222,6 +227,26 @@
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
             <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
+          </div>
+          <div class="form-check form-switch mt-3 mb-3">
+            <input class="form-check-input" type="checkbox" id="admin-rsvps-closed" name="rsvps_closed" value="true" {% if event.rsvps_closed %}checked{% endif %}>
+            <label class="form-check-label" for="admin-rsvps-closed">Close RSVPs (pause new submissions)</label>
+            <div class="form-text">Guests can still edit or delete their existing RSVP, but new entries are blocked until you reopen.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="admin-close-at">Auto-close RSVPs at (optional)</label>
+            <input
+              type="datetime-local"
+              id="admin-close-at"
+              name="rsvp_close_at"
+              class="form-control"
+              value="{{ event.rsvp_close_at.strftime('%Y-%m-%dT%H:%M') if event.rsvp_close_at else '' }}"
+              data-utc-input="{{ event.rsvp_close_at.isoformat(timespec='seconds') + 'Z' if event.rsvp_close_at else '' }}"
+            >
+            <div class="form-text">Set a future time to flip the toggle automatically. Clear the field to remove the schedule.</div>
+            {% if event.rsvp_close_at %}
+            <div class="form-text text-muted">Currently set to {{ event.rsvp_close_at|relative_time }}.</div>
+            {% endif %}
           </div>
         </div>
         <div class="d-flex flex-wrap gap-2">

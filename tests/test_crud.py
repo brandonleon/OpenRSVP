@@ -127,6 +127,41 @@ def test_create_and_update_rsvp(session):
     assert rsvp.is_private is False
 
 
+def test_rsvp_close_controls(session):
+    start = utcnow()
+    close_at = start + timedelta(days=1)
+    event = create_event(
+        session,
+        title="RSVP Window",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        is_private=False,
+        rsvps_closed=False,
+        rsvp_close_at=None,
+    )
+    session.commit()
+    update_event(
+        session,
+        event,
+        title=event.title,
+        description=event.description,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        admin_approval_required=False,
+        is_private=False,
+        rsvps_closed=True,
+        rsvp_close_at=close_at,
+        update_rsvp_close_at=True,
+    )
+    assert event.rsvps_closed is True
+    assert event.rsvp_close_at == close_at
+
+
 def test_rsvp_pending_until_approved_when_required(session):
     channel = ensure_channel(session, name="Approval", visibility="public")
     start = utcnow()
