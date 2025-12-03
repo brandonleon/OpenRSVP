@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+    container_name: openrsvp_app_dev
+    ports:
+      - "8000:8000"
+    environment:
+      UVICORN_RELOAD: "true"
+    restart: unless-stopped

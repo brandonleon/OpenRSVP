@@ -216,54 +216,56 @@ def seed_data(
 
 @app.command("upgrade-container")
 def upgrade_container(
-    image: str = typer.Option(
-        "openrsvp", "--image", help="Docker image tag/name to build and run"
+    prod: bool = typer.Option(
+        False,
+        "--prod",
+        help="Use docker-compose.yml (nginx + TLS) for production deployments",
     ),
-    container_name: str = typer.Option(
-        "openrsvp", "--container-name", help="Name of the running Docker container"
+    dev: bool = typer.Option(
+        False,
+        "--dev",
+        help="Use docker-compose.dev.yml (app only) for local development",
     ),
-    host_port: int = typer.Option(
-        8000,
-        "--host-port",
-        help="Host port that forwards to the container",
-    ),
-    container_port: int = typer.Option(
-        settings.app_port,
-        "--container-port",
-        help="Container port exposed by the OpenRSVP app",
-    ),
-    data_dir: Path = typer.Option(
-        settings.data_dir,
-        "--data-dir",
-        help="Host directory to mount into the container for persistent data",
-    ),
-    mount_path: str = typer.Option(
-        "/data",
-        "--mount-path",
-        help="Path inside the container for the mounted data directory",
-    ),
-    dockerfile: Path | None = typer.Option(
+    compose_file: Path | None = typer.Option(
         None,
-        "--dockerfile",
-        help="Optional Dockerfile path (defaults to ./Dockerfile)",
-    ),
-    prune_images: bool = typer.Option(
-        True,
-        "--prune-images/--no-prune-images",
-        help="Remove the image that previously backed this container",
+        "--compose-file",
+        help="Override the docker compose file (implies --dev if neither flag provided)",
     ),
     git_pull: bool = typer.Option(
         True,
         "--git-pull/--no-git-pull",
-        help="Run 'git pull --ff-only' before building the image",
+        help="Run 'git pull --ff-only' before rebuilding containers",
     ),
 ) -> None:
-    """Rebuild, restart, and clean up the Docker container."""
+    """Rebuild and restart the Docker Compose stack."""
 
-    data_dir = data_dir.expanduser()
-    if not data_dir.exists():
-        data_dir.mkdir(parents=True, exist_ok=True)
-        typer.echo(f"Created data directory at {data_dir}")
+    if prod and dev:
+        typer.secho(
+            "Specify only one of --prod or --dev when upgrading containers.",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    environment = "prod" if prod else "dev"
+    if compose_file:
+        target_compose = compose_file.expanduser().resolve()
+        env_description = "custom compose file"
+        stack_label = target_compose.name
+    else:
+        target_name = "docker-compose.yml" if environment == "prod" else "docker-compose.dev.yml"
+        target_compose = PROJECT_ROOT / target_name
+        env_label = "production" if environment == "prod" else "development"
+        env_description = f"{env_label} environment"
+        stack_label = f"{env_label.capitalize()} stack"
+
+    if not target_compose.exists():
+        typer.secho(
+            f"Docker Compose file not found: {target_compose}",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
 
     if git_pull:
         typer.echo("Fetching latest repository changes (git pull --ff-only)...")
@@ -272,52 +274,26 @@ def upgrade_container(
             "Failed to pull the latest changes from git",
         )
 
-    old_image_ids = _docker_image_ids(image)
-    build_cmd = ["docker", "build", "-t", image]
-    if dockerfile:
-        build_cmd.extend(["-f", str(dockerfile)])
-    build_cmd.append(".")
-    typer.echo(f"Building Docker image '{image}'...")
-    _run_command(build_cmd, f"Failed to build Docker image '{image}'")
-    new_image_id = _current_image_id(image)
+    compose_base = ["docker", "compose", "-f", os.fspath(target_compose)]
 
-    if _container_exists(container_name):
-        typer.echo(f"Stopping and removing existing container '{container_name}'")
-        _run_command(
-            ["docker", "rm", "--force", container_name],
-            f"Failed to remove existing container '{container_name}'",
-        )
-    else:
-        typer.echo(f"No existing container named '{container_name}' to remove.")
-
-    run_cmd = [
-        "docker",
-        "run",
-        "-d",
-        "--name",
-        container_name,
-        "-p",
-        f"{host_port}:{container_port}",
-        "-v",
-        f"{os.fspath(data_dir)}:{mount_path}",
-    ]
-    run_cmd.append(image)
     typer.echo(
-        f"Starting container '{container_name}' on {host_port}->{container_port} using image '{image}'."
+        f"Building containers defined in {target_compose.name} ({env_description})..."
     )
-    _run_command(run_cmd, f"Failed to start container '{container_name}'")
+    _run_command(
+        compose_base + ["build"],
+        f"Failed to build containers defined in {target_compose.name}",
+    )
 
-    if prune_images:
-        if not new_image_id:
-            typer.echo(
-                "Unable to identify the newly built Docker image; skipping prune."
-            )
-        else:
-            stale_ids = [img_id for img_id in old_image_ids if img_id != new_image_id]
-            if stale_ids:
-                _remove_images(stale_ids)
-            else:
-                typer.echo("No prior Docker image found to prune.")
+    typer.echo("Starting containers (docker compose up -d --remove-orphans)...")
+    _run_command(
+        compose_base + ["up", "-d", "--remove-orphans"],
+        f"Failed to start containers defined in {target_compose.name}",
+    )
+
+    typer.secho(
+        f"{stack_label} is up to date.",
+        fg=typer.colors.GREEN,
+    )
 
 
 @app.command("config")
@@ -501,57 +477,6 @@ def _run_command_with_output(
         if exc.stderr:
             typer.secho(exc.stderr.strip(), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=exc.returncode or 1)
-
-
-def _docker_image_ids(image: str) -> list[str]:
-    result = _run_command_with_output(
-        ["docker", "images", image, "--format", "{{.ID}}"],
-        "Unable to inspect Docker images",
-    )
-    ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    # Deduplicate while preserving order
-    return list(dict.fromkeys(ids))
-
-
-def _current_image_id(image: str) -> str | None:
-    ids = _docker_image_ids(image)
-    return ids[0] if ids else None
-
-
-def _container_exists(container_name: str) -> bool:
-    result = _run_command_with_output(
-        [
-            "docker",
-            "ps",
-            "-a",
-            "--filter",
-            f"name=^{container_name}$",
-            "--format",
-            "{{.ID}}",
-        ],
-        f"Unable to inspect Docker containers for '{container_name}'",
-    )
-    return bool(result.stdout.strip())
-
-
-def _remove_images(image_ids: list[str]) -> None:
-    typer.echo(f"Removing replaced Docker image(s): {' '.join(image_ids)}")
-    result = subprocess.run(
-        ["docker", "rmi", *image_ids],
-        cwd=PROJECT_ROOT,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode == 0:
-        typer.echo("Old Docker image(s) removed.")
-    else:
-        typer.secho(
-            "Unable to remove old Docker images (they might still be in use).",
-            err=True,
-            fg=typer.colors.YELLOW,
-        )
-        if result.stderr:
-            typer.secho(result.stderr.strip(), err=True, fg=typer.colors.YELLOW)
 
 
 def _read_project_version() -> str:
