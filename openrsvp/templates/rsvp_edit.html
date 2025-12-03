@@ -124,27 +124,7 @@
       >
         <button class="btn btn-danger" type="submit">Delete My RSVP</button>
       </form>
-      <div class="mt-4">
-        <h3 class="h6 text-uppercase text-muted mb-2">Messages</h3>
-        {% set attendee_feed = attendee_messages or [] %}
-        {% if attendee_feed %}
-        <div class="list-group list-group-flush">
-          {% for message in attendee_feed %}
-          <div class="list-group-item px-0">
-            <div class="d-flex justify-content-between align-items-start gap-2">
-              <div>
-                <div class="fw-semibold">{{ message.content }}</div>
-                <div class="small text-muted">{{ message.created_at|relative_time }}</div>
-              </div>
-              <span class="badge bg-light text-dark text-uppercase">{{ message.message_type }}</span>
-            </div>
-          </div>
-          {% endfor %}
-        </div>
-        {% else %}
-        <p class="text-muted small mb-0">No messages yet.</p>
-        {% endif %}
-      </div>
+      {% include "partials/attendee_messages.html" %}
     </div>
   </div>
 </div>

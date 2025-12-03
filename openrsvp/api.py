@@ -845,6 +845,10 @@ class MessageCreatePayload(BaseModel):
     message_type: str
 
 
+class AttendeeMessagePayload(BaseModel):
+    content: str
+
+
 class StatusChangePayload(BaseModel):
     reason: str | None = None
 
@@ -916,6 +920,30 @@ def _admin_rsvp_partial_response(
             "approval_counts": approval_counts,
             "rsvp_total": len(rsvps),
             "event_is_full": event_is_full,
+        },
+    )
+    return _no_cache(response)
+
+
+def _attendee_messages_partial_response(
+    request: Request,
+    *,
+    event: Event,
+    rsvp: RSVP,
+    attendee_message_flash: str | None = None,
+    attendee_message_class: str | None = None,
+):
+    attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
+    response = templates.TemplateResponse(
+        request,
+        "partials/attendee_messages.html",
+        {
+            "request": request,
+            "event": event,
+            "rsvp": rsvp,
+            "attendee_messages": attendee_messages,
+            "attendee_message_flash": attendee_message_flash,
+            "attendee_message_class": attendee_message_class,
         },
     )
     return _no_cache(response)
@@ -1519,6 +1547,8 @@ def edit_rsvp(
             "attendee_messages": attendee_messages,
             "available_yes_slots": available_yes_slots,
             "event_is_full": event_is_full,
+            "attendee_message_flash": None,
+            "attendee_message_class": None,
         },
     )
 
@@ -1595,6 +1625,58 @@ def save_rsvp(
             "event_is_full": event_is_full,
             "message": "RSVP updated",
             "message_class": "alert-success",
+            "attendee_message_flash": None,
+            "attendee_message_class": None,
+        },
+    )
+
+
+@app.post("/e/{event_id}/rsvp/{rsvp_token}/messages")
+def add_attendee_rsvp_message(
+    event_id: str,
+    rsvp_token: str,
+    request: Request,
+    content: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _ensure_rsvp(db, event, rsvp_token)
+    message = _create_message_if_content(
+        db,
+        event=event,
+        rsvp=rsvp,
+        author_id=rsvp.id,
+        message_type="user_note",
+        visibility="attendee",
+        content=content,
+    )
+    attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
+    available_yes_slots = _available_yes_slots(event, current_rsvp=rsvp)
+    event_is_full = _available_yes_slots(event) == 0 if event.max_attendees else False
+    attendee_message_flash = (
+        "Message sent" if message else "Message cannot be empty"
+    )
+    attendee_message_class = "alert-success" if message else "alert-danger"
+    if _is_htmx(request):
+        return _attendee_messages_partial_response(
+            request,
+            event=event,
+            rsvp=rsvp,
+            attendee_message_flash=attendee_message_flash,
+            attendee_message_class=attendee_message_class,
+        )
+    return templates.TemplateResponse(
+        request,
+        "rsvp_edit.html",
+        {
+            "request": request,
+            "event": event,
+            "rsvp": rsvp,
+            "attendee_messages": attendee_messages,
+            "available_yes_slots": available_yes_slots,
+            "event_is_full": event_is_full,
+            "attendee_message_flash": attendee_message_flash,
+            "attendee_message_class": attendee_message_class,
         },
     )
 
@@ -1999,12 +2081,52 @@ def add_admin_rsvp_note(
         visibility="admin",
         content=content,
     )
+    if _is_htmx(request):
+        return _admin_rsvp_partial_response(
+            request, event=event, admin_token=admin_token, rsvp=rsvp
+        )
     if not message:
         params = urlencode(
             {"message": "Note cannot be empty", "message_class": "alert-danger"}
         )
     else:
         params = urlencode({"message": "Note added", "message_class": "alert-success"})
+    return RedirectResponse(
+        url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
+    )
+
+
+@app.post("/e/{event_id}/admin/{admin_token}/rsvp/{rsvp_id}/message")
+def add_admin_rsvp_message(
+    event_id: str,
+    admin_token: str,
+    rsvp_id: str,
+    request: Request,
+    content: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    _require_admin_or_root(event, admin_token)
+    rsvp = _ensure_rsvp_by_id(db, event, rsvp_id)
+    message = _create_message_if_content(
+        db,
+        event=event,
+        rsvp=rsvp,
+        author_id=None,
+        message_type="admin_message",
+        visibility="attendee",
+        content=content,
+    )
+    if _is_htmx(request):
+        return _admin_rsvp_partial_response(
+            request, event=event, admin_token=admin_token, rsvp=rsvp
+        )
+    if not message:
+        params = urlencode(
+            {"message": "Message cannot be empty", "message_class": "alert-danger"}
+        )
+    else:
+        params = urlencode({"message": "Message sent", "message_class": "alert-success"})
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
@@ -2496,6 +2618,33 @@ def api_pending_rsvp(
     )
 
 
+@app.post("/api/v1/events/{event_id}/rsvps/self/messages", status_code=201)
+def api_create_attendee_message(
+    event_id: str,
+    payload: AttendeeMessagePayload,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    event = _ensure_event(db, event_id)
+    rsvp = _require_rsvp_from_header(event, request, db)
+    message = _create_message_if_content(
+        db,
+        event=event,
+        rsvp=rsvp,
+        author_id=rsvp.id,
+        message_type="user_note",
+        visibility="attendee",
+        content=payload.content,
+    )
+    if not message:
+        raise HTTPException(status_code=400, detail="Content is required")
+    attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
+    return {
+        "message": _serialize_message(message),
+        "messages": [_serialize_message(m) for m in attendee_messages],
+    }
+
+
 @app.post("/events/{event_id}/messages", status_code=201)
 def api_create_event_message(
     event_id: str,
@@ -2525,6 +2674,7 @@ def api_create_event_message(
 
 
 @app.post("/events/{event_id}/rsvps/{rsvp_id}/messages", status_code=201)
+@app.post("/api/v1/events/{event_id}/rsvps/{rsvp_id}/messages", status_code=201)
 def api_create_rsvp_message(
     event_id: str,
     rsvp_id: str,
@@ -2540,8 +2690,19 @@ def api_create_rsvp_message(
         raise HTTPException(
             status_code=400, detail="Invalid visibility for RSVP message"
         )
-    if payload.message_type not in {"admin_note", "rejection_reason", "user_note"}:
+    allowed_types = {"admin_note", "rejection_reason", "user_note", "admin_message"}
+    if payload.message_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Invalid message type for RSVP")
+    if payload.message_type == "admin_note" and visibility != "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Admin notes must use admin visibility",
+        )
+    if payload.message_type == "admin_message" and visibility != "attendee":
+        raise HTTPException(
+            status_code=400,
+            detail="Admin messages must be visible to attendees",
+        )
     message = _create_message_if_content(
         db,
         event=event,

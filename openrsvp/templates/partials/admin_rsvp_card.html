@@ -86,11 +86,32 @@
       </div>
     </div>
     <div class="mt-3">
-      <form method="post" action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/note">
+      <form
+        method="post"
+        action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/note"
+        hx-post="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/note"
+        hx-target="closest [data-rsvp-card]"
+        hx-swap="outerHTML"
+      >
         <label class="form-label small fw-semibold">Add admin note</label>
         <div class="d-flex gap-2 flex-wrap">
           <textarea name="content" class="form-control" rows="2" placeholder="Private note for admins" required></textarea>
           <button class="btn btn-primary" type="submit">Save</button>
+        </div>
+      </form>
+    </div>
+    <div class="mt-3">
+      <form
+        method="post"
+        action="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/message"
+        hx-post="/e/{{ event.id }}/admin/{{ admin_token }}/rsvp/{{ rsvp.id }}/message"
+        hx-target="closest [data-rsvp-card]"
+        hx-swap="outerHTML"
+      >
+        <label class="form-label small fw-semibold">Message guest</label>
+        <div class="d-flex gap-2 flex-wrap">
+          <textarea name="content" class="form-control" rows="2" placeholder="Visible to this guest via their RSVP link" required></textarea>
+          <button class="btn btn-outline-primary" type="submit">Send</button>
         </div>
       </form>
     </div>
