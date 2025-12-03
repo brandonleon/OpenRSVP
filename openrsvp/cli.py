@@ -296,6 +296,65 @@ def upgrade_container(
     )
 
 
+@app.command("renew-certs")
+def renew_certs(
+    compose_file: Path | None = typer.Option(
+        None,
+        "--compose-file",
+        help="Path to docker-compose.yml (defaults to project docker-compose.yml)",
+    ),
+    certbot_service: str = typer.Option(
+        "certbot",
+        "--certbot-service",
+        help="Name of the certbot service in docker-compose",
+    ),
+    nginx_service: str = typer.Option(
+        "nginx",
+        "--nginx-service",
+        help="Name of the nginx service to reload after renewal",
+    ),
+    webroot: str = typer.Option(
+        "/var/www/certbot",
+        "--webroot",
+        help="Webroot used for certbot HTTP-01 validation",
+    ),
+) -> None:
+    """Renew TLS certificates via Docker Compose and reload nginx."""
+
+    target_compose = (
+        compose_file.expanduser().resolve()
+        if compose_file
+        else PROJECT_ROOT / "docker-compose.yml"
+    )
+
+    if not target_compose.exists():
+        typer.secho(
+            f"Docker Compose file not found: {target_compose}",
+            err=True,
+            fg=typer.colors.RED,
+        )
+        raise typer.Exit(code=1)
+
+    compose_base = ["docker", "compose", "-f", os.fspath(target_compose)]
+
+    typer.echo(
+        f"Renewing certificates via {target_compose.name} (service '{certbot_service}')..."
+    )
+    _run_command(
+        compose_base
+        + ["run", "--rm", certbot_service, "renew", "--webroot", "-w", webroot],
+        f"Failed to renew certificates using service '{certbot_service}'",
+    )
+
+    typer.echo(f"Reloading nginx service '{nginx_service}' to apply new certificates...")
+    _run_command(
+        compose_base + ["exec", nginx_service, "nginx", "-s", "reload"],
+        f"Failed to reload nginx service '{nginx_service}'",
+    )
+
+    typer.secho("Certificate renewal complete.", fg=typer.colors.GREEN)
+
+
 @app.command("config")
 def configure(
     show: bool = typer.Option(
