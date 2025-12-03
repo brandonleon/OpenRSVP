@@ -285,7 +285,7 @@
       <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div>
           <h3 class="h6 text-uppercase text-muted mb-0">RSVPs</h3>
-          <div class="small text-muted">Filter by approval status and add admin-only notes.</div>
+          <div class="small text-muted">Filter by approval status, add admin-only notes, and message guests.</div>
         </div>
         {% set rsvp_total = rsvps|length %}
         {% include "partials/admin_approval_filters.html" %}
@@ -366,7 +366,7 @@
                     <div>
                       <div class="fw-semibold">{{ message.content }}</div>
                       <div class="small text-muted">
-                        {% if message.rsvp and message.message_type in ['user_note', 'rsvp_status_change', 'rsvp_created'] %}
+                        {% if message.rsvp and message.message_type in ['user_note', 'rsvp_status_change', 'rsvp_created', 'admin_message'] %}
                         <span class="fw-semibold message-user-note-name">{{ message.rsvp.name }}</span>
                         &middot;
                         {% endif %}

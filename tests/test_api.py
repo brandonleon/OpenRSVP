@@ -605,6 +605,90 @@ def test_rejection_adds_attendee_message_and_keeps_public_hidden(client):
     session.close()
 
 
+def test_admin_can_message_attendee_via_api(client):
+    session = database.SessionLocal()
+    event = _make_event(session, title="Chatty Event")
+    session.close()
+
+    create_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Chat Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert create_resp.status_code == 201
+    rsvp_token = create_resp.json()["rsvp"]["rsvp_token"]
+    headers = {"Authorization": f"Bearer {event.admin_token}"}
+    rsvp_list = client.get(f"/api/v1/events/{event.id}/rsvps", headers=headers)
+    assert rsvp_list.status_code == 200
+    rsvp_id = rsvp_list.json()["rsvps"][0]["id"]
+
+    message_payload = {
+        "content": "Please arrive 15 minutes early.",
+        "visibility": "attendee",
+        "message_type": "admin_message",
+    }
+    message_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps/{rsvp_id}/messages",
+        headers=headers,
+        json=message_payload,
+    )
+    assert message_resp.status_code == 201
+    api_message = message_resp.json()["message"]
+    assert api_message["message_type"] == "admin_message"
+    assert api_message["visibility"] == "attendee"
+
+    attendee_resp = client.get(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        headers={"Authorization": f"Bearer {rsvp_token}"},
+    )
+    assert attendee_resp.status_code == 200
+    attendee_messages = attendee_resp.json()["rsvp"]["messages"]
+    assert any(m["message_type"] == "admin_message" for m in attendee_messages)
+
+
+def test_attendee_can_send_message_via_api(client):
+    session = database.SessionLocal()
+    event = _make_event(session, title="Reply Event")
+    session.close()
+
+    create_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Reply Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert create_resp.status_code == 201
+    rsvp_token = create_resp.json()["rsvp"]["rsvp_token"]
+
+    attendee_headers = {"Authorization": f"Bearer {rsvp_token}"}
+    payload = {"content": "Let me know if parking is available."}
+    message_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps/self/messages",
+        headers=attendee_headers,
+        json=payload,
+    )
+    assert message_resp.status_code == 201
+    api_message = message_resp.json()["message"]
+    assert api_message["message_type"] == "user_note"
+    assert api_message["visibility"] == "attendee"
+
+    admin_headers = {"Authorization": f"Bearer {event.admin_token}"}
+    rsvp_detail = client.post(
+        f"/api/v1/events/{event.id}/rsvps/{message_resp.json()['message']['rsvp_id']}/pending",
+        headers=admin_headers,
+    )
+    assert rsvp_detail.status_code == 200
+    organizer_messages = rsvp_detail.json()["rsvp"]["messages"]
+    assert any(m["message_type"] == "user_note" for m in organizer_messages)
+
+
 def test_unlimited_event_allows_yes(client):
     session = database.SessionLocal()
     event = _make_event(session, max_attendees=None, title="Unlimited Event")

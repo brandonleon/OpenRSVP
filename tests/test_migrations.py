@@ -3,6 +3,7 @@ from __future__ import annotations
 import types
 
 import pytest
+from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 
@@ -28,6 +29,12 @@ def _get_version(engine: Engine) -> str | None:
             return None
 
 
+def _alembic_head() -> str:
+    config = storage._alembic_config()
+    script = ScriptDirectory.from_config(config)
+    return script.get_current_head()
+
+
 def test_upgrade_database_stamps_existing_db(monkeypatch, tmp_path):
     db_path = tmp_path / "existing.sqlite"
     engine = create_engine(f"sqlite:///{db_path}", future=True)
@@ -37,7 +44,7 @@ def test_upgrade_database_stamps_existing_db(monkeypatch, tmp_path):
     actions = storage.upgrade_database(make_backup=False)
 
     assert "Stamped existing database to Alembic head" in actions
-    assert _get_version(engine) == "0001_initial"
+    assert _get_version(engine) == _alembic_head()
 
 
 def test_upgrade_database_creates_fresh_schema(monkeypatch, tmp_path):
@@ -48,7 +55,7 @@ def test_upgrade_database_creates_fresh_schema(monkeypatch, tmp_path):
     actions = storage.upgrade_database(make_backup=False)
 
     assert "Ran Alembic upgrade to head (fresh database)" in actions
-    assert _get_version(engine) == "0001_initial"
+    assert _get_version(engine) == _alembic_head()
     inspector = inspect(engine)
     assert inspector.has_table("events")
     assert inspector.has_table("channels")
