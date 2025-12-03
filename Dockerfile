@@ -1,9 +1,9 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM astral/uv:python3.14-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    UV_COMPILE_BYTECODE=0 \
-    PATH="/app/.venv/bin:${PATH}"
+  PYTHONUNBUFFERED=1 \
+  UV_COMPILE_BYTECODE=0 \
+  PATH="/app/.venv/bin:${PATH}"
 
 WORKDIR /app
 
