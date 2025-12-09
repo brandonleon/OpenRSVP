@@ -32,6 +32,18 @@
       <a class="btn btn-primary btn-lg w-100" href="/e/{{ event.id }}/rsvp">Submit RSVP</a>
       {% endif %}
       <a class="btn btn-outline-secondary btn-lg" href="/api/v1/events/{{ event.id }}/event.ics">Add to Calendar</a>
+      <button
+        class="btn btn-outline-light btn-lg w-100"
+        type="button"
+        data-share-button
+        data-share-title="{{ event.title|e }}"
+        data-share-text="Check out {{ event.title|e }} on OpenRSVP."
+        data-share-url="{{ request.url }}"
+        data-share-insecure-label="Share requires HTTPS (link copied)"
+        data-share-unsupported-label="Sharing unavailable (link copied)"
+      >
+        Share event
+      </button>
     </div>
   </div>
 </section>
