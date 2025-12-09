@@ -91,69 +91,70 @@
     return "available";
   };
 
-  const bindShareButton = () => {
-    const button = document.querySelector("[data-share-button]");
-    if (!button || button.dataset.shareBound === "true") return;
-    const shareData = {
-      title:
-        button.getAttribute("data-share-title") || document.title || "OpenRSVP",
-      text:
-        button.getAttribute("data-share-text") ||
-        `Check out ${document.title || "this event"} on OpenRSVP.`,
-      url: button.getAttribute("data-share-url") || window.location.href,
-    };
-    const defaultMarkup = button.innerHTML;
-    const successLabel =
-      button.getAttribute("data-share-success-label") || "Link copied!";
-    const failureLabel =
-      button.getAttribute("data-share-error-label") || "Copy blocked";
-    const insecureLabel =
-      button.getAttribute("data-share-insecure-label") ||
-      "Share needs HTTPS (link copied)";
-    const unsupportedLabel =
-      button.getAttribute("data-share-unsupported-label") ||
-      "Sharing unavailable (link copied)";
-    const restoreDefault = () => {
-      if (typeof defaultMarkup === "string" && defaultMarkup.length > 0) {
-        button.innerHTML = defaultMarkup;
-      } else {
-        button.textContent =
-          button.getAttribute("data-share-default-label") || "Share event";
-      }
-    };
-    button.dataset.shareBound = "true";
-
-    button.addEventListener("click", async () => {
-      const capability = getShareCapabilityState();
-      if (capability === "available" && (await shareViaOsSheet(shareData))) {
-        return;
-      }
-      try {
-        await copyLink(shareData.url);
-        if (capability === "insecure") {
-          button.textContent = insecureLabel;
-        } else if (capability === "unsupported") {
-          button.textContent = unsupportedLabel;
+  const bindShareButtons = () => {
+    document.querySelectorAll("[data-share-button]").forEach((button) => {
+      if (!button || button.dataset.shareBound === "true") return;
+      const shareData = {
+        title:
+          button.getAttribute("data-share-title") || document.title || "OpenRSVP",
+        text:
+          button.getAttribute("data-share-text") ||
+          `Check out ${document.title || "this event"} on OpenRSVP.`,
+        url: button.getAttribute("data-share-url") || window.location.href,
+      };
+      const defaultMarkup = button.innerHTML;
+      const successLabel =
+        button.getAttribute("data-share-success-label") || "Link copied!";
+      const failureLabel =
+        button.getAttribute("data-share-error-label") || "Copy blocked";
+      const insecureLabel =
+        button.getAttribute("data-share-insecure-label") ||
+        "Share needs HTTPS (link copied)";
+      const unsupportedLabel =
+        button.getAttribute("data-share-unsupported-label") ||
+        "Sharing unavailable (link copied)";
+      const restoreDefault = () => {
+        if (typeof defaultMarkup === "string" && defaultMarkup.length > 0) {
+          button.innerHTML = defaultMarkup;
         } else {
-          button.textContent = successLabel;
+          button.textContent =
+            button.getAttribute("data-share-default-label") || "Share event";
         }
-      } catch (error) {
-        button.textContent = failureLabel;
-      }
-      setTimeout(() => {
-        restoreDefault();
-      }, 1600);
+      };
+      button.dataset.shareBound = "true";
+
+      button.addEventListener("click", async () => {
+        const capability = getShareCapabilityState();
+        if (capability === "available" && (await shareViaOsSheet(shareData))) {
+          return;
+        }
+        try {
+          await copyLink(shareData.url);
+          if (capability === "insecure") {
+            button.textContent = insecureLabel;
+          } else if (capability === "unsupported") {
+            button.textContent = unsupportedLabel;
+          } else {
+            button.textContent = successLabel;
+          }
+        } catch (error) {
+          button.textContent = failureLabel;
+        }
+        setTimeout(() => {
+          restoreDefault();
+        }, 1600);
+      });
     });
   };
 
   const init = () => {
     setupQr();
-    bindShareButton();
+    bindShareButtons();
     if (!listenersBound) {
       document.addEventListener("themechange", setupQr);
       document.addEventListener("htmx:afterSwap", () => {
         setupQr();
-        bindShareButton();
+        bindShareButtons();
       });
       listenersBound = true;
     }

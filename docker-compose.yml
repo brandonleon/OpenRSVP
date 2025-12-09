@@ -5,6 +5,8 @@ services:
     container_name: openrsvp_app
     expose:
       - "8000"
+    volumes:
+      - "${OPENRSVP_DATA_DIR:-./data}:/app/data"
     restart: unless-stopped
     networks:
       - openrsvp
