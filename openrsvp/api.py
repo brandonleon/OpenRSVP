@@ -38,7 +38,7 @@ from .crud import (
     VALID_ATTENDANCE_STATUSES,
 )
 from .database import SessionLocal
-from .models import Channel, Event, Message, RSVP
+from .models import Channel, Event, Message, Meta, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
 from .utils import (
@@ -166,6 +166,30 @@ templates.env.globals["asset_version"] = asset_version
 templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 templates.env.filters["markdown"] = render_markdown
+
+def can_view_location(event: Event, rsvp: object = None) -> bool:
+    if not getattr(event, "admin_approval_required", False):
+        return True
+    approval_status = getattr(rsvp, "approval_status", None)
+    attendance_status = getattr(rsvp, "attendance_status", None)
+    return approval_status == "approved" and attendance_status == "yes"
+
+
+def event_location_text(event: Event, rsvp: object = None) -> str:
+    if can_view_location(event, rsvp):
+        return event.location or "Location TBD"
+    return "Location hidden until your RSVP is approved"
+
+
+def list_location_text(event: Event) -> str:
+    if getattr(event, "admin_approval_required", False):
+        return "Location hidden"
+    return event.location or "Location TBD"
+
+
+templates.env.globals["can_view_location"] = can_view_location
+templates.env.globals["event_location_text"] = event_location_text
+templates.env.globals["list_location_text"] = list_location_text
 
 ADMIN_EVENTS_PER_PAGE = settings.admin_events_per_page
 EVENTS_PER_PAGE = settings.events_per_page
@@ -600,6 +624,7 @@ def _serialize_event(
     include_rsvps: list[RSVP] | None = None,
     include_private_counts: bool = False,
     include_admin_link: bool = False,
+    include_location: bool = True,
     include_messages: list[Message] | None = None,
 ):
     payload = {
@@ -608,7 +633,7 @@ def _serialize_event(
         "description": event.description,
         "start_time": event.start_time.isoformat(),
         "end_time": event.end_time.isoformat() if event.end_time else None,
-        "location": event.location,
+        "location": event.location if include_location else None,
         "is_private": event.is_private,
         "admin_approval_required": event.admin_approval_required,
         "score": event.score,
@@ -884,6 +909,35 @@ def _require_rsvp_from_header(event: Event, request: Request, db: Session) -> RS
 
 def _is_htmx(request: Request) -> bool:
     return request.headers.get("hx-request", "").lower() == "true"
+
+
+def _can_view_event_location_api(
+    db: Session,
+    *,
+    event: Event,
+    token: str | None,
+    root_token: str | None,
+) -> bool:
+    if not event.admin_approval_required:
+        return True
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
+    stmt = select(RSVP).where(RSVP.event_id == event.id, RSVP.rsvp_token == token)
+    rsvp = db.scalar(stmt)
+    return bool(
+        rsvp
+        and rsvp.approval_status == "approved"
+        and rsvp.attendance_status == "yes"
+    )
+
+
+def _fetch_root_token_in_session(db: Session) -> str | None:
+    meta = db.get(Meta, settings.root_token_key)
+    return meta.value if meta else None
 
 
 def _approval_counts(rsvps: Sequence[RSVP]) -> dict[str, int]:
@@ -2350,6 +2404,7 @@ def help_page(request: Request):
 
 @app.get("/api/v1/events")
 def api_list_public_events(
+    request: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(EVENTS_PER_PAGE, ge=1, le=50),
     start_after: str | None = Query(None),
@@ -2375,8 +2430,18 @@ def api_list_public_events(
         per_page=per_page,
         page=page,
     )
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
     return {
-        "events": [_serialize_event(event) for event in events],
+        "events": [
+            _serialize_event(
+                event,
+                include_location=_can_view_event_location_api(
+                    db, event=event, token=token, root_token=root_token
+                ),
+            )
+            for event in events
+        ],
         "pagination": pagination,
         "filters": {
             "start_after": start_after_dt.isoformat() if start_after_dt else None,
@@ -2430,7 +2495,7 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
 
 
 @app.get("/api/v1/events/{event_id}")
-def api_get_event(event_id: str, db: Session = Depends(get_db)):
+def api_get_event(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
     event.last_accessed = utcnow()
     db.add(event)
@@ -2438,25 +2503,36 @@ def api_get_event(event_id: str, db: Session = Depends(get_db)):
         r for r in event.rsvps if not r.is_private and r.approval_status == "approved"
     ]
     public_messages = _event_messages(event, visibilities={"public"})
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    include_location = _can_view_event_location_api(
+        db, event=event, token=token, root_token=root_token
+    )
     return {
         "event": _serialize_event(
             event,
             include_rsvps=public_rsvps,
             include_private_counts=True,
             include_admin_link=False,
+            include_location=include_location,
             include_messages=public_messages,
         )
     }
 
 
 @app.get("/api/v1/events/{event_id}/event.ics")
-def api_get_event_ics(event_id: str, db: Session = Depends(get_db)):
+def api_get_event_ics(event_id: str, request: Request, db: Session = Depends(get_db)):
     """Serve an event as a downloadable ICS file."""
 
     event = _ensure_event(db, event_id)
     event.last_accessed = utcnow()
     db.add(event)
-    ics_text = generate_ics(event)
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    include_location = _can_view_event_location_api(
+        db, event=event, token=token, root_token=root_token
+    )
+    ics_text = generate_ics(event, include_location=include_location)
     filename = f"event_{event_id}.ics"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return Response(content=ics_text, media_type="text/calendar", headers=headers)
@@ -2882,6 +2958,7 @@ def api_public_channels(
 @app.get("/api/v1/channels/{slug}")
 def api_channel_detail(
     slug: str,
+    request: Request,
     page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -2898,8 +2975,18 @@ def api_channel_detail(
         page=page,
         per_page=EVENTS_PER_PAGE,
     )
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
     return {
         "channel": _serialize_channel(channel),
-        "events": [_serialize_event(event) for event in events],
+        "events": [
+            _serialize_event(
+                event,
+                include_location=_can_view_event_location_api(
+                    db, event=event, token=token, root_token=root_token
+                ),
+            )
+            for event in events
+        ],
         "pagination": pagination,
     }

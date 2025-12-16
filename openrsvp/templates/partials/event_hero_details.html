@@ -17,7 +17,7 @@
   <div class="vr opacity-50"></div>
   <div>
     <div class="text-white fw-semibold">Location</div>
-    <div class="small">{{ event.location or 'Location TBD' }}</div>
+    <div class="small">{{ event_location_text(event, rsvp|default(None)) }}</div>
   </div>
   {% if event.admin_approval_required %}
   <div class="vr opacity-50"></div>
