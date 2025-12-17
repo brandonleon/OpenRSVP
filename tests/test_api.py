@@ -592,6 +592,69 @@ def test_homepage_hides_location_for_approval_events(client):
 
     session.close()
 
+
+def test_homepage_channel_jump_limited_to_top_100(client):
+    session = database.SessionLocal()
+    for idx in range(105):
+        channel = ensure_channel(session, name=f"Chan {idx}", visibility="public")
+        channel.score = float(1000 - idx)
+        session.add(channel)
+    session.commit()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'value="chan-0"' in response.text
+    assert 'value="chan-99"' in response.text
+    assert 'value="chan-100"' not in response.text
+    assert 'value="chan-104"' not in response.text
+    session.close()
+
+
+def test_discover_channels_page_search_and_filters(client):
+    session = database.SessionLocal()
+    upcoming_channel = ensure_channel(
+        session, name="Upcoming Lounge", visibility="public"
+    )
+    stale_channel = ensure_channel(session, name="Stale Lounge", visibility="public")
+    upcoming_channel.score = 200.0
+    stale_channel.score = 50.0
+    create_event(
+        session,
+        title="Next Week",
+        description="",
+        start_time=utcnow().replace(microsecond=0) + timedelta(days=7),
+        end_time=None,
+        location=None,
+        channel=upcoming_channel,
+        is_private=False,
+    )
+    session.commit()
+
+    response = client.get("/channels/discover")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" in response.text
+
+    response = client.get("/channels/discover?has_upcoming=true")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" not in response.text
+
+    response = client.get("/channels/discover?invert=true")
+    assert response.status_code == 200
+    assert response.text.index("Stale Lounge") < response.text.index("Upcoming Lounge")
+
+    response = client.get("/channels/discover?q=upcoming")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" not in response.text
+
+    response = client.get("/channels/discover?q=definitely-not-a-channel")
+    assert response.status_code == 200
+    assert "No channels found." in response.text
+    session.close()
+
+
 def test_admin_approve_htmx_returns_partial_update(client):
     session = database.SessionLocal()
     event = create_event(

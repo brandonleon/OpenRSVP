@@ -29,6 +29,12 @@ uv pip install -e .
 openrsvp runserver
 ```
 
+For auto-restart on Python file changes during development:
+
+```bash
+openrsvp runserver --dev
+```
+
 Visit `http://localhost:8000` to access the UI. Use the CLI to retrieve the root
 admin token:
 

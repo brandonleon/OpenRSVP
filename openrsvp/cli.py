@@ -141,24 +141,34 @@ def decay(
 def runserver(
     host: str = typer.Option(settings.app_host, "--host", help="Host to bind"),
     port: int = typer.Option(settings.app_port, "--port", help="Port to bind"),
-):
+    dev: bool = typer.Option(
+        False,
+        "--dev",
+        help="Auto-restart on Python file changes (enables uvicorn reload)",
+    ),
+) -> None:
     """Start FastAPI with APScheduler."""
     init_db()
-    start_scheduler()
+    if not dev:
+        start_scheduler()
     config = uvicorn.Config(
         "openrsvp.api:app",
         host=host,
         port=port,
-        reload=False,
+        reload=dev,
+        reload_dirs=[str(PROJECT_ROOT / "openrsvp")],
+        reload_includes=["*.py"],
         proxy_headers=True,
         forwarded_allow_ips="*",
     )
     server = uvicorn.Server(config)
     try:
-        typer.echo(f"Starting OpenRSVP on {host}:{port}")
+        suffix = " (dev reload)" if dev else ""
+        typer.echo(f"Starting OpenRSVP on {host}:{port}{suffix}")
         server.run()
     finally:
-        stop_scheduler()
+        if not dev:
+            stop_scheduler()
 
 
 @app.command("seed-data")
@@ -265,7 +275,9 @@ def upgrade_container(
         env_description = "custom compose file"
         stack_label = target_compose.name
     else:
-        target_name = "docker-compose.yml" if environment == "prod" else "docker-compose.dev.yml"
+        target_name = (
+            "docker-compose.yml" if environment == "prod" else "docker-compose.dev.yml"
+        )
         target_compose = PROJECT_ROOT / target_name
         env_label = "production" if environment == "prod" else "development"
         env_description = f"{env_label} environment"
@@ -377,7 +389,9 @@ def renew_certs(
         f"Failed to renew certificates using service '{certbot_service}'",
     )
 
-    typer.echo(f"Reloading nginx service '{nginx_service}' to apply new certificates...")
+    typer.echo(
+        f"Reloading nginx service '{nginx_service}' to apply new certificates..."
+    )
     _run_command(
         compose_base + ["exec", nginx_service, "nginx", "-s", "reload"],
         f"Failed to reload nginx service '{nginx_service}'",

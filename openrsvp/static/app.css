@@ -566,3 +566,13 @@
       .message-user-note-name {
         color: var(--text);
       }
+
+      .htmx-indicator {
+        opacity: 0;
+        transition: opacity 120ms ease-in;
+      }
+
+      .htmx-request .htmx-indicator,
+      .htmx-request.htmx-indicator {
+        opacity: 1;
+      }

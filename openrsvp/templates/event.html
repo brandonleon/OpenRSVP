@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set title = event.title %}
 {% set public_messages = public_messages or [] %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4" id="event-hero" data-event-page data-event-id="{{ event.id }}">

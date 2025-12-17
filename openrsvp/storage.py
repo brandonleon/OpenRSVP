@@ -9,7 +9,6 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import inspect
-from sqlalchemy.exc import OperationalError
 
 from .config import settings
 from .database import engine, get_session

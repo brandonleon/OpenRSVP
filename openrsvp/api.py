@@ -167,6 +167,7 @@ templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 templates.env.filters["markdown"] = render_markdown
 
+
 def can_view_location(event: Event, rsvp: object = None) -> bool:
     if not getattr(event, "admin_approval_required", False):
         return True
@@ -195,6 +196,8 @@ ADMIN_EVENTS_PER_PAGE = settings.admin_events_per_page
 EVENTS_PER_PAGE = settings.events_per_page
 RECENT_EVENTS_LIMIT = 5
 CHANNEL_SUGGESTION_LIMIT = 12
+HOME_CHANNEL_SELECT_LIMIT = 100
+DISCOVER_CHANNELS_PER_PAGE = 50
 
 
 def get_db():
@@ -929,9 +932,7 @@ def _can_view_event_location_api(
     stmt = select(RSVP).where(RSVP.event_id == event.id, RSVP.rsvp_token == token)
     rsvp = db.scalar(stmt)
     return bool(
-        rsvp
-        and rsvp.approval_status == "approved"
-        and rsvp.attendance_status == "yes"
+        rsvp and rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
     )
 
 
@@ -1311,7 +1312,7 @@ def homepage(
         channel_id=None,
         limit=RECENT_EVENTS_LIMIT,
     )
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=HOME_CHANNEL_SELECT_LIMIT)
     return templates.TemplateResponse(
         request,
         "home.html",
@@ -1707,9 +1708,7 @@ def add_attendee_rsvp_message(
     attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
     available_yes_slots = _available_yes_slots(event, current_rsvp=rsvp)
     event_is_full = _available_yes_slots(event) == 0 if event.max_attendees else False
-    attendee_message_flash = (
-        "Message sent" if message else "Message cannot be empty"
-    )
+    attendee_message_flash = "Message sent" if message else "Message cannot be empty"
     attendee_message_class = "alert-success" if message else "alert-danger"
     if _is_htmx(request):
         return _attendee_messages_partial_response(
@@ -2180,7 +2179,9 @@ def add_admin_rsvp_message(
             {"message": "Message cannot be empty", "message_class": "alert-danger"}
         )
     else:
-        params = urlencode({"message": "Message sent", "message_class": "alert-success"})
+        params = urlencode(
+            {"message": "Message sent", "message_class": "alert-success"}
+        )
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
@@ -2397,6 +2398,131 @@ def channel_page_private(
 @app.get("/help")
 def help_page(request: Request):
     return templates.TemplateResponse(request, "help.html", {"request": request})
+
+
+def _paginate_discover_public_channels(
+    db: Session,
+    *,
+    query: str | None,
+    page: int,
+    per_page: int,
+    sort: str,
+    has_upcoming: bool,
+    invert: bool,
+) -> tuple[list[Channel], dict]:
+    clause = _channel_search_clause(query)
+    filters = [Channel.visibility == "public"]
+    if clause is not None:
+        filters.append(clause)
+    if has_upcoming:
+        now = utcnow()
+        upcoming_exists = (
+            select(Event.id)
+            .where(
+                Event.channel_id == Channel.id,
+                Event.is_private.is_(False),
+                Event.start_time >= now,
+            )
+            .exists()
+        )
+        filters.append(upcoming_exists)
+
+    count_stmt = select(func.count()).select_from(Channel)
+    for condition in filters:
+        count_stmt = count_stmt.where(condition)
+    total_channels = db.scalar(count_stmt) or 0
+    pagination = _build_pagination(
+        page=page,
+        per_page=per_page,
+        total_events=total_channels,
+        include_query=True,
+        query=query,
+    )
+    page_number = pagination["page"]
+    offset = (page_number - 1) * per_page if total_channels else 0
+
+    sort_key = (sort or "rank").strip().lower()
+    if sort_key == "name":
+        order_by = [Channel.name.desc()] if invert else [Channel.name.asc()]
+    elif sort_key == "recent":
+        if invert:
+            order_by = [
+                Channel.last_used_at.asc(),
+                Channel.score.asc(),
+                Channel.name.asc(),
+            ]
+        else:
+            order_by = [
+                Channel.last_used_at.desc(),
+                Channel.score.desc(),
+                Channel.name.asc(),
+            ]
+    else:
+        order_by = (
+            [Channel.score.asc(), Channel.name.asc()]
+            if invert
+            else [Channel.score.desc(), Channel.name.asc()]
+        )
+
+    stmt = select(Channel)
+    for condition in filters:
+        stmt = stmt.where(condition)
+    stmt = stmt.order_by(*order_by).offset(offset).limit(per_page)
+    channels = db.scalars(stmt).all()
+    return channels, pagination
+
+
+@app.get("/channels/discover")
+def discover_channels_page(
+    request: Request,
+    q: str | None = Query(None),
+    sort: str = Query("rank"),
+    invert: bool = Query(False),
+    has_upcoming: bool = Query(False),
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    sort_key = (sort or "rank").strip().lower()
+    if sort_key not in {"rank", "name", "recent"}:
+        sort_key = "rank"
+    channels, pagination = _paginate_discover_public_channels(
+        db,
+        query=q,
+        page=page,
+        per_page=DISCOVER_CHANNELS_PER_PAGE,
+        sort=sort_key,
+        has_upcoming=has_upcoming,
+        invert=invert,
+    )
+    params: dict[str, str] = {}
+    if q:
+        params["q"] = q
+    if sort_key != "rank":
+        params["sort"] = sort_key
+    if invert:
+        params["invert"] = "1"
+    if has_upcoming:
+        params["has_upcoming"] = "1"
+    pagination_query = urlencode(params)
+    template_name = (
+        "partials/discover_channels_results.html"
+        if _is_htmx(request)
+        else "discover_channels.html"
+    )
+    return templates.TemplateResponse(
+        request,
+        template_name,
+        {
+            "request": request,
+            "channels": channels,
+            "pagination": pagination,
+            "query": q or "",
+            "sort": sort_key,
+            "invert": invert,
+            "has_upcoming": has_upcoming,
+            "pagination_query": pagination_query,
+        },
+    )
 
 
 # -------- JSON API (v1) --------

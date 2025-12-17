@@ -1,0 +1,60 @@
+{% if channels %}
+  {% set start_index = ((pagination.page - 1) * pagination.per_page) + 1 %}
+  {% set end_index = start_index + channels|length - 1 %}
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <span class="text-muted small">Showing {{ start_index }}&ndash;{{ end_index }} of {{ pagination.total_events }}</span>
+    {% if query %}
+      <span class="badge bg-secondary text-uppercase">Filter: {{ query }}</span>
+    {% endif %}
+  </div>
+
+  <div class="list-group shadow-sm">
+  {% for channel in channels %}
+    <a href="/channel/{{ channel.slug }}" class="list-group-item list-group-item-action py-3">
+      <div class="d-flex w-100 justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <div class="fw-semibold">{{ channel.name }}</div>
+          <div class="text-muted small"><code>{{ channel.slug }}</code></div>
+        </div>
+        <div class="text-end">
+          <div class="text-muted small">Rank {{ '%.2f'|format(channel.score) }}</div>
+          <div class="text-muted small">Used {{ channel.last_used_at|relative_time }}</div>
+        </div>
+      </div>
+    </a>
+  {% endfor %}
+  </div>
+
+  {% if pagination.total_pages > 1 %}
+  <nav class="mt-4" aria-label="Channel pagination">
+    <ul class="pagination mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a
+          class="page-link"
+          href="?page={{ pagination.prev_page or pagination.page }}{% if pagination_query %}&{{ pagination_query }}{% endif %}"
+          hx-get="?page={{ pagination.prev_page or pagination.page }}{% if pagination_query %}&{{ pagination_query }}{% endif %}"
+          hx-target="#channels-results"
+          hx-swap="innerHTML"
+        >Previous</a>
+      </li>
+      <li class="page-item disabled">
+        <span class="page-link">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+      </li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a
+          class="page-link"
+          href="?page={{ pagination.next_page or pagination.page }}{% if pagination_query %}&{{ pagination_query }}{% endif %}"
+          hx-get="?page={{ pagination.next_page or pagination.page }}{% if pagination_query %}&{{ pagination_query }}{% endif %}"
+          hx-target="#channels-results"
+          hx-swap="innerHTML"
+        >Next</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+{% else %}
+  <div class="p-4 bg-white border rounded-3 shadow-sm">
+    <h2 class="h5 mb-2">No channels found.</h2>
+    <p class="text-muted mb-0">Try a different search term or clear filters.</p>
+  </div>
+{% endif %}
