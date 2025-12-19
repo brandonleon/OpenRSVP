@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set title = "Event created: " ~ event.title %}
 {% block content %}
 {% set admin_url = request.url_for('event_admin', event_id=event.id, admin_token=event.admin_token) %}
 {% set event_url = request.url_for('event_page', event_id=event.id) %}

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ title or "OpenRSVP" }}</title>
+    <title>{% if title %}{{ title }} · OpenRSVP{% else %}OpenRSVP{% endif %}</title>
     <meta name="theme-color" content="#1e66f5">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('favicon_svg') }}">
     <link rel="alternate icon" type="image/png" sizes="96x96" href="{{ url_for('favicon_png') }}">
@@ -30,6 +30,12 @@
           <ul class="navbar-nav ms-auto">
             <li class="nav-item">
               <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/channels/discover">Discover Channels</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/my-events">My Events</a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="/event/create">Create Event</a>

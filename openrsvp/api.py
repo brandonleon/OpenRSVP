@@ -38,7 +38,7 @@ from .crud import (
     VALID_ATTENDANCE_STATUSES,
 )
 from .database import SessionLocal
-from .models import Channel, Event, Message, RSVP
+from .models import Channel, Event, Message, Meta, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
 from .utils import (
@@ -167,10 +167,37 @@ templates.env.filters["relative_time"] = humanize_time
 templates.env.filters["duration"] = duration_between
 templates.env.filters["markdown"] = render_markdown
 
+
+def can_view_location(event: Event, rsvp: object = None) -> bool:
+    if not getattr(event, "admin_approval_required", False):
+        return True
+    approval_status = getattr(rsvp, "approval_status", None)
+    attendance_status = getattr(rsvp, "attendance_status", None)
+    return approval_status == "approved" and attendance_status == "yes"
+
+
+def event_location_text(event: Event, rsvp: object = None) -> str:
+    if can_view_location(event, rsvp):
+        return event.location or "Location TBD"
+    return "Location hidden until your RSVP is approved"
+
+
+def list_location_text(event: Event) -> str:
+    if getattr(event, "admin_approval_required", False):
+        return "Location hidden"
+    return event.location or "Location TBD"
+
+
+templates.env.globals["can_view_location"] = can_view_location
+templates.env.globals["event_location_text"] = event_location_text
+templates.env.globals["list_location_text"] = list_location_text
+
 ADMIN_EVENTS_PER_PAGE = settings.admin_events_per_page
 EVENTS_PER_PAGE = settings.events_per_page
 RECENT_EVENTS_LIMIT = 5
 CHANNEL_SUGGESTION_LIMIT = 12
+HOME_CHANNEL_SELECT_LIMIT = 100
+DISCOVER_CHANNELS_PER_PAGE = 50
 
 
 def get_db():
@@ -600,20 +627,30 @@ def _serialize_event(
     include_rsvps: list[RSVP] | None = None,
     include_private_counts: bool = False,
     include_admin_link: bool = False,
+    include_location: bool = True,
+    include_private_channel: bool = False,
+    include_unapproved_yes_count: bool = True,
     include_messages: list[Message] | None = None,
 ):
+    yes_count = event.yes_count
+    if event.admin_approval_required and not include_unapproved_yes_count:
+        yes_count = sum(
+            (r.guest_count or 0) + 1
+            for r in event.rsvps
+            if r.approval_status == "approved" and r.attendance_status == "yes"
+        )
     payload = {
         "id": event.id,
         "title": event.title,
         "description": event.description,
         "start_time": event.start_time.isoformat(),
         "end_time": event.end_time.isoformat() if event.end_time else None,
-        "location": event.location,
+        "location": event.location if include_location else None,
         "is_private": event.is_private,
         "admin_approval_required": event.admin_approval_required,
         "score": event.score,
         "max_attendees": event.max_attendees,
-        "yes_count": event.yes_count,
+        "yes_count": yes_count,
         "rsvps_closed": event.rsvps_closed,
         "rsvp_close_at": event.rsvp_close_at.isoformat()
         if event.rsvp_close_at
@@ -626,12 +663,13 @@ def _serialize_event(
         },
     }
     if event.channel:
-        payload["channel"] = {
-            "id": event.channel.id,
-            "name": event.channel.name,
-            "slug": event.channel.slug,
-            "visibility": event.channel.visibility,
-        }
+        if event.channel.visibility != "private" or include_private_channel:
+            payload["channel"] = {
+                "id": event.channel.id,
+                "name": event.channel.name,
+                "slug": event.channel.slug,
+                "visibility": event.channel.visibility,
+            }
     if include_admin_link:
         payload["links"]["admin"] = f"/e/{event.id}/admin/{event.admin_token}"
     if include_rsvps is not None:
@@ -884,6 +922,70 @@ def _require_rsvp_from_header(event: Event, request: Request, db: Session) -> RS
 
 def _is_htmx(request: Request) -> bool:
     return request.headers.get("hx-request", "").lower() == "true"
+
+
+def _can_view_event_location_api(
+    db: Session,
+    *,
+    event: Event,
+    token: str | None,
+    root_token: str | None,
+) -> bool:
+    if not event.admin_approval_required:
+        return True
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
+    stmt = select(RSVP).where(RSVP.event_id == event.id, RSVP.rsvp_token == token)
+    rsvp = db.scalar(stmt)
+    return bool(
+        rsvp and rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
+    )
+
+
+def _fetch_rsvp_by_token_in_session(db: Session, token: str | None) -> RSVP | None:
+    if not token:
+        return None
+    stmt = select(RSVP).where(RSVP.rsvp_token == token)
+    return db.scalar(stmt)
+
+
+def _can_view_event_location_list(
+    event: Event,
+    *,
+    token: str | None,
+    root_token: str | None,
+    rsvp: RSVP | None,
+) -> bool:
+    if not event.admin_approval_required:
+        return True
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
+    if rsvp and rsvp.event_id == event.id:
+        return rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
+    return False
+
+
+def _can_view_private_channel(
+    event: Event, *, token: str | None, root_token: str | None
+) -> bool:
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    return bool(root_token and token == root_token)
+
+
+def _fetch_root_token_in_session(db: Session) -> str | None:
+    meta = db.get(Meta, settings.root_token_key)
+    return meta.value if meta else None
 
 
 def _approval_counts(rsvps: Sequence[RSVP]) -> dict[str, int]:
@@ -1257,7 +1359,7 @@ def homepage(
         channel_id=None,
         limit=RECENT_EVENTS_LIMIT,
     )
-    public_channels = get_public_channels(db)
+    public_channels = get_public_channels(db, limit=HOME_CHANNEL_SELECT_LIMIT)
     return templates.TemplateResponse(
         request,
         "home.html",
@@ -1653,9 +1755,7 @@ def add_attendee_rsvp_message(
     attendee_messages = _rsvp_messages(rsvp, visibilities={"attendee"})
     available_yes_slots = _available_yes_slots(event, current_rsvp=rsvp)
     event_is_full = _available_yes_slots(event) == 0 if event.max_attendees else False
-    attendee_message_flash = (
-        "Message sent" if message else "Message cannot be empty"
-    )
+    attendee_message_flash = "Message sent" if message else "Message cannot be empty"
     attendee_message_class = "alert-success" if message else "alert-danger"
     if _is_htmx(request):
         return _attendee_messages_partial_response(
@@ -2126,7 +2226,9 @@ def add_admin_rsvp_message(
             {"message": "Message cannot be empty", "message_class": "alert-danger"}
         )
     else:
-        params = urlencode({"message": "Message sent", "message_class": "alert-success"})
+        params = urlencode(
+            {"message": "Message sent", "message_class": "alert-success"}
+        )
     return RedirectResponse(
         url=f"/e/{event.id}/admin/{admin_token}?{params}", status_code=303
     )
@@ -2345,11 +2447,167 @@ def help_page(request: Request):
     return templates.TemplateResponse(request, "help.html", {"request": request})
 
 
+@app.get("/my-events")
+def my_events_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "my_events.html",
+        {
+            "request": request,
+            "view": "hosted",
+            "page_title": "My Events",
+            "empty_title": "No hosted events saved yet.",
+            "empty_body": "Create an event or open its admin link on this device to store it.",
+        },
+    )
+
+
+@app.get("/my-rsvps")
+def my_rsvps_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "my_events.html",
+        {
+            "request": request,
+            "view": "rsvps",
+            "page_title": "My RSVPs",
+            "empty_title": "No RSVP events saved yet.",
+            "empty_body": "RSVP to an event on this device and it will appear here.",
+        },
+    )
+
+
+def _paginate_discover_public_channels(
+    db: Session,
+    *,
+    query: str | None,
+    page: int,
+    per_page: int,
+    sort: str,
+    has_upcoming: bool,
+    invert: bool,
+) -> tuple[list[Channel], dict]:
+    clause = _channel_search_clause(query)
+    filters = [Channel.visibility == "public"]
+    if clause is not None:
+        filters.append(clause)
+    if has_upcoming:
+        now = utcnow()
+        upcoming_exists = (
+            select(Event.id)
+            .where(
+                Event.channel_id == Channel.id,
+                Event.is_private.is_(False),
+                Event.start_time >= now,
+            )
+            .exists()
+        )
+        filters.append(upcoming_exists)
+
+    count_stmt = select(func.count()).select_from(Channel)
+    for condition in filters:
+        count_stmt = count_stmt.where(condition)
+    total_channels = db.scalar(count_stmt) or 0
+    pagination = _build_pagination(
+        page=page,
+        per_page=per_page,
+        total_events=total_channels,
+        include_query=True,
+        query=query,
+    )
+    page_number = pagination["page"]
+    offset = (page_number - 1) * per_page if total_channels else 0
+
+    sort_key = (sort or "rank").strip().lower()
+    if sort_key == "name":
+        order_by = [Channel.name.desc()] if invert else [Channel.name.asc()]
+    elif sort_key == "recent":
+        if invert:
+            order_by = [
+                Channel.last_used_at.asc(),
+                Channel.score.asc(),
+                Channel.name.asc(),
+            ]
+        else:
+            order_by = [
+                Channel.last_used_at.desc(),
+                Channel.score.desc(),
+                Channel.name.asc(),
+            ]
+    else:
+        order_by = (
+            [Channel.score.asc(), Channel.name.asc()]
+            if invert
+            else [Channel.score.desc(), Channel.name.asc()]
+        )
+
+    stmt = select(Channel)
+    for condition in filters:
+        stmt = stmt.where(condition)
+    stmt = stmt.order_by(*order_by).offset(offset).limit(per_page)
+    channels = db.scalars(stmt).all()
+    return channels, pagination
+
+
+@app.get("/channels/discover")
+def discover_channels_page(
+    request: Request,
+    q: str | None = Query(None),
+    sort: str = Query("rank"),
+    invert: bool = Query(False),
+    has_upcoming: bool = Query(False),
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+):
+    sort_key = (sort or "rank").strip().lower()
+    if sort_key not in {"rank", "name", "recent"}:
+        sort_key = "rank"
+    channels, pagination = _paginate_discover_public_channels(
+        db,
+        query=q,
+        page=page,
+        per_page=DISCOVER_CHANNELS_PER_PAGE,
+        sort=sort_key,
+        has_upcoming=has_upcoming,
+        invert=invert,
+    )
+    params: dict[str, str] = {}
+    if q:
+        params["q"] = q
+    if sort_key != "rank":
+        params["sort"] = sort_key
+    if invert:
+        params["invert"] = "1"
+    if has_upcoming:
+        params["has_upcoming"] = "1"
+    pagination_query = urlencode(params)
+    template_name = (
+        "partials/discover_channels_results.html"
+        if _is_htmx(request)
+        else "discover_channels.html"
+    )
+    return templates.TemplateResponse(
+        request,
+        template_name,
+        {
+            "request": request,
+            "channels": channels,
+            "pagination": pagination,
+            "query": q or "",
+            "sort": sort_key,
+            "invert": invert,
+            "has_upcoming": has_upcoming,
+            "pagination_query": pagination_query,
+        },
+    )
+
+
 # -------- JSON API (v1) --------
 
 
 @app.get("/api/v1/events")
 def api_list_public_events(
+    request: Request,
     page: int = Query(1, ge=1),
     per_page: int = Query(EVENTS_PER_PAGE, ge=1, le=50),
     start_after: str | None = Query(None),
@@ -2375,8 +2633,30 @@ def api_list_public_events(
         per_page=per_page,
         page=page,
     )
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    rsvp = (
+        _fetch_rsvp_by_token_in_session(db, token)
+        if token and not (root_token and token == root_token)
+        else None
+    )
+    payload_events = []
+    for event in events:
+        include_private = _can_view_private_channel(
+            event, token=token, root_token=root_token
+        )
+        payload_events.append(
+            _serialize_event(
+                event,
+                include_location=_can_view_event_location_list(
+                    event, token=token, root_token=root_token, rsvp=rsvp
+                ),
+                include_private_channel=include_private,
+                include_unapproved_yes_count=include_private,
+            )
+        )
     return {
-        "events": [_serialize_event(event) for event in events],
+        "events": payload_events,
         "pagination": pagination,
         "filters": {
             "start_after": start_after_dt.isoformat() if start_after_dt else None,
@@ -2424,13 +2704,15 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         rsvp_close_at=normalized_close,
     )
     return {
-        "event": _serialize_event(event, include_admin_link=True),
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        ),
         "admin_token": event.admin_token,
     }
 
 
 @app.get("/api/v1/events/{event_id}")
-def api_get_event(event_id: str, db: Session = Depends(get_db)):
+def api_get_event(event_id: str, request: Request, db: Session = Depends(get_db)):
     event = _ensure_event(db, event_id)
     event.last_accessed = utcnow()
     db.add(event)
@@ -2438,25 +2720,41 @@ def api_get_event(event_id: str, db: Session = Depends(get_db)):
         r for r in event.rsvps if not r.is_private and r.approval_status == "approved"
     ]
     public_messages = _event_messages(event, visibilities={"public"})
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    include_location = _can_view_event_location_api(
+        db, event=event, token=token, root_token=root_token
+    )
+    include_private_channel = _can_view_private_channel(
+        event, token=token, root_token=root_token
+    )
     return {
         "event": _serialize_event(
             event,
             include_rsvps=public_rsvps,
             include_private_counts=True,
             include_admin_link=False,
+            include_location=include_location,
+            include_private_channel=include_private_channel,
+            include_unapproved_yes_count=include_private_channel,
             include_messages=public_messages,
         )
     }
 
 
 @app.get("/api/v1/events/{event_id}/event.ics")
-def api_get_event_ics(event_id: str, db: Session = Depends(get_db)):
+def api_get_event_ics(event_id: str, request: Request, db: Session = Depends(get_db)):
     """Serve an event as a downloadable ICS file."""
 
     event = _ensure_event(db, event_id)
     event.last_accessed = utcnow()
     db.add(event)
-    ics_text = generate_ics(event)
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    include_location = _can_view_event_location_api(
+        db, event=event, token=token, root_token=root_token
+    )
+    ics_text = generate_ics(event, include_location=include_location)
     filename = f"event_{event_id}.ics"
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return Response(content=ics_text, media_type="text/calendar", headers=headers)
@@ -2519,7 +2817,11 @@ def api_update_event(
         rsvp_close_at=normalized_close,
         update_rsvp_close_at=update_close,
     )
-    return {"event": _serialize_event(event, include_admin_link=True)}
+    return {
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        )
+    }
 
 
 @app.delete("/api/v1/events/{event_id}", status_code=204)
@@ -2538,7 +2840,9 @@ def api_list_event_rsvps(
     _require_admin_header(event, request)
     rsvps = list(event.rsvps)
     return {
-        "event": _serialize_event(event, include_admin_link=True),
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        ),
         "rsvps": [
             _serialize_rsvp(r, include_token=True, include_internal_id=True)
             for r in rsvps
@@ -2882,6 +3186,7 @@ def api_public_channels(
 @app.get("/api/v1/channels/{slug}")
 def api_channel_detail(
     slug: str,
+    request: Request,
     page: int = Query(1, ge=1),
     db: Session = Depends(get_db),
 ):
@@ -2898,8 +3203,30 @@ def api_channel_detail(
         page=page,
         per_page=EVENTS_PER_PAGE,
     )
+    token = _get_bearer_token(request)
+    root_token = _fetch_root_token_in_session(db) if token else None
+    rsvp = (
+        _fetch_rsvp_by_token_in_session(db, token)
+        if token and not (root_token and token == root_token)
+        else None
+    )
+    payload_events = []
+    for event in events:
+        include_private = _can_view_private_channel(
+            event, token=token, root_token=root_token
+        )
+        payload_events.append(
+            _serialize_event(
+                event,
+                include_location=_can_view_event_location_list(
+                    event, token=token, root_token=root_token, rsvp=rsvp
+                ),
+                include_private_channel=include_private,
+                include_unapproved_yes_count=include_private,
+            )
+        )
     return {
         "channel": _serialize_channel(channel),
-        "events": [_serialize_event(event) for event in events],
+        "events": payload_events,
         "pagination": pagination,
     }

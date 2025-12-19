@@ -4,7 +4,6 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Connection
 
 from openrsvp.database import DATABASE_URL, engine
 from openrsvp.models import Base

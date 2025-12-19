@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set title = page_title %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ page_title }}</h1>
+    <p class="text-muted mb-0">Saved magic links from this device only.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-secondary {% if view == 'hosted' %}active{% endif %}" href="/my-events">Hosted</a>
+    <a class="btn btn-outline-secondary {% if view == 'rsvps' %}active{% endif %}" href="/my-rsvps">RSVPs</a>
+  </div>
+</div>
+
+<div class="p-3 bg-white border rounded-3 shadow-sm mb-3">
+  <div class="text-muted small">
+    Clearing browser storage or switching devices removes this list. Keep your magic links in a safe place.
+  </div>
+</div>
+
+<div id="my-events-loading" class="d-flex align-items-center gap-2 text-muted mb-3">
+  <div class="spinner-border spinner-border-sm" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <span>Loading saved events...</span>
+</div>
+
+<div id="my-events-list" class="list-group shadow-sm" data-my-events-view="{{ view }}"></div>
+
+<div id="my-events-empty" class="p-4 bg-white border rounded-3 shadow-sm d-none">
+  <h2 class="h5 mb-2">{{ empty_title }}</h2>
+  <p class="text-muted mb-0">{{ empty_body }}</p>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='my-events.js') }}?v={{ asset_version('my-events.js') if asset_version is defined else app_version }}" defer></script>
+{% endblock %}

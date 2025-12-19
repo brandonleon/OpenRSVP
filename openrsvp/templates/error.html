@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set title = "Error " ~ status_code %}
 {% block content %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4 text-center">
   <div class="display-5 fw-semibold text-danger mb-2">{{ status_code }}</div>

@@ -24,6 +24,7 @@
             <li class="nav-item"><a class="nav-link active" aria-current="page" href="calendar.html">Calendar</a></li>
             <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
             <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="deploy.html">Deploy</a></li>
             <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
             <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
             <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
@@ -52,8 +53,10 @@
               <ul class="mb-0">
                 <li>ICS file served via: <code>GET /api/v1/events/{event_id}/event.ics</code></li>
                 <li>Times are normalized to UTC per RFC 5545.</li>
-                <li>The ICS file includes: title, description, location, and event duration.</li>
+                <li>The ICS file includes: title, description, location (when allowed), and event duration.</li>
               </ul>
+              <p class="text-muted small mt-2">If admin approval is required, the location stays hidden unless the request includes an approved Yes RSVP token or an admin/root token.</p>
+              <pre><code>curl -H "Authorization: Bearer &lt;token&gt;" \\\n  http://localhost:8000/api/v1/events/{event_id}/event.ics</code></pre>
             </div>
           </div>
           <div class="col-lg-6">

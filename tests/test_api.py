@@ -208,6 +208,44 @@ def test_public_event_in_private_channel_hides_channel_on_event_page(client):
     session.close()
 
 
+def test_public_event_in_private_channel_hides_channel_in_public_api(client):
+    session = database.SessionLocal()
+    channel = ensure_channel(session, name="Hidden API Den", visibility="private")
+    start = (utcnow() + timedelta(days=180)).replace(microsecond=0)
+    event = create_event(
+        session,
+        title="API Jam",
+        description="Music night",
+        start_time=start,
+        end_time=None,
+        location="Basement",
+        channel=channel,
+        is_private=False,
+    )
+    session.commit()
+
+    public_response = client.get(f"/api/v1/events/{event.id}")
+    assert public_response.status_code == 200
+    assert "channel" not in public_response.json()["event"]
+
+    admin_headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_response = client.get(f"/api/v1/events/{event.id}", headers=admin_headers)
+    assert admin_response.status_code == 200
+    assert admin_response.json()["event"]["channel"]["visibility"] == "private"
+
+    start_after = _iso(start - timedelta(days=1))
+    start_before = _iso(start + timedelta(days=1))
+    listing = client.get(
+        f"/api/v1/events?per_page=50&page=1&start_after={start_after}&start_before={start_before}"
+    )
+    assert listing.status_code == 200
+    events = listing.json()["events"]
+    match = next(evt for evt in events if evt["id"] == event.id)
+    assert "channel" not in match
+
+    session.close()
+
+
 def test_private_rsvp_hidden_from_public_list(client):
     session = database.SessionLocal()
     channel = ensure_channel(session, name="Mixed", visibility="public")
@@ -253,6 +291,47 @@ def test_private_rsvp_hidden_from_public_list(client):
     assert "Public Guest" in admin_page.text
     assert "Private Guest" in admin_page.text
     assert "Private" in admin_page.text  # badge exists
+
+    session.close()
+
+
+def test_private_rsvp_hidden_from_public_api_payload(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="API Privacy",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+    )
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Visible Guest",
+        attendance_status="yes",
+        pronouns=None,
+        guest_count=0,
+        is_private=False,
+    )
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Hidden Guest",
+        attendance_status="yes",
+        pronouns=None,
+        guest_count=0,
+        is_private=True,
+    )
+    session.commit()
+
+    response = client.get(f"/api/v1/events/{event.id}")
+    assert response.status_code == 200
+    payload = response.json()["event"]
+    assert [rsvp["name"] for rsvp in payload["rsvps"]] == ["Visible Guest"]
+    assert payload["rsvp_counts"]["private"] == 1
 
     session.close()
 
@@ -416,15 +495,28 @@ def test_pending_rsvp_hidden_until_approved(client):
     assert create_resp.status_code == 201
     created_rsvp = create_resp.json()["rsvp"]
     assert created_rsvp["approval_status"] == "pending"
+    rsvp_token = created_rsvp["rsvp_token"]
+
+    public_with_token = client.get(
+        f"/api/v1/events/{event.id}",
+        headers={"Authorization": f"Bearer {rsvp_token}"},
+    )
+    assert public_with_token.status_code == 200
+    assert public_with_token.json()["event"]["location"] is None
 
     public_resp = client.get(f"/api/v1/events/{event.id}")
     public_event = public_resp.json()["event"]
+    assert public_event["location"] is None
+    assert public_event["yes_count"] == 0
     counts = public_event["rsvp_counts"]
     assert counts["public"] == 0
     assert counts["public_party_size"] == 0
     assert public_event["rsvps"] == []
 
     headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_event = client.get(f"/api/v1/events/{event.id}", headers=headers)
+    assert admin_event.status_code == 200
+    assert admin_event.json()["event"]["location"] == "Somewhere"
     admin_list = client.get(f"/api/v1/events/{event.id}/rsvps", headers=headers)
     assert admin_list.status_code == 200
     admin_rsvp = admin_list.json()["rsvps"][0]
@@ -442,12 +534,205 @@ def test_pending_rsvp_hidden_until_approved(client):
 
     public_after = client.get(f"/api/v1/events/{event.id}")
     event_after = public_after.json()["event"]
+    assert event_after["location"] is None
+    assert event_after["yes_count"] == 1
     counts_after = event_after["rsvp_counts"]
     assert counts_after["public"] == 1
     assert counts_after["public_party_size"] == 1
     assert len(event_after["rsvps"]) == 1
     assert event_after["rsvps"][0]["name"] == "Pending Guest"
 
+    attendee_event = client.get(
+        f"/api/v1/events/{event.id}",
+        headers={"Authorization": f"Bearer {rsvp_token}"},
+    )
+    assert attendee_event.status_code == 200
+    assert attendee_event.json()["event"]["location"] == "Somewhere"
+
+    session.close()
+
+
+def test_location_hidden_for_non_yes_or_unapproved_rsvps(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Location Gating",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Secret Place",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    yes_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Rejected Guest",
+            "attendance_status": "yes",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert yes_resp.status_code == 201
+    rejected_token = yes_resp.json()["rsvp"]["rsvp_token"]
+
+    no_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={
+            "name": "Approved No",
+            "attendance_status": "no",
+            "guest_count": 0,
+            "is_private_rsvp": False,
+        },
+    )
+    assert no_resp.status_code == 201
+    no_token = no_resp.json()["rsvp"]["rsvp_token"]
+
+    headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_list = client.get(f"/api/v1/events/{event.id}/rsvps", headers=headers)
+    assert admin_list.status_code == 200
+    rsvps_by_name = {r["name"]: r for r in admin_list.json()["rsvps"]}
+
+    reject_id = rsvps_by_name["Rejected Guest"]["id"]
+    reject_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps/{reject_id}/reject",
+        headers=headers,
+    )
+    assert reject_resp.status_code == 200
+
+    approve_no_id = rsvps_by_name["Approved No"]["id"]
+    approve_no_resp = client.post(
+        f"/api/v1/events/{event.id}/rsvps/{approve_no_id}/approve",
+        headers=headers,
+    )
+    assert approve_no_resp.status_code == 200
+
+    rejected_event = client.get(
+        f"/api/v1/events/{event.id}",
+        headers={"Authorization": f"Bearer {rejected_token}"},
+    )
+    assert rejected_event.status_code == 200
+    assert rejected_event.json()["event"]["location"] is None
+
+    approved_no_event = client.get(
+        f"/api/v1/events/{event.id}",
+        headers={"Authorization": f"Bearer {no_token}"},
+    )
+    assert approved_no_event.status_code == 200
+    assert approved_no_event.json()["event"]["location"] is None
+
+    session.close()
+
+
+def test_event_page_hides_location_when_approval_required(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Secret Meetup",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Hidden Warehouse",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    response = client.get(f"/e/{event.id}")
+    assert response.status_code == 200
+    assert "Hidden Warehouse" not in response.text
+    assert "Location hidden until your RSVP is approved" in response.text
+
+    session.close()
+
+
+def test_homepage_hides_location_for_approval_events(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Secret Listing",
+        description="",
+        start_time=utcnow().replace(microsecond=0) + timedelta(days=1),
+        end_time=None,
+        location="Undisclosed",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert event.title in response.text
+    assert "Undisclosed" not in response.text
+    assert "Location hidden" in response.text
+
+    session.close()
+
+
+def test_homepage_channel_jump_limited_to_top_100(client):
+    session = database.SessionLocal()
+    for idx in range(105):
+        channel = ensure_channel(session, name=f"Chan {idx}", visibility="public")
+        channel.score = float(1000 - idx)
+        session.add(channel)
+    session.commit()
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'value="chan-0"' in response.text
+    assert 'value="chan-99"' in response.text
+    assert 'value="chan-100"' not in response.text
+    assert 'value="chan-104"' not in response.text
+    session.close()
+
+
+def test_discover_channels_page_search_and_filters(client):
+    session = database.SessionLocal()
+    upcoming_channel = ensure_channel(
+        session, name="Upcoming Lounge", visibility="public"
+    )
+    stale_channel = ensure_channel(session, name="Stale Lounge", visibility="public")
+    upcoming_channel.score = 200.0
+    stale_channel.score = 50.0
+    create_event(
+        session,
+        title="Next Week",
+        description="",
+        start_time=utcnow().replace(microsecond=0) + timedelta(days=7),
+        end_time=None,
+        location=None,
+        channel=upcoming_channel,
+        is_private=False,
+    )
+    session.commit()
+
+    response = client.get("/channels/discover")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" in response.text
+
+    response = client.get("/channels/discover?has_upcoming=true")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" not in response.text
+
+    response = client.get("/channels/discover?invert=true")
+    assert response.status_code == 200
+    assert response.text.index("Stale Lounge") < response.text.index("Upcoming Lounge")
+
+    response = client.get("/channels/discover?q=upcoming")
+    assert response.status_code == 200
+    assert "Upcoming Lounge" in response.text
+    assert "Stale Lounge" not in response.text
+
+    response = client.get("/channels/discover?q=definitely-not-a-channel")
+    assert response.status_code == 200
+    assert "No channels found." in response.text
     session.close()
 
 

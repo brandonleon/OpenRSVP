@@ -56,7 +56,12 @@ def _escape_text(value: str | None) -> str:
     return escaped
 
 
-def generate_ics(event: Event, *, now: datetime | None = None) -> str:
+def generate_ics(
+    event: Event,
+    *,
+    now: datetime | None = None,
+    include_location: bool = True,
+) -> str:
     """Return ICS text for an event."""
 
     dtstamp = _format_utc(now or datetime.now(UTC))
@@ -65,7 +70,7 @@ def generate_ics(event: Event, *, now: datetime | None = None) -> str:
     end = _format_utc(end_source)
     summary = _escape_text(event.title)
     description = _escape_text(event.description)
-    location = _escape_text(event.location)
+    location = _escape_text(event.location if include_location else None)
 
     lines = [
         "BEGIN:VCALENDAR",

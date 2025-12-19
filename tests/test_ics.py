@@ -30,6 +30,7 @@ def _make_event(*, start: datetime, end: datetime) -> str:
         location="Test Venue",
         channel=None,
         is_private=False,
+        admin_approval_required=False,
     )
     session.commit()
     session.close()
@@ -68,3 +69,36 @@ def test_ics_dates_are_normalized_to_utc(client):
     # 09:00 -05:00 should convert to 14:00Z
     assert "DTSTART:20240601T140000Z" in body
     assert "DTEND:20240601T160000Z" in body
+
+
+def test_ics_hides_location_when_approval_required(client):
+    start = datetime(2024, 1, 2, 12, 0, tzinfo=timezone.utc)
+    end = start + timedelta(hours=1)
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Approval Event",
+        description="",
+        start_time=start,
+        end_time=end,
+        location="Secret Venue",
+        channel=None,
+        is_private=False,
+        admin_approval_required=True,
+    )
+    session.commit()
+
+    response = client.get(f"/api/v1/events/{event.id}/event.ics")
+    assert response.status_code == 200
+    body = response.text
+    assert "LOCATION:Secret Venue" not in body
+    assert "LOCATION:" in body
+
+    response_with_token = client.get(
+        f"/api/v1/events/{event.id}/event.ics",
+        headers={"Authorization": f"Bearer {event.admin_token}"},
+    )
+    assert response_with_token.status_code == 200
+    assert "LOCATION:Secret Venue" in response_with_token.text
+
+    session.close()

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set title = "RSVP created: " ~ event.title %}
 {% block content %}
 {% set magic_url = request.url_for('edit_rsvp', event_id=event.id, rsvp_token=rsvp.rsvp_token) %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4">

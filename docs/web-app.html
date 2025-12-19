@@ -24,6 +24,7 @@
             <li class="nav-item"><a class="nav-link" href="calendar.html">Calendar</a></li>
             <li class="nav-item"><a class="nav-link" href="capacity.html">Capacity</a></li>
             <li class="nav-item"><a class="nav-link" href="rsvp-close.html">RSVP Close</a></li>
+            <li class="nav-item"><a class="nav-link" href="deploy.html">Deploy</a></li>
             <li class="nav-item"><a class="nav-link" href="cli.html">CLI &amp; Ops</a></li>
             <li class="nav-item"><a class="nav-link" href="decay.html">Decay</a></li>
             <li class="nav-item"><a class="nav-link" href="api.html">API</a></li>
@@ -66,6 +67,8 @@
                 <li>Public vs. private RSVPs (hide from attendee list; organizers still see them).</li>
                 <li>Edit or delete your own RSVP anytime using the token link.</li>
                 <li>Events with approval enabled hold new RSVPs as <strong>pending</strong> until the host marks them approved or rejected.</li>
+                <li>When approval is required, the event location stays hidden until a Yes RSVP is approved.</li>
+                <li>Guests can message the organizer from their RSVP link; replies appear in the RSVP message feed.</li>
                 <li>Organizers can delete RSVPs on request but cannot change their contents.</li>
                 <li>Hosts may close RSVPs entirely (manually or scheduled); existing guests retain edit/delete access via their token.</li>
               </ul>
@@ -79,6 +82,7 @@
                 <li>Public channels appear on the homepage filter and <code>/channel/&lt;slug&gt;</code>.</li>
                 <li>Private channels never list publicly; they are reachable only by URL.</li>
                 <li>Channel badge hides on public events inside private channels to avoid leaking the slug.</li>
+                <li>Use <code>/channels/discover</code> to search, sort by rank/name/recent, and filter to channels with upcoming events.</li>
               </ul>
             </div>
           </div>
@@ -89,6 +93,7 @@
             <div class="section-card h-100">
               <h3 class="h5">Magic links, privacy, and preferences</h3>
               <p>The UI stores event owner (admin) / RSVP tokens locally (when the browser allows) so visitors can reopen “Edit” actions. Use Preferences or per-event “Forget this key” to clear saved links.</p>
+              <p class="mb-2">The <code>/my-events</code> and <code>/my-rsvps</code> pages list saved links for this device only.</p>
               <p class="mb-2">Catppuccin themes are available in the app; this docs site sticks to Latte for consistency.</p>
               <p class="mb-0 text-muted small">Never share event owner/admin or RSVP tokens publicly. They are the only credentials OpenRSVP uses.</p>
             </div>
@@ -103,6 +108,32 @@
                 <li>Deleted events and purged data are not recoverable.</li>
               </ul>
               <p class="mb-0 text-muted small">See the dedicated <a href="decay.html">decay &amp; cleanup</a> page for deeper tuning guidance.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4 mt-1">
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Sharing and invites</h3>
+              <p>Every event page includes sharing helpers for guests.</p>
+              <ul class="mb-0">
+                <li>Copy the RSVP form link directly.</li>
+                <li>Use the Share button for native sharing on HTTPS (falls back to copy).</li>
+                <li>Scan the QR code to open the RSVP form on another device.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <h3 class="h5">Announcements and messaging</h3>
+              <p>Event owners can post public announcements and direct messages.</p>
+              <ul class="mb-0">
+                <li>Announcements appear on the public event page.</li>
+                <li>Owners can send private messages to a specific RSVP.</li>
+                <li>Admin-only notes stay visible just to organizers.</li>
+                <li>Guests can reply from their RSVP edit page.</li>
+              </ul>
             </div>
           </div>
         </div>

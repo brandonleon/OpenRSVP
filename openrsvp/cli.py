@@ -141,24 +141,34 @@ def decay(
 def runserver(
     host: str = typer.Option(settings.app_host, "--host", help="Host to bind"),
     port: int = typer.Option(settings.app_port, "--port", help="Port to bind"),
-):
+    dev: bool = typer.Option(
+        False,
+        "--dev",
+        help="Auto-restart on Python file changes (enables uvicorn reload)",
+    ),
+) -> None:
     """Start FastAPI with APScheduler."""
     init_db()
-    start_scheduler()
+    if not dev:
+        start_scheduler()
     config = uvicorn.Config(
         "openrsvp.api:app",
         host=host,
         port=port,
-        reload=False,
+        reload=dev,
+        reload_dirs=[str(PROJECT_ROOT / "openrsvp")],
+        reload_includes=["*.py"],
         proxy_headers=True,
         forwarded_allow_ips="*",
     )
     server = uvicorn.Server(config)
     try:
-        typer.echo(f"Starting OpenRSVP on {host}:{port}")
+        suffix = " (dev reload)" if dev else ""
+        typer.echo(f"Starting OpenRSVP on {host}:{port}{suffix}")
         server.run()
     finally:
-        stop_scheduler()
+        if not dev:
+            stop_scheduler()
 
 
 @app.command("seed-data")
@@ -236,6 +246,18 @@ def upgrade_container(
         "--git-pull/--no-git-pull",
         help="Run 'git pull --ff-only' before rebuilding containers",
     ),
+    host_port: int | None = typer.Option(
+        None,
+        "--host-port",
+        min=1,
+        max=65535,
+        help="Expose the FastAPI container on this host port (dev stack)",
+    ),
+    data_dir: Path | None = typer.Option(
+        None,
+        "--data-dir",
+        help="Host directory to mount at /app/data for persistent storage",
+    ),
 ) -> None:
     """Rebuild and restart the Docker Compose stack."""
 
@@ -253,7 +275,9 @@ def upgrade_container(
         env_description = "custom compose file"
         stack_label = target_compose.name
     else:
-        target_name = "docker-compose.yml" if environment == "prod" else "docker-compose.dev.yml"
+        target_name = (
+            "docker-compose.yml" if environment == "prod" else "docker-compose.dev.yml"
+        )
         target_compose = PROJECT_ROOT / target_name
         env_label = "production" if environment == "prod" else "development"
         env_description = f"{env_label} environment"
@@ -274,6 +298,23 @@ def upgrade_container(
             "Failed to pull the latest changes from git",
         )
 
+    compose_env_overrides: dict[str, str] = {}
+    if host_port is not None:
+        compose_env_overrides["OPENRSVP_HOST_PORT"] = str(host_port)
+    data_dir_path: Path | None = None
+    if data_dir is not None:
+        data_dir_path = data_dir.expanduser().resolve()
+        data_dir_path.mkdir(parents=True, exist_ok=True)
+        compose_env_overrides["OPENRSVP_DATA_DIR"] = os.fspath(data_dir_path)
+
+    compose_env = os.environ.copy()
+    compose_env.update(compose_env_overrides)
+
+    if data_dir_path:
+        typer.echo(f"Mounting data directory: {data_dir_path}")
+    if host_port is not None:
+        typer.echo(f"Exposing app container on host port {host_port}")
+
     compose_base = ["docker", "compose", "-f", os.fspath(target_compose)]
 
     typer.echo(
@@ -282,12 +323,14 @@ def upgrade_container(
     _run_command(
         compose_base + ["build"],
         f"Failed to build containers defined in {target_compose.name}",
+        env=compose_env,
     )
 
     typer.echo("Starting containers (docker compose up -d --remove-orphans)...")
     _run_command(
         compose_base + ["up", "-d", "--remove-orphans"],
         f"Failed to start containers defined in {target_compose.name}",
+        env=compose_env,
     )
 
     typer.secho(
@@ -346,7 +389,9 @@ def renew_certs(
         f"Failed to renew certificates using service '{certbot_service}'",
     )
 
-    typer.echo(f"Reloading nginx service '{nginx_service}' to apply new certificates...")
+    typer.echo(
+        f"Reloading nginx service '{nginx_service}' to apply new certificates..."
+    )
     _run_command(
         compose_base + ["exec", nginx_service, "nginx", "-s", "reload"],
         f"Failed to reload nginx service '{nginx_service}'",
@@ -496,10 +541,12 @@ def configure(
         typer.echo(json.dumps(effective, indent=2))
 
 
-def _run_command(command: list[str], error_message: str) -> None:
+def _run_command(
+    command: list[str], error_message: str, env: dict[str, str] | None = None
+) -> None:
     """Run a subprocess command with consistent error handling."""
     try:
-        subprocess.run(command, cwd=PROJECT_ROOT, check=True)
+        subprocess.run(command, cwd=PROJECT_ROOT, check=True, env=env)
     except FileNotFoundError:
         typer.secho(
             f"{error_message}: command '{command[0]}' not found.",
@@ -513,7 +560,7 @@ def _run_command(command: list[str], error_message: str) -> None:
 
 
 def _run_command_with_output(
-    command: list[str], error_message: str
+    command: list[str], error_message: str, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
     """Run a command and capture stdout/stderr."""
     try:
@@ -523,6 +570,7 @@ def _run_command_with_output(
             check=True,
             capture_output=True,
             text=True,
+            env=env,
         )
     except FileNotFoundError:
         typer.secho(

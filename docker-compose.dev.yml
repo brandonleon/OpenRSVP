@@ -4,7 +4,9 @@ services:
       context: .
     container_name: openrsvp_app_dev
     ports:
-      - "8000:8000"
+      - "${OPENRSVP_HOST_PORT:-8000}:8000"
+    volumes:
+      - "${OPENRSVP_DATA_DIR:-./data}:/app/data"
     environment:
       UVICORN_RELOAD: "true"
     restart: unless-stopped
