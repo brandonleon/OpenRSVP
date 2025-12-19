@@ -20,6 +20,25 @@ class HttpResult(TypedDict):
     body: bytes
 
 
+class _PreserveMethodRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[override]
+        method = req.get_method()
+        if method not in {"GET", "HEAD"} and code in {301, 302}:
+            old = urllib.parse.urlparse(req.full_url)
+            new = urllib.parse.urlparse(newurl)
+            if old.scheme == "http" and new.scheme == "https" and old.netloc == new.netloc:
+                return urllib.request.Request(
+                    newurl,
+                    data=req.data,
+                    headers=dict(req.header_items()),
+                    method=method,
+                )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_URL_OPENER = urllib.request.build_opener(_PreserveMethodRedirectHandler())
+
+
 def _utcnow() -> datetime:
     return datetime.now(tz=timezone.utc)
 
@@ -56,7 +75,7 @@ def _http_request(
         request_headers.update(headers)
     req = urllib.request.Request(url, data=data, headers=request_headers, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+        with _URL_OPENER.open(req, timeout=timeout_s) as resp:
             return {
                 "status": int(resp.status),
                 "headers": {k.lower(): v for k, v in resp.headers.items()},
@@ -574,8 +593,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Authorized OpenRSVP dev security probe")
     parser.add_argument(
         "--base-url",
-        default="https://openrsvp.smokehouse.kaotic.cc",
-        help="Base URL (default: %(default)s)",
+        required=True,
+        help="Base URL for the target OpenRSVP instance",
     )
     parser.add_argument(
         "--scale-events",
