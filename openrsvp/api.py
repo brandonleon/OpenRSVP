@@ -2410,6 +2410,36 @@ def help_page(request: Request):
     return templates.TemplateResponse(request, "help.html", {"request": request})
 
 
+@app.get("/my-events")
+def my_events_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "my_events.html",
+        {
+            "request": request,
+            "view": "hosted",
+            "page_title": "My Events",
+            "empty_title": "No hosted events saved yet.",
+            "empty_body": "Create an event or open its admin link on this device to store it.",
+        },
+    )
+
+
+@app.get("/my-rsvps")
+def my_rsvps_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "my_events.html",
+        {
+            "request": request,
+            "view": "rsvps",
+            "page_title": "My RSVPs",
+            "empty_title": "No RSVP events saved yet.",
+            "empty_body": "RSVP to an event on this device and it will appear here.",
+        },
+    )
+
+
 def _paginate_discover_public_channels(
     db: Session,
     *,
