@@ -24,3 +24,9 @@ This file provides coding‑agent rules for working in the OpenRSVP repository.
 - Preserve privacy model: never expose tokens.
 - Avoid modifying RSVP content except where tests require.
 - Keep patches minimal and consistent with surrounding code.
+
+## Release Flow
+- Update `CHANGELOG.md` under `Unreleased` on `develop`.
+- Open PR from `develop` → `main` and merge it.
+- Pull `main`, tag the merge commit (e.g., `vX.Y.Z`), and push the tag.
+- Create the release from the tag.

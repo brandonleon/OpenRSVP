@@ -147,3 +147,15 @@ uv run main.py test              # or: openrsvp test
   `## [0.16.0] - 2024-12-19`.
 - Tag the release commit on `main` (for example, `v0.16.0`) and create the
   release from that tag.
+
+Release flow:
+
+```bash
+git checkout develop
+git pull
+# Update CHANGELOG.md + pyproject.toml version, then open PR to main and merge.
+git checkout main
+git pull
+git tag -a vX.Y.Z -m "vX.Y.Z"
+git push origin vX.Y.Z
+```
