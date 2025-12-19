@@ -124,15 +124,26 @@ private.
 Use `uv` so dev dependencies install on demand:
 
 ```bash
-PYTHONPATH=. UV_CACHE_DIR=.uv-cache uv run pytest
+uv run pytest
 ```
 
-`PYTHONPATH=.` makes the local `openrsvp` package importable without an editable
-install. The `UV_CACHE_DIR` override keeps cache files in the repo instead of
-the default user cache (helpful on locked-down environments).
+If you want to keep cache files in the repo instead of the default user cache:
+
+```bash
+UV_CACHE_DIR=.uv-cache uv run pytest
+```
 
 You can also run the same defaults via the CLI:
 
 ```bash
 uv run main.py test              # or: openrsvp test
 ```
+
+## Changelog & Releases
+
+- Keep `CHANGELOG.md` updated on `develop` under the `Unreleased` section.
+- When releasing, merge `develop` into `main`, update `pyproject.toml` to the
+  release version, and move the `Unreleased` entries into a dated section like
+  `## [0.16.0] - 2024-12-19`.
+- Tag the release commit on `main` (for example, `v0.16.0`) and create the
+  release from that tag.
