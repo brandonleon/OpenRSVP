@@ -946,6 +946,43 @@ def _can_view_event_location_api(
     )
 
 
+def _fetch_rsvp_by_token_in_session(db: Session, token: str | None) -> RSVP | None:
+    if not token:
+        return None
+    stmt = select(RSVP).where(RSVP.rsvp_token == token)
+    return db.scalar(stmt)
+
+
+def _can_view_event_location_list(
+    event: Event,
+    *,
+    token: str | None,
+    root_token: str | None,
+    rsvp: RSVP | None,
+) -> bool:
+    if not event.admin_approval_required:
+        return True
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
+    if rsvp and rsvp.event_id == event.id:
+        return rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
+    return False
+
+
+def _can_view_private_channel(
+    event: Event, *, token: str | None, root_token: str | None
+) -> bool:
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    return bool(root_token and token == root_token)
+
+
 def _fetch_root_token_in_session(db: Session) -> str | None:
     meta = db.get(Meta, settings.root_token_key)
     return meta.value if meta else None
@@ -2598,19 +2635,28 @@ def api_list_public_events(
     )
     token = _get_bearer_token(request)
     root_token = _fetch_root_token_in_session(db) if token else None
-    include_private_channel = bool(token and root_token and token == root_token)
-    return {
-        "events": [
+    rsvp = (
+        _fetch_rsvp_by_token_in_session(db, token)
+        if token and not (root_token and token == root_token)
+        else None
+    )
+    payload_events = []
+    for event in events:
+        include_private = _can_view_private_channel(
+            event, token=token, root_token=root_token
+        )
+        payload_events.append(
             _serialize_event(
                 event,
-                include_location=_can_view_event_location_api(
-                    db, event=event, token=token, root_token=root_token
+                include_location=_can_view_event_location_list(
+                    event, token=token, root_token=root_token, rsvp=rsvp
                 ),
-                include_private_channel=include_private_channel,
-                include_unapproved_yes_count=include_private_channel,
+                include_private_channel=include_private,
+                include_unapproved_yes_count=include_private,
             )
-            for event in events
-        ],
+        )
+    return {
+        "events": payload_events,
         "pagination": pagination,
         "filters": {
             "start_after": start_after_dt.isoformat() if start_after_dt else None,
@@ -2679,12 +2725,8 @@ def api_get_event(event_id: str, request: Request, db: Session = Depends(get_db)
     include_location = _can_view_event_location_api(
         db, event=event, token=token, root_token=root_token
     )
-    include_private_channel = bool(
-        token
-        and (
-            token == event.admin_token
-            or (root_token is not None and token == root_token)
-        )
+    include_private_channel = _can_view_private_channel(
+        event, token=token, root_token=root_token
     )
     return {
         "event": _serialize_event(
@@ -3163,19 +3205,28 @@ def api_channel_detail(
     )
     token = _get_bearer_token(request)
     root_token = _fetch_root_token_in_session(db) if token else None
-    include_private_channel = bool(token and root_token and token == root_token)
-    return {
-        "channel": _serialize_channel(channel),
-        "events": [
+    rsvp = (
+        _fetch_rsvp_by_token_in_session(db, token)
+        if token and not (root_token and token == root_token)
+        else None
+    )
+    payload_events = []
+    for event in events:
+        include_private = _can_view_private_channel(
+            event, token=token, root_token=root_token
+        )
+        payload_events.append(
             _serialize_event(
                 event,
-                include_location=_can_view_event_location_api(
-                    db, event=event, token=token, root_token=root_token
+                include_location=_can_view_event_location_list(
+                    event, token=token, root_token=root_token, rsvp=rsvp
                 ),
-                include_private_channel=include_private_channel,
-                include_unapproved_yes_count=include_private_channel,
+                include_private_channel=include_private,
+                include_unapproved_yes_count=include_private,
             )
-            for event in events
-        ],
+        )
+    return {
+        "channel": _serialize_channel(channel),
+        "events": payload_events,
         "pagination": pagination,
     }
