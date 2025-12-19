@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from hashlib import blake2s
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 from pathlib import Path
@@ -1507,6 +1507,13 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     event_is_full = (
         available_yes_slots == 0 if available_yes_slots is not None else False
     )
+    now = utcnow()
+    event_end_at = event.end_time
+    if event_end_at is None:
+        start_reference = event.start_time or event.created_at
+        next_day = start_reference.date() + timedelta(days=1)
+        event_end_at = datetime.combine(next_day, time.min)
+    event_is_over = now >= event_end_at
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     public_messages = _event_messages(event, visibilities={"public"})
@@ -1522,6 +1529,7 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "private_party_size": private_party_size,
             "available_yes_slots": available_yes_slots,
             "event_is_full": event_is_full,
+            "event_is_over": event_is_over,
             "message": message,
             "message_class": message_class,
             "public_messages": public_messages,

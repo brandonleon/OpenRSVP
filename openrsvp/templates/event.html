@@ -2,6 +2,11 @@
 {% set title = event.title %}
 {% set public_messages = public_messages or [] %}
 {% block content %}
+{% if event_is_over %}
+<div class="alert alert-info mb-3" role="alert">
+  This event is over. Thanks for joining us.
+</div>
+{% endif %}
 <section class="hero-panel p-4 p-md-5 rounded-4 mb-4" id="event-hero" data-event-page data-event-id="{{ event.id }}">
   <div class="d-flex flex-column flex-lg-row align-items-start gap-4">
     <div class="flex-grow-1">
