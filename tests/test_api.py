@@ -208,6 +208,44 @@ def test_public_event_in_private_channel_hides_channel_on_event_page(client):
     session.close()
 
 
+def test_public_event_in_private_channel_hides_channel_in_public_api(client):
+    session = database.SessionLocal()
+    channel = ensure_channel(session, name="Hidden API Den", visibility="private")
+    start = (utcnow() + timedelta(days=180)).replace(microsecond=0)
+    event = create_event(
+        session,
+        title="API Jam",
+        description="Music night",
+        start_time=start,
+        end_time=None,
+        location="Basement",
+        channel=channel,
+        is_private=False,
+    )
+    session.commit()
+
+    public_response = client.get(f"/api/v1/events/{event.id}")
+    assert public_response.status_code == 200
+    assert "channel" not in public_response.json()["event"]
+
+    admin_headers = {"Authorization": f"Bearer {event.admin_token}"}
+    admin_response = client.get(f"/api/v1/events/{event.id}", headers=admin_headers)
+    assert admin_response.status_code == 200
+    assert admin_response.json()["event"]["channel"]["visibility"] == "private"
+
+    start_after = _iso(start - timedelta(days=1))
+    start_before = _iso(start + timedelta(days=1))
+    listing = client.get(
+        f"/api/v1/events?per_page=50&page=1&start_after={start_after}&start_before={start_before}"
+    )
+    assert listing.status_code == 200
+    events = listing.json()["events"]
+    match = next(evt for evt in events if evt["id"] == event.id)
+    assert "channel" not in match
+
+    session.close()
+
+
 def test_private_rsvp_hidden_from_public_list(client):
     session = database.SessionLocal()
     channel = ensure_channel(session, name="Mixed", visibility="public")
@@ -253,6 +291,47 @@ def test_private_rsvp_hidden_from_public_list(client):
     assert "Public Guest" in admin_page.text
     assert "Private Guest" in admin_page.text
     assert "Private" in admin_page.text  # badge exists
+
+    session.close()
+
+
+def test_private_rsvp_hidden_from_public_api_payload(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="API Privacy",
+        description="",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Somewhere",
+        channel=None,
+        is_private=False,
+    )
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Visible Guest",
+        attendance_status="yes",
+        pronouns=None,
+        guest_count=0,
+        is_private=False,
+    )
+    crud.create_rsvp(
+        session,
+        event=event,
+        name="Hidden Guest",
+        attendance_status="yes",
+        pronouns=None,
+        guest_count=0,
+        is_private=True,
+    )
+    session.commit()
+
+    response = client.get(f"/api/v1/events/{event.id}")
+    assert response.status_code == 200
+    payload = response.json()["event"]
+    assert [rsvp["name"] for rsvp in payload["rsvps"]] == ["Visible Guest"]
+    assert payload["rsvp_counts"]["private"] == 1
 
     session.close()
 
@@ -428,6 +507,7 @@ def test_pending_rsvp_hidden_until_approved(client):
     public_resp = client.get(f"/api/v1/events/{event.id}")
     public_event = public_resp.json()["event"]
     assert public_event["location"] is None
+    assert public_event["yes_count"] == 0
     counts = public_event["rsvp_counts"]
     assert counts["public"] == 0
     assert counts["public_party_size"] == 0
@@ -455,6 +535,7 @@ def test_pending_rsvp_hidden_until_approved(client):
     public_after = client.get(f"/api/v1/events/{event.id}")
     event_after = public_after.json()["event"]
     assert event_after["location"] is None
+    assert event_after["yes_count"] == 1
     counts_after = event_after["rsvp_counts"]
     assert counts_after["public"] == 1
     assert counts_after["public_party_size"] == 1

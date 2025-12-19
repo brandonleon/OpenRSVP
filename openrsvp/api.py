@@ -628,8 +628,17 @@ def _serialize_event(
     include_private_counts: bool = False,
     include_admin_link: bool = False,
     include_location: bool = True,
+    include_private_channel: bool = False,
+    include_unapproved_yes_count: bool = True,
     include_messages: list[Message] | None = None,
 ):
+    yes_count = event.yes_count
+    if event.admin_approval_required and not include_unapproved_yes_count:
+        yes_count = sum(
+            (r.guest_count or 0) + 1
+            for r in event.rsvps
+            if r.approval_status == "approved" and r.attendance_status == "yes"
+        )
     payload = {
         "id": event.id,
         "title": event.title,
@@ -641,7 +650,7 @@ def _serialize_event(
         "admin_approval_required": event.admin_approval_required,
         "score": event.score,
         "max_attendees": event.max_attendees,
-        "yes_count": event.yes_count,
+        "yes_count": yes_count,
         "rsvps_closed": event.rsvps_closed,
         "rsvp_close_at": event.rsvp_close_at.isoformat()
         if event.rsvp_close_at
@@ -654,12 +663,13 @@ def _serialize_event(
         },
     }
     if event.channel:
-        payload["channel"] = {
-            "id": event.channel.id,
-            "name": event.channel.name,
-            "slug": event.channel.slug,
-            "visibility": event.channel.visibility,
-        }
+        if event.channel.visibility != "private" or include_private_channel:
+            payload["channel"] = {
+                "id": event.channel.id,
+                "name": event.channel.name,
+                "slug": event.channel.slug,
+                "visibility": event.channel.visibility,
+            }
     if include_admin_link:
         payload["links"]["admin"] = f"/e/{event.id}/admin/{event.admin_token}"
     if include_rsvps is not None:
@@ -2558,6 +2568,7 @@ def api_list_public_events(
     )
     token = _get_bearer_token(request)
     root_token = _fetch_root_token_in_session(db) if token else None
+    include_private_channel = bool(token and root_token and token == root_token)
     return {
         "events": [
             _serialize_event(
@@ -2565,6 +2576,8 @@ def api_list_public_events(
                 include_location=_can_view_event_location_api(
                     db, event=event, token=token, root_token=root_token
                 ),
+                include_private_channel=include_private_channel,
+                include_unapproved_yes_count=include_private_channel,
             )
             for event in events
         ],
@@ -2615,7 +2628,9 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         rsvp_close_at=normalized_close,
     )
     return {
-        "event": _serialize_event(event, include_admin_link=True),
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        ),
         "admin_token": event.admin_token,
     }
 
@@ -2634,6 +2649,13 @@ def api_get_event(event_id: str, request: Request, db: Session = Depends(get_db)
     include_location = _can_view_event_location_api(
         db, event=event, token=token, root_token=root_token
     )
+    include_private_channel = bool(
+        token
+        and (
+            token == event.admin_token
+            or (root_token is not None and token == root_token)
+        )
+    )
     return {
         "event": _serialize_event(
             event,
@@ -2641,6 +2663,8 @@ def api_get_event(event_id: str, request: Request, db: Session = Depends(get_db)
             include_private_counts=True,
             include_admin_link=False,
             include_location=include_location,
+            include_private_channel=include_private_channel,
+            include_unapproved_yes_count=include_private_channel,
             include_messages=public_messages,
         )
     }
@@ -2721,7 +2745,11 @@ def api_update_event(
         rsvp_close_at=normalized_close,
         update_rsvp_close_at=update_close,
     )
-    return {"event": _serialize_event(event, include_admin_link=True)}
+    return {
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        )
+    }
 
 
 @app.delete("/api/v1/events/{event_id}", status_code=204)
@@ -2740,7 +2768,9 @@ def api_list_event_rsvps(
     _require_admin_header(event, request)
     rsvps = list(event.rsvps)
     return {
-        "event": _serialize_event(event, include_admin_link=True),
+        "event": _serialize_event(
+            event, include_admin_link=True, include_private_channel=True
+        ),
         "rsvps": [
             _serialize_rsvp(r, include_token=True, include_internal_id=True)
             for r in rsvps
@@ -3103,6 +3133,7 @@ def api_channel_detail(
     )
     token = _get_bearer_token(request)
     root_token = _fetch_root_token_in_session(db) if token else None
+    include_private_channel = bool(token and root_token and token == root_token)
     return {
         "channel": _serialize_channel(channel),
         "events": [
@@ -3111,6 +3142,8 @@ def api_channel_detail(
                 include_location=_can_view_event_location_api(
                     db, event=event, token=token, root_token=root_token
                 ),
+                include_private_channel=include_private_channel,
+                include_unapproved_yes_count=include_private_channel,
             )
             for event in events
         ],
