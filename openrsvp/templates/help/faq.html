@@ -1,0 +1,71 @@
+{% extends "help/help_base.html" %}
+{% block help_content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-6">Frequently Asked Questions</h1>
+        <p class="lead text-muted">Quick answers to common questions about OpenRSVP.</p>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="accordion" id="faqAccordion">
+            <div class="card border-0 mb-3">
+                <div class="card-header bg-light" id="headingOne">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            What is OpenRSVP?
+                        </button>
+                    </h2>
+                </div>
+
+                <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        OpenRSVP is a privacy-focused event management platform that allows you to create, share, and manage events without requiring user accounts or storing personal information.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 mb-3">
+                <div class="card-header bg-light" id="headingTwo">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            How do magic links work?
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        Magic links are unique, one-time access tokens that allow you to edit your RSVP or manage an event without creating an account. They are generated when you first create or RSVP to an event and can be saved locally in your browser.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 mb-3">
+                <div class="card-header bg-light" id="headingThree">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            Can I delete my event or RSVP data?
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        Yes! Events and RSVPs automatically decay if inactive. You can also manually delete your event or RSVP at any time. No persistent data is stored about you.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light shadow-sm">
+            <div class="card-body">
+                <h3 class="h5 mb-3">Still Need Help?</h3>
+                <p class="small text-muted mb-3">
+                    If you can't find the answer you're looking for, we're here to help.
+                </p>
+                <a href="{{ repo_url }}/issues" target="_blank" class="btn btn-primary btn-sm">Open a Support Ticket</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

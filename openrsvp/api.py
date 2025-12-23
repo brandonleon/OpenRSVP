@@ -13,7 +13,7 @@ import tomllib
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -48,6 +48,7 @@ from .utils import (
     render_markdown,
     utcnow,
 )
+from .web import register_web_routes
 from .utils.ics import generate_ics
 
 # Use uvicorn's error logger so messages get the level prefix in the default log
@@ -127,6 +128,11 @@ app = FastAPI(title="OpenRSVP", version=APP_VERSION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+# Register web routes
+from .web import register_web_routes
+
+register_web_routes(app)
 
 
 def _asset_version(filename: str) -> str:
@@ -1379,10 +1385,10 @@ def event_create_page(request: Request, db: Session = Depends(get_db)):
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     return templates.TemplateResponse(
         request,
-        "event_create.html",
+        "help/rsvp.html",
         {
             "request": request,
-            "public_channels": public_channels,
+            "repo_url": get_repo_url(),
         },
     )
 
@@ -2451,8 +2457,21 @@ def channel_page_private(
 
 
 @app.get("/help")
-def help_page(request: Request):
-    return templates.TemplateResponse(request, "help.html", {"request": request})
+
+
+@app.get("/help/events")
+
+
+@app.get("/help/rsvp")
+
+
+@app.get("/help/faq", response_class=HTMLResponse)
+
+
+@app.get("/help/privacy", response_class=HTMLResponse)
+@app.get("/help/features", response_class=HTMLResponse)
+
+
 
 
 @app.get("/my-events")
@@ -3238,3 +3257,13 @@ def api_channel_detail(
         "events": payload_events,
         "pagination": pagination,
     }
+
+# Register web routes
+from .web import register_web_routes
+register_web_routes(app)
+
+
+# Register partial routes
+from .partials import register_partial_routes
+register_partial_routes(app)
+

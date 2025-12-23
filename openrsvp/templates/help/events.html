@@ -1,0 +1,93 @@
+{% extends "help/help_base.html" %}
+{% block help_content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-6">Event Hosting Guide</h1>
+        <p class="lead text-muted">Create, manage, and customize your events with OpenRSVP.</p>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Data Minimalism</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">No Accounts</h3>
+                            <p class="small text-muted mb-0">Sign-up free, magic links only</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">No Tracking</h3>
+                            <p class="small text-muted mb-0">Zero analytics, no email storage</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">Local Storage</h3>
+                            <p class="small text-muted mb-0">Magic links stay on your device</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">User Control</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded">
+                            <h3 class="h6 mb-2">Event Privacy</h3>
+                            <ul class="list-unstyled small">
+                                <li class="mb-1">Public or private event settings</li>
+                                <li class="mb-1">Control who can view your event</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded">
+                            <h3 class="h6 mb-2">RSVP Management</h3>
+                            <ul class="list-unstyled small">
+                                <li class="mb-1">Toggle admin approval for RSVPs</li>
+                                <li class="mb-1">Set RSVP closing times</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Creating an Event</h2>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><span class="badge bg-primary me-2">1</span> Choose a meaningful title and description</li>
+                    <li class="mb-2"><span class="badge bg-primary me-2">2</span> Set required start time, end time is optional</li>
+                    <li class="mb-2"><span class="badge bg-primary me-2">3</span> Add location details (optional)</li>
+                    <li class="mb-2"><span class="badge bg-primary me-2">4</span> Select a channel (optional but recommended)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light shadow-sm">
+            <div class="card-body">
+                <h3 class="h5 mb-3">Quick Tips</h3>
+                <ul class="list-unstyled small">
+                    <li class="mb-2">Use descriptive channel names</li>
+                    <li class="mb-2">Event times respect viewer timezones</li>
+                    <li class="mb-2">Private events stay hidden in public channels</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mt-4">
+        <a href="/event/create" class="btn btn-primary me-2">Create Your First Event</a>
+        <a href="/help/rsvp" class="btn btn-outline-secondary">Learn About RSVPs</a>
+    </div>
+</div>
+{% endblock %}

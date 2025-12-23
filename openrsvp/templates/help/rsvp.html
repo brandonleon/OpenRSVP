@@ -1,0 +1,129 @@
+{% extends "help/help_base.html" %}
+{% block help_content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h1 class="display-6">RSVP Guide</h1>
+        <p class="lead text-muted">Understanding how to respond to events and manage your RSVPs.</p>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">Data Minimalism</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">No Accounts</h3>
+                            <p class="small text-muted mb-0">Sign-up free, magic links only</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">No Tracking</h3>
+                            <p class="small text-muted mb-0">Zero analytics, no email storage</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">Local Storage</h3>
+                            <p class="small text-muted mb-0">Magic links stay on your device</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">User Control</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded">
+                            <h3 class="h6 mb-2">RSVP Privacy</h3>
+                            <ul class="list-unstyled small">
+                                <li class="mb-1">Optional privacy toggle on each RSVP</li>
+                                <li class="mb-1">Hide your RSVP status from public event lists</li>
+                                <li class="mb-1">Host always sees your full details</li>
+                                <li class="mb-1">Toggle privacy after submitting RSVP</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded">
+                            <h3 class="h6 mb-2">Magic Links</h3>
+                            <ul class="list-unstyled small">
+                                <li class="mb-1">One-time access tokens</li>
+                                <li class="mb-1">Edit RSVPs without accounts</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-body">
+                <h2 class="h4 mb-3">RSVP Options</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">Yes</h3>
+                            <p class="small text-muted mb-0">Confirms your attendance</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">Maybe</h3>
+                            <p class="small text-muted mb-0">Shows potential interest</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="bg-light p-3 rounded text-center">
+                            <h3 class="h6 mb-2">No</h3>
+                            <p class="small text-muted mb-0">Indicates you cannot attend</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <h3 class="h6 text-muted mb-2">Privacy Option Details</h3>
+                    <p class="small text-muted">
+                        When submitting your RSVP, you can choose to keep your response private. 
+                        Private RSVPs remain invisible in public event listings but are fully 
+                        visible to the event host. This allows you to maintain discretion while 
+                        still providing the host with complete information.
+                    </p>
+                    <ul class="list-unstyled small text-muted">
+                        <li class="mb-1">• Public lists will not show your name or details</li>
+                        <li class="mb-1">• Event host can still see your full RSVP information</li>
+                        <li class="mb-1">• You can change privacy setting after submitting</li>
+                        <li class="mb-1">• Applies to all RSVP statuses (Yes, No, Maybe)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 bg-light shadow-sm">
+            <div class="card-body">
+                <h3 class="h5 mb-3">RSVP Best Practices</h3>
+                <ul class="list-unstyled small">
+                    <li class="mb-2">RSVP early</li>
+                    <li class="mb-2">Be honest about your attendance</li>
+                    <li class="mb-2">Update if plans change</li>
+                    <li class="mb-2">Check event details carefully</li>
+                </ul>
+                <hr class="my-3">
+                <p class="small text-muted mb-0">
+                    Your RSVP helps event hosts plan better and ensures smooth event experiences.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mt-4">
+        <a href="/help/events" class="btn btn-outline-secondary me-2">Learn About Hosting</a>
+        <a href="/help/features" class="btn btn-outline-secondary">Advanced Features</a>
+    </div>
+</div>
+{% endblock %}
