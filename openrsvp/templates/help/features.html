@@ -133,34 +133,37 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="bg-light p-3 rounded text-center">
-                            <h3 class="h6 mb-2">Event Decay</h3>
-                            <p class="small text-muted mb-0">Automatic stale event removal</p>
+                            <h3 class="h6 mb-2">Activity Signals</h3>
+                            <p class="small text-muted mb-0">Visits refresh event and channel timestamps</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="bg-light p-3 rounded text-center">
-                            <h3 class="h6 mb-2">RSVP Management</h3>
-                            <p class="small text-muted mb-0">Predictable data purging</p>
+                            <h3 class="h6 mb-2">Rank & Visibility</h3>
+                            <p class="small text-muted mb-0">Scores decay over time to keep listings fresh</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="bg-light p-3 rounded text-center">
-                            <h3 class="h6 mb-2">No Persistence</h3>
-                            <p class="small text-muted mb-0">Temporary data storage</p>
+                            <h3 class="h6 mb-2">Automatic Cleanup</h3>
+                            <p class="small text-muted mb-0">Stale events and empty channels are removed</p>
                         </div>
                     </div>
                 </div>
                 <div class="mt-3">
-                    <h3 class="h6 text-muted mb-2">Decay Mechanism Details</h3>
+                    <h3 class="h6 text-muted mb-2">How Ranking & Decay Work</h3>
                     <p class="small text-muted">
-                        Our intelligent decay system automatically manages event and RSVP lifecycles, 
-                        ensuring your platform remains clean and relevant.
+                        Events and channels start with a baseline score. Each time an event link is opened,
+                        the event's last_accessed timestamp updates; channel pages (and events within a channel)
+                        refresh last_used_at. The decay cycle applies exponential decay based on the time since
+                        the last activity, so frequently visited links stay near the top while idle items drift down.
                     </p>
                     <ul class="list-unstyled small text-muted">
-                        <li class="mb-1">• Hourly decay cycles check and remove stale content</li>
-                        <li class="mb-1">• Configurable decay thresholds</li>
-                        <li class="mb-1">• Protects upcoming events from automatic removal</li>
-                        <li class="mb-1">• Ensures data privacy through automatic purging</li>
+                        <li class="mb-1">• Public listings hide events once scores drop below the hide threshold and they age past the hide window, but direct links still work.</li>
+                        <li class="mb-1">• Events are eligible for deletion after the post-event grace window, after the delete-after age, and only when their score falls below the delete threshold (upcoming events can be protected).</li>
+                        <li class="mb-1">• Channels decay by last_used_at and are only removed when empty and below the delete threshold.</li>
+                        <li class="mb-1">• RSVPs and messages inherit the event lifecycle and are removed when the event is purged.</li>
+                        <li class="mb-1">• Decay and SQLite vacuuming run on a configurable schedule.</li>
                     </ul>
                 </div>
             </div>
