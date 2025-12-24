@@ -8,7 +8,6 @@ from typing import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-import secrets
 
 from .config import settings
 from .models import Channel, Event, Message, RSVP
@@ -17,6 +16,16 @@ from .utils import slugify, to_naive_utc, utcnow
 CHANNEL_VISIBILITIES = {"public", "private"}
 VALID_APPROVAL_STATUSES = {"pending", "approved", "rejected"}
 VALID_ATTENDANCE_STATUSES = {"yes", "no", "maybe"}
+
+
+def _normalize_attendance(status: str | None) -> str:
+    normalized = (status or "").strip().lower() or "yes"
+    return normalized if normalized in VALID_ATTENDANCE_STATUSES else "maybe"
+
+
+def _normalize_approval(status: str | None) -> str:
+    normalized = (status or "").strip().lower() or "pending"
+    return normalized if normalized in VALID_APPROVAL_STATUSES else "pending"
 
 
 def _now() -> datetime:
@@ -134,6 +143,7 @@ def validate_admin_token(
     )
     return result is not None
 
+
 def create_event(
     session: Session,
     *,
@@ -147,15 +157,12 @@ def create_event(
     is_private: bool = False,
     max_attendees: int | None = None,
     rsvps_closed: bool = False,
-    rsvp_close_at: datetime | None = None
+    rsvp_close_at: datetime | None = None,
 ) -> Event:
     """Create and persist a new event."""
     normalized_start = to_naive_utc(start_time)
     normalized_end = to_naive_utc(end_time)
     normalized_close = to_naive_utc(rsvp_close_at)
-    
-    # Generate a slug from title
-    slug = slugify(title)
 
     event = Event(
         admin_token=secrets.token_urlsafe(32),
@@ -166,7 +173,6 @@ def create_event(
         max_attendees=max_attendees,
         title=title,
         description=description,
-        slug=slug,
         start_time=normalized_start,
         end_time=normalized_end,
         location=location,
@@ -187,7 +193,7 @@ def create_rsvp(
     pronouns: str | None = None,
     guest_count: int | None = None,
     is_private: bool = False,
-    approval_status: str | None = None
+    approval_status: str | None = None,
 ) -> RSVP:
     """Create a new RSVP, respecting approval rules."""
     normalized_attendance = _normalize_attendance(attendance_status)
@@ -235,6 +241,7 @@ def create_message(
     session.flush()
     return message
 
+
 def set_rsvp_status(
     session: Session,
     *,
@@ -247,6 +254,7 @@ def set_rsvp_status(
     session.add(rsvp)
     session.flush()
     return rsvp
+
 
 def update_event(
     session: Session,
@@ -263,7 +271,7 @@ def update_event(
     max_attendees: int | None = None,
     rsvps_closed: bool | None = None,
     rsvp_close_at: datetime | None = None,
-    update_rsvp_close_at: bool = False
+    update_rsvp_close_at: bool = False,
 ) -> Event:
     """Update an existing event."""
     normalized_start = to_naive_utc(start_time)

@@ -14,8 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from openrsvp import api, database, storage
-from openrsvp.models import Base
+from openrsvp import api, database, storage  # noqa: E402
+from openrsvp.models import Base  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)

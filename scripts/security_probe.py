@@ -26,7 +26,11 @@ class _PreserveMethodRedirectHandler(urllib.request.HTTPRedirectHandler):
         if method not in {"GET", "HEAD"} and code in {301, 302}:
             old = urllib.parse.urlparse(req.full_url)
             new = urllib.parse.urlparse(newurl)
-            if old.scheme == "http" and new.scheme == "https" and old.netloc == new.netloc:
+            if (
+                old.scheme == "http"
+                and new.scheme == "https"
+                and old.netloc == new.netloc
+            ):
                 return urllib.request.Request(
                     newurl,
                     data=req.data,
@@ -53,7 +57,9 @@ def _rand_suffix(length: int = 8) -> str:
 
 
 def _json_bytes(payload: object) -> bytes:
-    return json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def _http_request(
@@ -152,7 +158,9 @@ def _create_event(
         json_body=payload,
     )
     if resp["status"] != 201:
-        raise RuntimeError(f"Create event failed: {resp['status']} {resp['body'][:200]!r}")
+        raise RuntimeError(
+            f"Create event failed: {resp['status']} {resp['body'][:200]!r}"
+        )
     data = _json(resp)
     assert isinstance(data, dict)
     admin_token = str(data.get("admin_token") or "")
@@ -185,7 +193,9 @@ def _create_rsvp(
         json_body=payload,
     )
     if resp["status"] != 201:
-        raise RuntimeError(f"Create RSVP failed: {resp['status']} {resp['body'][:200]!r}")
+        raise RuntimeError(
+            f"Create RSVP failed: {resp['status']} {resp['body'][:200]!r}"
+        )
     data = _json(resp)
     assert isinstance(data, dict)
     rsvp = data.get("rsvp")
@@ -204,7 +214,9 @@ def _create_rsvp(
     )
 
 
-def _get_public_event(*, base_url: str, event_id: str, bearer: str | None = None) -> dict:
+def _get_public_event(
+    *, base_url: str, event_id: str, bearer: str | None = None
+) -> dict:
     headers = None if bearer is None else {"Authorization": f"Bearer {bearer}"}
     resp = _http_request(
         method="GET",
@@ -224,7 +236,9 @@ def _list_public_events(*, base_url: str, page: int, per_page: int) -> dict:
     query = urllib.parse.urlencode({"page": page, "per_page": per_page})
     resp = _http_request(method="GET", url=f"{base_url}/api/v1/events?{query}")
     if resp["status"] != 200:
-        raise RuntimeError(f"GET /api/v1/events failed: {resp['status']} {resp['body'][:200]!r}")
+        raise RuntimeError(
+            f"GET /api/v1/events failed: {resp['status']} {resp['body'][:200]!r}"
+        )
     data = _json(resp)
     assert isinstance(data, dict)
     return data
@@ -262,7 +276,9 @@ def _assert_status(
     return resp
 
 
-def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[list[Finding], dict]:
+def run_probe(
+    *, base_url: str, scale_events: int, per_page_scan: int
+) -> tuple[list[Finding], dict]:
     findings: list[Finding] = []
     created_events: list[CreatedEvent] = []
     meta: dict[str, object] = {
@@ -320,7 +336,9 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
             }
         )
     else:
-        leaked_private = [r for r in rsvps if isinstance(r, dict) and r.get("is_private") is True]
+        leaked_private = [
+            r for r in rsvps if isinstance(r, dict) and r.get("is_private") is True
+        ]
         if leaked_private:
             findings.append(
                 {
@@ -388,14 +406,19 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
     )
     created_events.append(event_private_channel)
     meta["created_event_ids"].append(event_private_channel.event_id)
-    event_payload = _get_public_event(base_url=base_url, event_id=event_private_channel.event_id)
+    event_payload = _get_public_event(
+        base_url=base_url, event_id=event_private_channel.event_id
+    )
     channel = event_payload.get("channel")
     if isinstance(channel, dict) and channel.get("visibility") == "private":
         findings.append(
             {
                 "severity": "medium",
                 "title": "Private channel metadata exposed in public event API",
-                "affected_endpoints": ["GET /api/v1/events/{event_id}", "GET /api/v1/events"],
+                "affected_endpoints": [
+                    "GET /api/v1/events/{event_id}",
+                    "GET /api/v1/events",
+                ],
                 "description": (
                     "A public event in a private channel returns the channel object (name/slug/visibility) "
                     "via the public API, which can deanonymize private channels."
@@ -435,7 +458,9 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
         meta["notes"].append(
             f"Expected pending RSVP for approval event, got {pending_rsvp.approval_status!r}"
         )
-    approval_payload = _get_public_event(base_url=base_url, event_id=event_approval.event_id)
+    approval_payload = _get_public_event(
+        base_url=base_url, event_id=event_approval.event_id
+    )
     yes_count = approval_payload.get("yes_count")
     public_counts = (
         approval_payload.get("rsvp_counts", {}).get("public")
@@ -447,7 +472,10 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
             {
                 "severity": "low",
                 "title": "Approval-required event leaks attendance via yes_count",
-                "affected_endpoints": ["GET /api/v1/events/{event_id}", "GET /api/v1/events"],
+                "affected_endpoints": [
+                    "GET /api/v1/events/{event_id}",
+                    "GET /api/v1/events",
+                ],
                 "description": (
                     "When admin approval is required, a pending 'yes' RSVP can increment `yes_count` even "
                     "though no RSVPs are publicly visible yet. This may leak the presence of unapproved attendees."
@@ -498,7 +526,9 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
     }
     page = 1
     while page <= 5:
-        listing = _list_public_events(base_url=base_url, page=page, per_page=per_page_scan)
+        listing = _list_public_events(
+            base_url=base_url, page=page, per_page=per_page_scan
+        )
         events = listing.get("events")
         if not isinstance(events, list) or not events:
             break
@@ -532,7 +562,9 @@ def run_probe(*, base_url: str, scale_events: int, per_page_scan: int) -> tuple[
 
 def _render_report(*, findings: list[Finding], meta: dict) -> str:
     lines: list[str] = []
-    lines.append(f"# OpenRSVP Dev Security Probe Report ({_utcnow().date().isoformat()})")
+    lines.append(
+        f"# OpenRSVP Dev Security Probe Report ({_utcnow().date().isoformat()})"
+    )
     lines.append("")
     lines.append(f"- Target: `{meta.get('base_url')}`")
     lines.append(f"- Started: `{meta.get('started_at')}`")
@@ -545,8 +577,7 @@ def _render_report(*, findings: list[Finding], meta: dict) -> str:
     for finding in findings:
         counts[finding["severity"]] += 1
     lines.append(
-        "- Findings: "
-        + ", ".join(f"{sev}={counts[sev]}" for sev in sev_order)
+        "- Findings: " + ", ".join(f"{sev}={counts[sev]}" for sev in sev_order)
     )
     scan = meta.get("public_scan_summary") or {}
     if isinstance(scan, dict):
@@ -590,7 +621,9 @@ def _render_report(*, findings: list[Finding], meta: dict) -> str:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description="Authorized OpenRSVP dev security probe")
+    parser = argparse.ArgumentParser(
+        description="Authorized OpenRSVP dev security probe"
+    )
     parser.add_argument(
         "--base-url",
         required=True,

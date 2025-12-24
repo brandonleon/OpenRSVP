@@ -130,8 +130,6 @@ static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Register web routes
-from .web import register_web_routes
-
 register_web_routes(app)
 
 
@@ -930,6 +928,16 @@ def _is_htmx(request: Request) -> bool:
     return request.headers.get("hx-request", "").lower() == "true"
 
 
+def _token_is_admin_or_root(
+    event: Event, *, token: str | None, root_token: str | None
+) -> bool:
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    return bool(root_token and token == root_token)
+
+
 def _can_view_event_location_api(
     db: Session,
     *,
@@ -939,12 +947,10 @@ def _can_view_event_location_api(
 ) -> bool:
     if not event.admin_approval_required:
         return True
+    if _token_is_admin_or_root(event, token=token, root_token=root_token):
+        return True
     if not token:
         return False
-    if token == event.admin_token:
-        return True
-    if root_token and token == root_token:
-        return True
     stmt = select(RSVP).where(RSVP.event_id == event.id, RSVP.rsvp_token == token)
     rsvp = db.scalar(stmt)
     return bool(
@@ -968,12 +974,10 @@ def _can_view_event_location_list(
 ) -> bool:
     if not event.admin_approval_required:
         return True
+    if _token_is_admin_or_root(event, token=token, root_token=root_token):
+        return True
     if not token:
         return False
-    if token == event.admin_token:
-        return True
-    if root_token and token == root_token:
-        return True
     if rsvp and rsvp.event_id == event.id:
         return rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
     return False
@@ -982,11 +986,7 @@ def _can_view_event_location_list(
 def _can_view_private_channel(
     event: Event, *, token: str | None, root_token: str | None
 ) -> bool:
-    if not token:
-        return False
-    if token == event.admin_token:
-        return True
-    return bool(root_token and token == root_token)
+    return _token_is_admin_or_root(event, token=token, root_token=root_token)
 
 
 def _fetch_root_token_in_session(db: Session) -> str | None:
@@ -1385,10 +1385,10 @@ def event_create_page(request: Request, db: Session = Depends(get_db)):
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
     return templates.TemplateResponse(
         request,
-        "help/rsvp.html",
+        "event_create.html",
         {
             "request": request,
-            "repo_url": get_repo_url(),
+            "public_channels": public_channels,
         },
     )
 
@@ -2457,23 +2457,11 @@ def channel_page_private(
 
 
 @app.get("/help")
-
-
 @app.get("/help/events")
-
-
 @app.get("/help/rsvp")
-
-
 @app.get("/help/faq", response_class=HTMLResponse)
-
-
 @app.get("/help/privacy", response_class=HTMLResponse)
 @app.get("/help/features", response_class=HTMLResponse)
-
-
-
-
 @app.get("/my-events")
 def my_events_page(request: Request):
     return templates.TemplateResponse(
@@ -3257,13 +3245,3 @@ def api_channel_detail(
         "events": payload_events,
         "pagination": pagination,
     }
-
-# Register web routes
-from .web import register_web_routes
-register_web_routes(app)
-
-
-# Register partial routes
-from .partials import register_partial_routes
-register_partial_routes(app)
-

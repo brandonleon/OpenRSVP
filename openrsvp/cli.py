@@ -541,34 +541,19 @@ def configure(
         typer.echo(json.dumps(effective, indent=2))
 
 
-def _run_command(
-    command: list[str], error_message: str, env: dict[str, str] | None = None
-) -> None:
-    """Run a subprocess command with consistent error handling."""
-    try:
-        subprocess.run(command, cwd=PROJECT_ROOT, check=True, env=env)
-    except FileNotFoundError:
-        typer.secho(
-            f"{error_message}: command '{command[0]}' not found.",
-            err=True,
-            fg=typer.colors.RED,
-        )
-        raise typer.Exit(code=1)
-    except subprocess.CalledProcessError as exc:
-        typer.secho(error_message, err=True, fg=typer.colors.RED)
-        raise typer.Exit(code=exc.returncode or 1)
-
-
-def _run_command_with_output(
-    command: list[str], error_message: str, env: dict[str, str] | None = None
+def _run_command_impl(
+    command: list[str],
+    error_message: str,
+    env: dict[str, str] | None,
+    *,
+    capture_output: bool,
 ) -> subprocess.CompletedProcess[str]:
-    """Run a command and capture stdout/stderr."""
     try:
         return subprocess.run(
             command,
             cwd=PROJECT_ROOT,
             check=True,
-            capture_output=True,
+            capture_output=capture_output,
             text=True,
             env=env,
         )
@@ -581,9 +566,23 @@ def _run_command_with_output(
         raise typer.Exit(code=1)
     except subprocess.CalledProcessError as exc:
         typer.secho(error_message, err=True, fg=typer.colors.RED)
-        if exc.stderr:
+        if capture_output and exc.stderr:
             typer.secho(exc.stderr.strip(), err=True, fg=typer.colors.RED)
         raise typer.Exit(code=exc.returncode or 1)
+
+
+def _run_command(
+    command: list[str], error_message: str, env: dict[str, str] | None = None
+) -> None:
+    """Run a subprocess command with consistent error handling."""
+    _run_command_impl(command, error_message, env, capture_output=False)
+
+
+def _run_command_with_output(
+    command: list[str], error_message: str, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    """Run a command and capture stdout/stderr."""
+    return _run_command_impl(command, error_message, env, capture_output=True)
 
 
 def _read_project_version() -> str:

@@ -7,83 +7,47 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
-from .config import settings
 from .utils import get_repo_url
 
-# Initialize templates
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+
+def _help_response(request: Request, template_name: str):
+    return templates.TemplateResponse(
+        request,
+        template_name,
+        {"request": request, "repo_url": get_repo_url()},
+    )
 
 
 def help_index(request: Request):
     """Render the help index page."""
-    return templates.TemplateResponse(
-        request,
-        "help/index.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/index.html")
 
 
 def help_events(request: Request):
     """Render the help events page."""
-    return templates.TemplateResponse(
-        request,
-        "help/events.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/events.html")
 
 
 def help_rsvp(request: Request):
     """Render the help RSVP page."""
-    return templates.TemplateResponse(
-        request,
-        "help/rsvp.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/rsvp.html")
 
 
 def help_features(request: Request):
     """Render the help features page."""
-    return templates.TemplateResponse(
-        request,
-        "help/features.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/features.html")
 
 
 def help_privacy(request: Request):
     """Render the help privacy page."""
-    return templates.TemplateResponse(
-        request,
-        "help/privacy.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/privacy.html")
 
 
 def help_faq(request: Request):
     """Render the help FAQ page."""
-    return templates.TemplateResponse(
-        request,
-        "help/faq.html",
-        {
-            "request": request,
-            "repo_url": get_repo_url(),
-        },
-    )
+    return _help_response(request, "help/faq.html")
 
 
 def register_web_routes(app):
