@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Sequence
 from contextlib import asynccontextmanager
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from hashlib import blake2s
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 from pathlib import Path
@@ -13,7 +13,7 @@ import tomllib
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -48,7 +48,6 @@ from .utils import (
     render_markdown,
     utcnow,
 )
-from .web import register_web_routes
 from .utils.ics import generate_ics
 
 # Use uvicorn's error logger so messages get the level prefix in the default log
@@ -128,9 +127,6 @@ app = FastAPI(title="OpenRSVP", version=APP_VERSION, lifespan=lifespan)
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 static_dir = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-# Register web routes
-register_web_routes(app)
 
 
 def _asset_version(filename: str) -> str:
@@ -928,16 +924,6 @@ def _is_htmx(request: Request) -> bool:
     return request.headers.get("hx-request", "").lower() == "true"
 
 
-def _token_is_admin_or_root(
-    event: Event, *, token: str | None, root_token: str | None
-) -> bool:
-    if not token:
-        return False
-    if token == event.admin_token:
-        return True
-    return bool(root_token and token == root_token)
-
-
 def _can_view_event_location_api(
     db: Session,
     *,
@@ -947,10 +933,12 @@ def _can_view_event_location_api(
 ) -> bool:
     if not event.admin_approval_required:
         return True
-    if _token_is_admin_or_root(event, token=token, root_token=root_token):
-        return True
     if not token:
         return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
     stmt = select(RSVP).where(RSVP.event_id == event.id, RSVP.rsvp_token == token)
     rsvp = db.scalar(stmt)
     return bool(
@@ -974,10 +962,12 @@ def _can_view_event_location_list(
 ) -> bool:
     if not event.admin_approval_required:
         return True
-    if _token_is_admin_or_root(event, token=token, root_token=root_token):
-        return True
     if not token:
         return False
+    if token == event.admin_token:
+        return True
+    if root_token and token == root_token:
+        return True
     if rsvp and rsvp.event_id == event.id:
         return rsvp.approval_status == "approved" and rsvp.attendance_status == "yes"
     return False
@@ -986,7 +976,11 @@ def _can_view_event_location_list(
 def _can_view_private_channel(
     event: Event, *, token: str | None, root_token: str | None
 ) -> bool:
-    return _token_is_admin_or_root(event, token=token, root_token=root_token)
+    if not token:
+        return False
+    if token == event.admin_token:
+        return True
+    return bool(root_token and token == root_token)
 
 
 def _fetch_root_token_in_session(db: Session) -> str | None:
@@ -1513,13 +1507,6 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     event_is_full = (
         available_yes_slots == 0 if available_yes_slots is not None else False
     )
-    now = utcnow()
-    event_end_at = event.end_time
-    if event_end_at is None:
-        start_reference = event.start_time or event.created_at
-        next_day = start_reference.date() + timedelta(days=1)
-        event_end_at = datetime.combine(next_day, time.min)
-    event_is_over = now >= event_end_at
     message = request.query_params.get("message")
     message_class = request.query_params.get("message_class")
     public_messages = _event_messages(event, visibilities={"public"})
@@ -1535,7 +1522,6 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "private_party_size": private_party_size,
             "available_yes_slots": available_yes_slots,
             "event_is_full": event_is_full,
-            "event_is_over": event_is_over,
             "message": message,
             "message_class": message_class,
             "public_messages": public_messages,
@@ -2457,11 +2443,10 @@ def channel_page_private(
 
 
 @app.get("/help")
-@app.get("/help/events")
-@app.get("/help/rsvp")
-@app.get("/help/faq", response_class=HTMLResponse)
-@app.get("/help/privacy", response_class=HTMLResponse)
-@app.get("/help/features", response_class=HTMLResponse)
+def help_page(request: Request):
+    return templates.TemplateResponse(request, "help.html", {"request": request})
+
+
 @app.get("/my-events")
 def my_events_page(request: Request):
     return templates.TemplateResponse(
