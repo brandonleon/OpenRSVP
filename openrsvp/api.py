@@ -325,6 +325,110 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
+def _collect_metrics(db: Session) -> dict[str, int | float]:
+    """Collect application metrics from the database.
+
+    Returns:
+        Dictionary of metric names to values
+    """
+    now = utcnow()
+    day_ago = now - timedelta(days=1)
+
+    metrics = {}
+
+    # Event metrics
+    metrics["openrsvp_events_total"] = db.query(func.count(Event.id)).scalar() or 0
+    metrics["openrsvp_events_active"] = (
+        db.query(func.count(Event.id)).filter(Event.end_time > now).scalar() or 0
+    )
+    metrics["openrsvp_events_private"] = (
+        db.query(func.count(Event.id)).filter(Event.is_private == True).scalar()
+        or 0
+    )
+    metrics["openrsvp_events_created_24h"] = (
+        db.query(func.count(Event.id)).filter(Event.created_at >= day_ago).scalar()
+        or 0
+    )
+
+    # RSVP metrics
+    metrics["openrsvp_rsvps_total"] = db.query(func.count(RSVP.id)).scalar() or 0
+    metrics["openrsvp_rsvps_yes_total"] = (
+        db.query(func.count(RSVP.id))
+        .filter(RSVP.attendance_status == "yes")
+        .scalar()
+        or 0
+    )
+    metrics["openrsvp_rsvps_created_24h"] = (
+        db.query(func.count(RSVP.id)).filter(RSVP.created_at >= day_ago).scalar() or 0
+    )
+
+    # Channel metrics
+    metrics["openrsvp_channels_total"] = (
+        db.query(func.count(Channel.id)).scalar() or 0
+    )
+    metrics["openrsvp_channels_public"] = (
+        db.query(func.count(Channel.id))
+        .filter(Channel.visibility == "public")
+        .scalar()
+        or 0
+    )
+
+    # Health indicator
+    metrics["openrsvp_up"] = 1
+
+    # Database size
+    db_path = Path(settings.database_path)
+    if db_path.exists():
+        metrics["openrsvp_database_size_bytes"] = db_path.stat().st_size
+    else:
+        metrics["openrsvp_database_size_bytes"] = 0
+
+    return metrics
+
+
+def _format_prometheus(metrics: dict[str, int | float]) -> str:
+    """Format metrics as Prometheus exposition format.
+
+    Args:
+        metrics: Dictionary of metric names to values
+
+    Returns:
+        Prometheus text format string
+    """
+    lines = []
+
+    # Add version info as a labeled metric
+    lines.append("# HELP openrsvp_version_info OpenRSVP version information")
+    lines.append("# TYPE openrsvp_version_info gauge")
+    lines.append(f'openrsvp_version_info{{version="{APP_VERSION}"}} 1')
+    lines.append("")
+
+    # Metric definitions with HELP and TYPE
+    metric_metadata = {
+        "openrsvp_up": ("Service health indicator", "gauge"),
+        "openrsvp_events_total": ("Total number of events", "gauge"),
+        "openrsvp_events_active": ("Number of active events (end_time > now)", "gauge"),
+        "openrsvp_events_private": ("Number of private events", "gauge"),
+        "openrsvp_events_created_24h": ("Events created in last 24 hours", "gauge"),
+        "openrsvp_rsvps_total": ("Total number of RSVPs", "gauge"),
+        "openrsvp_rsvps_yes_total": ("Number of RSVPs with status 'yes'", "gauge"),
+        "openrsvp_rsvps_created_24h": ("RSVPs created in last 24 hours", "gauge"),
+        "openrsvp_channels_total": ("Total number of channels", "gauge"),
+        "openrsvp_channels_public": ("Number of public channels", "gauge"),
+        "openrsvp_database_size_bytes": ("Database file size in bytes", "gauge"),
+    }
+
+    for metric_name, value in sorted(metrics.items()):
+        if metric_name in metric_metadata:
+            help_text, metric_type = metric_metadata[metric_name]
+            lines.append(f"# HELP {metric_name} {help_text}")
+            lines.append(f"# TYPE {metric_name} {metric_type}")
+            lines.append(f"{metric_name} {value}")
+            lines.append("")
+
+    return "\n".join(lines)
+
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse(static_dir / "favicon.ico")
@@ -3230,3 +3334,26 @@ def api_channel_detail(
         "events": payload_events,
         "pagination": pagination,
     }
+
+
+@app.get("/metrics")
+def metrics_endpoint(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Expose application metrics in Prometheus format.
+
+    Access restricted to configured IP ranges.
+    Configure via: openrsvp metrics-config set <cidr>
+    """
+    from .ip_filter import require_metrics_access
+
+    # Check IP access
+    require_metrics_access(request, db)
+
+    # Collect and format metrics
+    metrics_data = _collect_metrics(db)
+    return Response(
+        content=_format_prometheus(metrics_data),
+        media_type="text/plain; version=0.0.4",
+    )

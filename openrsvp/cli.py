@@ -48,6 +48,8 @@ VERSION_FALLBACK_PATTERN = re.compile(
 app = typer.Typer(help="OpenRSVP command-line interface")
 release_app = typer.Typer(help="Version bump and tagging helpers")
 app.add_typer(release_app, name="release")
+metrics_app = typer.Typer(help="Configure metrics endpoint access")
+app.add_typer(metrics_app, name="metrics-config")
 
 
 @app.callback(invoke_without_command=True)
@@ -657,6 +659,238 @@ def release_minor() -> None:
 def release_major() -> None:
     """Bump the major version and tag the current commit."""
     _perform_release("major")
+
+
+@metrics_app.command("list")
+def metrics_list() -> None:
+    """Display current allowed IP ranges for metrics endpoint."""
+    from .database import SessionLocal
+    from .models import Meta
+
+    init_db()
+    db = SessionLocal()
+    try:
+        meta_entry = db.query(Meta).filter(Meta.key == "metrics_allowed_ips").first()
+        if not meta_entry or not meta_entry.value:
+            typer.secho(
+                "Metrics endpoint is disabled (no IP ranges configured).",
+                fg=typer.colors.YELLOW,
+            )
+            typer.echo("\nTo enable metrics, run:")
+            typer.echo("  openrsvp metrics-config set <cidr>")
+            typer.echo("\nExample:")
+            typer.echo("  openrsvp metrics-config set --localhost")
+            typer.echo("  openrsvp metrics-config set 192.168.1.0/24")
+            return
+
+        ranges = [r.strip() for r in meta_entry.value.split(",") if r.strip()]
+        typer.secho("Allowed IP ranges for metrics endpoint:", fg=typer.colors.GREEN)
+        for cidr in ranges:
+            typer.echo(f"  • {cidr}")
+    finally:
+        db.close()
+
+
+@metrics_app.command("set")
+def metrics_set(
+    cidrs: list[str] = typer.Argument(..., help="One or more CIDR ranges"),
+    localhost: bool = typer.Option(
+        False, "--localhost", help="Add localhost (127.0.0.1/32 and ::1/128)"
+    ),
+) -> None:
+    """Set allowed IP ranges for metrics endpoint (replaces existing)."""
+    from .database import SessionLocal
+    from .ip_filter import validate_cidr
+    from .models import Meta
+    from .utils import utcnow
+
+    # Add localhost if requested
+    if localhost:
+        cidrs = list(cidrs) + ["127.0.0.1/32", "::1/128"]
+
+    # Validate all CIDRs
+    invalid = []
+    for cidr in cidrs:
+        if not validate_cidr(cidr):
+            invalid.append(cidr)
+
+    if invalid:
+        typer.secho("Invalid CIDR notation:", err=True, fg=typer.colors.RED)
+        for cidr in invalid:
+            typer.echo(f"  • {cidr}", err=True)
+        typer.echo("\nCIDR format examples:", err=True)
+        typer.echo("  • 192.168.1.0/24", err=True)
+        typer.echo("  • 10.0.0.1/32", err=True)
+        typer.echo("  • 2001:db8::/32", err=True)
+        raise typer.Exit(code=1)
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_cidrs = []
+    for cidr in cidrs:
+        if cidr not in seen:
+            seen.add(cidr)
+            unique_cidrs.append(cidr)
+
+    # Store in database
+    init_db()
+    db = SessionLocal()
+    try:
+        cidr_string = ",".join(unique_cidrs)
+        meta_entry = Meta(
+            key="metrics_allowed_ips",
+            value=cidr_string,
+            updated_at=utcnow(),
+        )
+        db.merge(meta_entry)
+        db.commit()
+        typer.secho("✓ Metrics access configured", fg=typer.colors.GREEN)
+        typer.echo("\nAllowed IP ranges:")
+        for cidr in unique_cidrs:
+            typer.echo(f"  • {cidr}")
+        typer.echo("\nTest access with:")
+        typer.echo("  curl http://localhost:8000/metrics")
+    finally:
+        db.close()
+
+
+@metrics_app.command("add")
+def metrics_add(cidr: str = typer.Argument(..., help="CIDR range to add")) -> None:
+    """Add a single IP range to the allowed list."""
+    from .database import SessionLocal
+    from .ip_filter import validate_cidr
+    from .models import Meta
+    from .utils import utcnow
+
+    # Validate CIDR
+    if not validate_cidr(cidr):
+        typer.secho(f"Invalid CIDR notation: {cidr}", err=True, fg=typer.colors.RED)
+        typer.echo("\nCIDR format examples:", err=True)
+        typer.echo("  • 192.168.1.0/24", err=True)
+        typer.echo("  • 10.0.0.1/32", err=True)
+        typer.echo("  • 2001:db8::/32", err=True)
+        raise typer.Exit(code=1)
+
+    # Add to existing list
+    init_db()
+    db = SessionLocal()
+    try:
+        meta_entry = db.query(Meta).filter(Meta.key == "metrics_allowed_ips").first()
+
+        if meta_entry and meta_entry.value:
+            existing_cidrs = [r.strip() for r in meta_entry.value.split(",") if r.strip()]
+            if cidr in existing_cidrs:
+                typer.secho(
+                    f"Range {cidr} is already in the allowed list",
+                    fg=typer.colors.YELLOW,
+                )
+                return
+            existing_cidrs.append(cidr)
+            cidr_string = ",".join(existing_cidrs)
+        else:
+            cidr_string = cidr
+
+        meta_entry = Meta(
+            key="metrics_allowed_ips",
+            value=cidr_string,
+            updated_at=utcnow(),
+        )
+        db.merge(meta_entry)
+        db.commit()
+        typer.secho(f"✓ Added {cidr} to allowed list", fg=typer.colors.GREEN)
+
+        # Show current list
+        ranges = [r.strip() for r in cidr_string.split(",") if r.strip()]
+        typer.echo("\nCurrent allowed IP ranges:")
+        for r in ranges:
+            typer.echo(f"  • {r}")
+    finally:
+        db.close()
+
+
+@metrics_app.command("remove")
+def metrics_remove(cidr: str = typer.Argument(..., help="CIDR range to remove")) -> None:
+    """Remove a single IP range from the allowed list."""
+    from .database import SessionLocal
+    from .models import Meta
+    from .utils import utcnow
+
+    init_db()
+    db = SessionLocal()
+    try:
+        meta_entry = db.query(Meta).filter(Meta.key == "metrics_allowed_ips").first()
+
+        if not meta_entry or not meta_entry.value:
+            typer.secho(
+                "No IP ranges configured. Nothing to remove.", fg=typer.colors.YELLOW
+            )
+            return
+
+        existing_cidrs = [r.strip() for r in meta_entry.value.split(",") if r.strip()]
+        if cidr not in existing_cidrs:
+            typer.secho(
+                f"Range {cidr} not found in allowed list", fg=typer.colors.YELLOW
+            )
+            typer.echo("\nCurrent allowed ranges:")
+            for r in existing_cidrs:
+                typer.echo(f"  • {r}")
+            return
+
+        existing_cidrs.remove(cidr)
+
+        if existing_cidrs:
+            cidr_string = ",".join(existing_cidrs)
+            meta_entry.value = cidr_string
+            meta_entry.updated_at = utcnow()
+            db.merge(meta_entry)
+            db.commit()
+            typer.secho(f"✓ Removed {cidr} from allowed list", fg=typer.colors.GREEN)
+            typer.echo("\nRemaining allowed IP ranges:")
+            for r in existing_cidrs:
+                typer.echo(f"  • {r}")
+        else:
+            db.delete(meta_entry)
+            db.commit()
+            typer.secho(
+                f"✓ Removed {cidr} (metrics endpoint now disabled)",
+                fg=typer.colors.GREEN,
+            )
+    finally:
+        db.close()
+
+
+@metrics_app.command("clear")
+def metrics_clear(
+    yes: bool = typer.Option(False, "--yes", help="Skip confirmation prompt")
+) -> None:
+    """Remove all IP ranges (disable metrics endpoint)."""
+    from .database import SessionLocal
+    from .models import Meta
+
+    if not yes:
+        confirmed = typer.confirm(
+            "This will disable the metrics endpoint. Continue?", default=False
+        )
+        if not confirmed:
+            typer.echo("Cancelled.")
+            raise typer.Exit()
+
+    init_db()
+    db = SessionLocal()
+    try:
+        meta_entry = db.query(Meta).filter(Meta.key == "metrics_allowed_ips").first()
+
+        if not meta_entry:
+            typer.secho("Metrics endpoint is already disabled.", fg=typer.colors.YELLOW)
+            return
+
+        db.delete(meta_entry)
+        db.commit()
+        typer.secho("✓ Metrics endpoint disabled", fg=typer.colors.GREEN)
+        typer.echo("\nTo re-enable, run:")
+        typer.echo("  openrsvp metrics-config set <cidr>")
+    finally:
+        db.close()
 
 
 @app.command("test")
