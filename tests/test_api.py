@@ -1288,3 +1288,129 @@ def test_yes_to_no_frees_slot(client):
     session.refresh(event)
     assert event.yes_count == 1
     session.close()
+
+
+# ---------------------------------------------------------------------------
+# Event duplication
+# ---------------------------------------------------------------------------
+
+
+def test_duplicate_event_redirects_to_new_admin_page(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Original",
+        description="Desc",
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location="Venue",
+        channel=None,
+        is_private=False,
+    )
+    session.commit()
+
+    response = client.post(
+        f"/e/{event.id}/admin/{event.admin_token}/duplicate",
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    location = response.headers["location"]
+    assert location.startswith("/e/")
+    assert f"/e/{event.id}/" not in location
+    session.close()
+
+
+def test_duplicate_event_copies_content_fields(client):
+    session = database.SessionLocal()
+    channel = ensure_channel(session, name="TestChannel", visibility="public")
+    start = utcnow().replace(microsecond=0)
+    event = create_event(
+        session,
+        title="Original Event",
+        description="Some details",
+        start_time=start,
+        end_time=None,
+        location="The Venue",
+        channel=channel,
+        is_private=True,
+        admin_approval_required=True,
+        max_attendees=20,
+    )
+    session.commit()
+
+    response = client.post(
+        f"/e/{event.id}/admin/{event.admin_token}/duplicate",
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    # Parse new event ID from redirect location: /e/{new_id}/admin/{new_token}
+    location = response.headers["location"]
+    new_event_id = location.split("/")[2]
+    new_event = session.get(Event, new_event_id)
+    assert new_event is not None
+    assert new_event.title == event.title
+    assert new_event.description == event.description
+    assert new_event.location == event.location
+    assert new_event.is_private == event.is_private
+    assert new_event.admin_approval_required == event.admin_approval_required
+    assert new_event.max_attendees == event.max_attendees
+    assert new_event.channel_id == event.channel_id
+    session.close()
+
+
+def test_duplicate_event_has_fresh_identity(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Source",
+        description=None,
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location=None,
+        channel=None,
+        is_private=False,
+    )
+    session.commit()
+
+    response = client.post(
+        f"/e/{event.id}/admin/{event.admin_token}/duplicate",
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+
+    location = response.headers["location"]
+    new_event_id = location.split("/")[2]
+    new_admin_token = location.split("/")[4]
+
+    assert new_event_id != event.id
+    assert new_admin_token != event.admin_token
+
+    new_event = session.get(Event, new_event_id)
+    assert new_event is not None
+    assert list(new_event.rsvps) == []
+    assert new_event.rsvps_closed is False
+    assert new_event.rsvp_close_at is None
+    session.close()
+
+
+def test_duplicate_event_wrong_token_rejected(client):
+    session = database.SessionLocal()
+    event = create_event(
+        session,
+        title="Protected",
+        description=None,
+        start_time=utcnow().replace(microsecond=0),
+        end_time=None,
+        location=None,
+        channel=None,
+        is_private=False,
+    )
+    session.commit()
+
+    response = client.post(
+        f"/e/{event.id}/admin/wrongtoken/duplicate",
+        follow_redirects=False,
+    )
+    assert response.status_code == 403
+    session.close()

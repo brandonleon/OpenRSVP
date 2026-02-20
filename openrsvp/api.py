@@ -2387,6 +2387,33 @@ def add_event_message_admin(
     )
 
 
+@app.post("/e/{event_id}/admin/{admin_token}/duplicate")
+def duplicate_event(
+    event_id: str, admin_token: str, db: Session = Depends(get_db)
+) -> Response:
+    event = _ensure_event(db, event_id)
+    _require_admin_or_root(event, admin_token)
+    new_event = create_event(
+        db,
+        title=event.title,
+        description=event.description,
+        start_time=event.start_time,
+        end_time=event.end_time,
+        location=event.location,
+        channel=event.channel,
+        is_private=event.is_private,
+        admin_approval_required=event.admin_approval_required,
+        max_attendees=event.max_attendees,
+        rsvps_closed=False,
+        rsvp_close_at=None,
+    )
+    db.commit()
+    return RedirectResponse(
+        url=f"/e/{new_event.id}/admin/{new_event.admin_token}",
+        status_code=303,
+    )
+
+
 @app.post("/e/{event_id}/admin/{admin_token}/delete")
 def delete_event(
     event_id: str, admin_token: str, request: Request, db: Session = Depends(get_db)
