@@ -115,17 +115,17 @@
   -H "Content-Type: application/json" \
   -d '{
     "name": "Sky",
-    "status": "yes",
+    "attendance_status": "yes",
     "pronouns": "they/them",
     "guest_count": 1,
-    "notes": "Can bring a projector",
+    "note": "Can bring a projector",
     "is_private_rsvp": false
   }'</code></pre>
               <p class="mb-2">Guests manage their own entry at <code>/api/v1/events/{event_id}/rsvps/self</code> using <code>Authorization: Bearer &lt;rsvp-token&gt;</code>. Responses include <code>approval_status</code> (approved/pending/rejected).</p>
               <pre><code>curl -X PATCH http://localhost:8000/api/v1/events/{event_id}/rsvps/self \
   -H "Authorization: Bearer &lt;rsvp-token&gt;" \
   -H "Content-Type: application/json" \
-  -d '{"status": "no", "notes": "Out of town"}'</code></pre>
+  -d '{"attendance_status": "no", "note": "Out of town"}'</code></pre>
             </div>
           </div>
         </div>
