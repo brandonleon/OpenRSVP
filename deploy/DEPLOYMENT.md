@@ -2,31 +2,58 @@
 
 ## Prerequisites
 
-- EC2 instance (Amazon Linux 2 / Ubuntu) with Docker and Docker Compose installed
+- EC2 instance (Amazon Linux 2023 / Ubuntu) with Docker and Docker Compose installed
 - Domain pointed at the instance's public IP (A record propagated)
 - Ports **80** and **443** open in the security group
 - Repo cloned to `/home/ec2-user/OpenRSVP` (or similar)
 
 ---
 
-## Initial TLS Certificate Issuance
+## First-Time Setup
 
-The `scripts/init-certs.sh` script handles the chicken-and-egg problem: nginx needs
-certs to start, but certbot needs nginx for the ACME HTTP challenge.
-
-It does this by temporarily swapping in `deploy/nginx/bootstrap.conf` (HTTP-only),
-obtaining the certificate, then restoring the full SSL config.
+### 1. Configure your domain and email
 
 ```bash
-# From the repo root:
+cp .env.example .env
+# Edit .env — set DOMAIN and EMAIL
+```
+
+`.env` is read by both Docker Compose (to pass `DOMAIN` into the nginx container)
+and by `init-certs.sh` (for certificate issuance).
+
+### 2. Issue the TLS certificate
+
+```bash
+./scripts/init-certs.sh
+```
+
+This script handles the chicken-and-egg problem: nginx needs certs to start, but
+certbot needs nginx for the ACME HTTP challenge. It does this by temporarily loading
+the HTTP-only bootstrap config, obtaining the certificate, then restoring the SSL
+config (rendered from `deploy/nginx/default.conf.template` with your `DOMAIN`).
+
+You can also pass domain and email as arguments instead of using `.env`:
+
+```bash
 ./scripts/init-certs.sh yourdomain.com you@example.com
 ```
 
-After issuance, nginx will be running with TLS and the app will be reachable at
-`https://yourdomain.com`.
+### 3. Start the full stack
 
-> **Note:** Edit `deploy/nginx/default.conf` to replace `openrsvp.example.com`
-> with your actual domain before running the stack for the first time.
+```bash
+docker compose up -d
+```
+
+The app will be reachable at `https://<your-domain>`.
+
+---
+
+## How nginx configuration works
+
+`deploy/nginx/default.conf.template` contains `${DOMAIN}` placeholders. The official
+nginx Docker image processes this template on startup via `envsubst`, producing the
+live config at `/etc/nginx/conf.d/default.conf` inside the container. The `DOMAIN`
+variable is passed in from your `.env` file via Docker Compose.
 
 ---
 
@@ -74,20 +101,15 @@ Certbot's own verbose logs are in:
 
 ---
 
-## Starting the Stack
+## Starting / Stopping
 
 ```bash
-# First time (after init-certs.sh):
+# Start all services
 docker compose up -d
 
-# Subsequent restarts:
+# Restart
 docker compose restart
-```
 
----
-
-## Stopping the Stack
-
-```bash
+# Stop
 docker compose down
 ```

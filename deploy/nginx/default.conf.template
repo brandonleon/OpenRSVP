@@ -17,10 +17,10 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name openrsvp.example.com;
+    server_name ${DOMAIN};
 
-    ssl_certificate /etc/letsencrypt/live/openrsvp.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/openrsvp.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
