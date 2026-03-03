@@ -574,7 +574,7 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Authorized OpenRSVP dev security probe")
     parser.add_argument(
         "--base-url",
-        default="https://openrsvp.smokehouse.kaotic.cc",
+        default="http://localhost:8000",
         help="Base URL (default: %(default)s)",
     )
     parser.add_argument(
