@@ -55,6 +55,7 @@ class Event(Base):
     end_time = Column(DateTime, nullable=True)
     location = Column(String(255), nullable=True)
     score = Column(Float, default=100.0, nullable=False)
+    discord_webhook_url = Column(String(512), nullable=True)
     created_at = Column(DateTime, default=_now, nullable=False)
     last_modified = Column(DateTime, default=_now, onupdate=_now, nullable=False)
     last_accessed = Column(DateTime, default=_now, onupdate=_now, nullable=False)
@@ -144,3 +145,16 @@ class Message(Base):
         back_populates="messages",
         overlaps="messages,event",
     )
+
+
+class EventNotification(Base):
+    """Tracks which Discord notifications have been sent for an event."""
+
+    __tablename__ = "event_notifications"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    event_id = Column(
+        String(36), ForeignKey("events.id", ondelete="CASCADE"), nullable=False
+    )
+    notification_key = Column(String(64), nullable=False)  # e.g. "1440m", "60m", "0m"
+    sent_at = Column(DateTime, default=_now, nullable=False)

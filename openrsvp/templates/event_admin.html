@@ -84,6 +84,8 @@
     <span class="text-secondary">&middot;</span>
     <a class="link-secondary text-decoration-none" href="#access-control-section">Access Control</a>
     <span class="text-secondary">&middot;</span>
+    <a class="link-secondary text-decoration-none" href="#notifications-section">Notifications</a>
+    <span class="text-secondary">&middot;</span>
     <a class="link-secondary text-decoration-none" href="#rsvp-section">RSVP List</a>
     <span class="text-secondary">&middot;</span>
     <a class="link-secondary text-decoration-none" href="#messages-section">Messages</a>
@@ -272,6 +274,30 @@
               <div class="form-text text-muted">Currently set to {{ event.rsvp_close_at|relative_time }}.</div>
               {% endif %}
             </div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2" id="notifications-section">Discord notifications</div>
+          <div class="mb-3">
+            <label class="form-label" for="admin-discord-webhook">Discord Webhook URL (optional)</label>
+            <input
+              type="url"
+              id="admin-discord-webhook"
+              name="discord_webhook_url"
+              class="form-control font-monospace"
+              value="{{ event.discord_webhook_url or '' }}"
+              placeholder="https://discord.com/api/webhooks/…"
+            >
+            <div class="form-text">
+              Paste a Discord channel webhook URL to receive reminders before this event starts.
+              Notifications are sent at: <strong>24 hours</strong> and <strong>1 hour</strong> before the event (configurable via <code>OPENRSVP_DISCORD_NOTIFY_INTERVALS</code>).
+              Leave blank to disable notifications for this event.
+            </div>
+            {% if event.discord_webhook_url %}
+            <div class="mt-2 alert alert-success py-2 small mb-0" role="alert">
+              Discord notifications are active for this event.
+            </div>
+            {% endif %}
           </div>
         </div>
         <div class="d-flex flex-wrap gap-2">

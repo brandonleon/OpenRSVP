@@ -134,6 +134,8 @@ def update_event(
     rsvps_closed: bool | None = None,
     rsvp_close_at: datetime | None = None,
     update_rsvp_close_at: bool = False,
+    discord_webhook_url: str | None = None,
+    update_discord_webhook_url: bool = False,
 ) -> Event:
     """Update an existing event."""
     normalized_start = to_naive_utc(start_time)
@@ -151,6 +153,8 @@ def update_event(
         event.rsvps_closed = rsvps_closed
     if update_rsvp_close_at:
         event.rsvp_close_at = to_naive_utc(rsvp_close_at)
+    if update_discord_webhook_url:
+        event.discord_webhook_url = discord_webhook_url or None
     event.last_modified = _now()
     session.add(event)
     session.flush()

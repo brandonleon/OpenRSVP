@@ -8,6 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from .config import settings
 from .decay import run_decay_cycle, vacuum_database
+from .notifications import run_notification_check
 
 _scheduler: BackgroundScheduler | None = None
 logger = logging.getLogger("uvicorn.error")
@@ -34,6 +35,14 @@ def start_scheduler() -> BackgroundScheduler:
         "interval",
         hours=settings.sqlite_vacuum_hours,
         id="vacuum",
+        max_instances=1,
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        run_notification_check,
+        "interval",
+        minutes=settings.discord_notify_check_minutes,
+        id="discord-notifications",
         max_instances=1,
         replace_existing=True,
     )

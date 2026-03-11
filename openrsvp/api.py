@@ -1877,6 +1877,7 @@ def save_event_admin(
     max_attendees: str | None = Form(None),
     end_time: str | None = Form(None),
     rsvp_close_at: str | None = Form(None),
+    discord_webhook_url: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
     db: Session = Depends(get_db),
 ):
@@ -2004,6 +2005,8 @@ def save_event_admin(
         rsvps_closed=rsvps_closed,
         rsvp_close_at=normalized_close,
         update_rsvp_close_at=True,
+        discord_webhook_url=discord_webhook_url,
+        update_discord_webhook_url=True,
     )
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)

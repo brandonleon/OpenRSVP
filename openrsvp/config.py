@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 DEFAULTS: dict[str, Any] = {
+    "discord_notify_intervals": "1440,60",
+    "discord_notify_check_minutes": 5,
     "decay_factor": 0.92,
     "decay_interval_hours": 1,
     "hide_threshold": 10.0,
@@ -35,6 +37,8 @@ DEFAULTS: dict[str, Any] = {
 }
 
 TYPE_CASTERS: dict[str, Callable[[Any], Any]] = {
+    "discord_notify_intervals": str,
+    "discord_notify_check_minutes": int,
     "decay_factor": float,
     "decay_interval_hours": int,
     "hide_threshold": float,
@@ -65,6 +69,8 @@ class Settings:
     base_dir: Path
     data_dir: Path
     database_path: Path
+    discord_notify_intervals: str
+    discord_notify_check_minutes: int
     decay_factor: float
     decay_interval_hours: int
     hide_threshold: float
@@ -89,6 +95,12 @@ class Settings:
     app_host: str
     app_port: int
     config_path: Path
+
+    @property
+    def discord_notify_intervals_list(self) -> list[int]:
+        """Return notification intervals as a sorted list of minutes (descending)."""
+        parts = [p.strip() for p in self.discord_notify_intervals.split(",") if p.strip()]
+        return sorted([int(p) for p in parts if p.isdigit()], reverse=True)
 
     @property
     def decay_interval(self) -> timedelta:
@@ -174,6 +186,14 @@ def load_settings(config_override: Path | None = None) -> Settings:
         base_dir=base_dir_value,
         data_dir=data_dir_value,
         database_path=database_path_value,
+        discord_notify_intervals=_config_layered_value(
+            "discord_notify_intervals", toml_config=toml_config, base_dir=base_dir_value
+        ),
+        discord_notify_check_minutes=_config_layered_value(
+            "discord_notify_check_minutes",
+            toml_config=toml_config,
+            base_dir=base_dir_value,
+        ),
         decay_factor=_config_layered_value(
             "decay_factor", toml_config=toml_config, base_dir=base_dir_value
         ),
