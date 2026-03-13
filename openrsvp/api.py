@@ -1835,6 +1835,7 @@ def event_admin(
             "message_class": message_class,
             "admin_messages": admin_messages,
             "rsvp_messages": rsvp_messages,
+            "discord_notify_intervals": settings.discord_notify_intervals_list,
         },
     )
     return _no_cache(response)
@@ -2043,6 +2044,7 @@ def save_event_admin(
             "message_class": "alert-success",
             "admin_messages": admin_messages,
             "rsvp_messages": rsvp_messages,
+            "discord_notify_intervals": settings.discord_notify_intervals_list,
         },
     )
 

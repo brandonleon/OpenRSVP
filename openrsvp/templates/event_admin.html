@@ -290,8 +290,12 @@
             >
             <div class="form-text">
               Paste a Discord channel webhook URL to receive reminders before this event starts.
-              Notifications are sent at: <strong>24 hours</strong> and <strong>1 hour</strong> before the event (configurable via <code>OPENRSVP_DISCORD_NOTIFY_INTERVALS</code>).
-              Leave blank to disable notifications for this event.
+              {% if discord_notify_intervals %}
+              Notifications will be sent
+              {% for interval in discord_notify_intervals %}{% if interval >= 1440 %}<strong>{{ interval // 60 // 24 }} day{% if interval // 60 // 24 != 1 %}s{% endif %}</strong>{% elif interval >= 60 %}<strong>{{ interval // 60 }} hour{% if interval // 60 != 1 %}s{% endif %}</strong>{% elif interval > 0 %}<strong>{{ interval }} minute{% if interval != 1 %}s{% endif %}</strong>{% else %}<strong>at the start</strong>{% endif %}{% if not loop.last %} and {% endif %}{% endfor %}
+              before the event.
+              {% endif %}
+              Leave blank to disable.
             </div>
             {% if event.discord_webhook_url %}
             <div class="mt-2 alert alert-success py-2 small mb-0" role="alert">
