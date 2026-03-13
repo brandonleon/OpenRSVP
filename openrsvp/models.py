@@ -56,6 +56,7 @@ class Event(Base):
     location = Column(String(255), nullable=True)
     score = Column(Float, default=100.0, nullable=False)
     discord_webhook_url = Column(String(512), nullable=True)
+    timezone = Column(String(64), nullable=True)  # IANA name, e.g. "America/New_York"
     created_at = Column(DateTime, default=_now, nullable=False)
     last_modified = Column(DateTime, default=_now, onupdate=_now, nullable=False)
     last_accessed = Column(DateTime, default=_now, onupdate=_now, nullable=False)

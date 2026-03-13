@@ -93,6 +93,7 @@ def create_event(
     max_attendees: int | None = None,
     rsvps_closed: bool = False,
     rsvp_close_at: datetime | None = None,
+    timezone: str | None = None,
 ) -> Event:
     """Create and persist a new event."""
     normalized_start = to_naive_utc(start_time)
@@ -112,6 +113,7 @@ def create_event(
         location=location,
         score=settings.initial_event_score,
         channel=channel,
+        timezone=timezone or None,
     )
     session.add(event)
     session.flush()
@@ -136,6 +138,8 @@ def update_event(
     update_rsvp_close_at: bool = False,
     discord_webhook_url: str | None = None,
     update_discord_webhook_url: bool = False,
+    timezone: str | None = None,
+    update_timezone: bool = False,
 ) -> Event:
     """Update an existing event."""
     normalized_start = to_naive_utc(start_time)
@@ -155,6 +159,8 @@ def update_event(
         event.rsvp_close_at = to_naive_utc(rsvp_close_at)
     if update_discord_webhook_url:
         event.discord_webhook_url = discord_webhook_url or None
+    if update_timezone:
+        event.timezone = timezone or None
     event.last_modified = _now()
     session.add(event)
     session.flush()

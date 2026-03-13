@@ -7,6 +7,7 @@ import logging
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import and_, select
 
@@ -49,8 +50,15 @@ def _record_sent(session, event_id: str, key: str) -> None:
     session.add(record)
 
 
-def _format_time(dt: datetime) -> str:
-    """Format a UTC datetime as a human-friendly string."""
+def _format_time(dt: datetime, iana_tz: str | None = None) -> str:
+    """Format a UTC datetime as a human-friendly string, optionally in a local timezone."""
+    if iana_tz:
+        try:
+            tz = ZoneInfo(iana_tz)
+            local = dt.replace(tzinfo=timezone.utc).astimezone(tz)
+            return local.strftime("%A, %B %-d at %-I:%M %p %Z")
+        except ZoneInfoNotFoundError:
+            pass
     return dt.strftime("%A, %B %-d at %-I:%M %p UTC")
 
 
@@ -73,7 +81,7 @@ def _build_embed(event: Event, minutes_before: int) -> dict:
     fields.append(
         {
             "name": "Starts",
-            "value": _format_time(event.start_time),
+            "value": _format_time(event.start_time, event.timezone),
             "inline": True,
         }
     )
@@ -81,7 +89,7 @@ def _build_embed(event: Event, minutes_before: int) -> dict:
         fields.append(
             {
                 "name": "Ends",
-                "value": _format_time(event.end_time),
+                "value": _format_time(event.end_time, event.timezone),
                 "inline": True,
             }
         )

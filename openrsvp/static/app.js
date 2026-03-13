@@ -352,8 +352,17 @@
 
   const updateTimezoneInputs = () => {
     const offset = new Date().getTimezoneOffset();
+    const ianaName = Intl.DateTimeFormat().resolvedOptions().timeZone;
     document.querySelectorAll("[data-tz-input]").forEach((input) => {
       input.value = offset;
+    });
+    document.querySelectorAll("[data-tz-name-input]").forEach((input) => {
+      input.value = ianaName;
+    });
+    document.querySelectorAll("[data-tz-name-input-fallback]").forEach((input) => {
+      if (!input.value) {
+        input.value = ianaName;
+      }
     });
     document.querySelectorAll("[data-utc-input]").forEach((input) => {
       const iso = input.getAttribute("data-utc-input");

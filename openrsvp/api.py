@@ -1403,6 +1403,7 @@ def submit_event(
     rsvps_closed: bool = Form(False),
     rsvp_close_at: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
+    event_timezone: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
@@ -1476,6 +1477,7 @@ def submit_event(
         max_attendees=normalized_max,
         rsvps_closed=rsvps_closed,
         rsvp_close_at=normalized_close,
+        timezone=event_timezone or None,
     )
     return templates.TemplateResponse(
         request,
@@ -1880,6 +1882,7 @@ def save_event_admin(
     rsvp_close_at: str | None = Form(None),
     discord_webhook_url: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
+    event_timezone: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     event = _ensure_event(db, event_id)
@@ -2008,6 +2011,8 @@ def save_event_admin(
         update_rsvp_close_at=True,
         discord_webhook_url=discord_webhook_url,
         update_discord_webhook_url=True,
+        timezone=event_timezone or None,
+        update_timezone=True,
     )
     rsvps = list(event.rsvps)
     rsvp_stats = _rsvp_stats(rsvps)

@@ -147,6 +147,18 @@
               >
               <div class="form-text">Leave blank if this event does not have a defined end.</div>
             </div>
+            <div class="col-12">
+              <label class="form-label">Event Timezone</label>
+              <input
+                type="text"
+                name="event_timezone"
+                class="form-control form-control-sm"
+                value="{{ event.timezone or '' }}"
+                data-tz-name-input-fallback
+                placeholder="e.g. America/New_York"
+              >
+              <div class="form-text">Auto-detected from your browser. Edit if the event is in a different timezone — used in Discord notifications.</div>
+            </div>
           </div>
         </div>
         <div class="mb-4">
