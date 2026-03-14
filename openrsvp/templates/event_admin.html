@@ -82,7 +82,7 @@
   <div class="d-flex flex-wrap align-items-center gap-2 small text-uppercase fw-semibold text-muted">
     <a class="link-secondary text-decoration-none" href="#details-section">Details</a>
     <span class="text-secondary">&middot;</span>
-    <a class="link-secondary text-decoration-none" href="#access-control-section">Access Control</a>
+    <a class="link-secondary text-decoration-none" href="#rsvp-settings-section">RSVP Settings</a>
     <span class="text-secondary">&middot;</span>
     <a class="link-secondary text-decoration-none" href="#notifications-section">Notifications</a>
     <span class="text-secondary">&middot;</span>
@@ -147,18 +147,6 @@
               >
               <div class="form-text">Leave blank if this event does not have a defined end.</div>
             </div>
-            <div class="col-12">
-              <label class="form-label">Event Timezone</label>
-              <input
-                type="text"
-                name="event_timezone"
-                class="form-control form-control-sm"
-                value="{{ event.timezone or '' }}"
-                data-tz-name-input-fallback
-                placeholder="e.g. America/New_York"
-              >
-              <div class="form-text">Auto-detected from your browser. Edit if the event is in a different timezone — used in Discord notifications.</div>
-            </div>
           </div>
         </div>
         <div class="mb-4">
@@ -181,7 +169,7 @@
           </div>
         </div>
         <div>
-          <div class="fw-semibold text-uppercase text-muted small mb-2">Channel & privacy</div>
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Channel & visibility</div>
           <div class="mb-3">
             <label class="form-label" for="admin-channel-name">Channel Name</label>
             <div class="input-group">
@@ -242,27 +230,27 @@
               We set the event to private when the channel is private. You can switch it back to public if needed; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
             </div>
           </div>
-        </div>
-      </section>
-      <section class="p-4 bg-white border rounded-3 shadow-sm" id="access-control-section">
-        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-          <h3 class="h5 mb-0">Access control</h3>
-          <div class="text-muted small">Manage approvals, privacy, and RSVP windows.</div>
-        </div>
-        <div class="mb-4">
-          <div class="fw-semibold text-uppercase text-muted small mb-2">Visibility & approvals</div>
-          <div class="form-check form-switch mb-3">
-            <input class="form-check-input" type="checkbox" id="admin-approval-required" name="admin_approval_required" value="true" {% if event.admin_approval_required %}checked{% endif %}>
-            <label class="form-check-label" for="admin-approval-required">Require admin approval for new RSVPs</label>
-            <div class="form-text">Pending RSVPs stay hidden until you approve them.</div>
-          </div>
-          <div class="form-check form-switch">
+          <div class="form-check form-switch mt-3">
             <input class="form-check-input" type="checkbox" id="admin-private" name="is_private" value="true" {% if event.is_private %}checked{% endif %}>
             <label class="form-check-label" for="admin-private">Keep this event private (hide from homepage)</label>
           </div>
         </div>
+      </section>
+      <section class="p-4 bg-white border rounded-3 shadow-sm mb-4" id="rsvp-settings-section">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <h3 class="h5 mb-0">RSVP settings</h3>
+          <div class="text-muted small">Control who can join and when.</div>
+        </div>
         <div class="mb-4">
-          <div class="fw-semibold text-uppercase text-muted small mb-2">RSVP flow</div>
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Approval</div>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="admin-approval-required" name="admin_approval_required" value="true" {% if event.admin_approval_required %}checked{% endif %}>
+            <label class="form-check-label" for="admin-approval-required">Require admin approval for new RSVPs</label>
+            <div class="form-text">Pending RSVPs stay hidden until you approve them.</div>
+          </div>
+        </div>
+        <div>
+          <div class="fw-semibold text-uppercase text-muted small mb-2">RSVP window</div>
           <div class="row g-3 align-items-end">
             <div class="col-md-6">
               <div class="form-check form-switch mb-0">
@@ -288,10 +276,16 @@
             </div>
           </div>
         </div>
+      </section>
+      <section class="p-4 bg-white border rounded-3 shadow-sm" id="notifications-section">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <h3 class="h5 mb-0">Notifications</h3>
+          <div class="text-muted small">Send reminders to your community.</div>
+        </div>
         <div class="mb-4">
-          <div class="fw-semibold text-uppercase text-muted small mb-2" id="notifications-section">Discord notifications</div>
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Discord</div>
           <div class="mb-3">
-            <label class="form-label" for="admin-discord-webhook">Discord Webhook URL (optional)</label>
+            <label class="form-label" for="admin-discord-webhook">Webhook URL (optional)</label>
             <input
               type="url"
               id="admin-discord-webhook"
@@ -315,6 +309,18 @@
             </div>
             {% endif %}
           </div>
+        </div>
+        <div class="mb-4">
+          <div class="fw-semibold text-uppercase text-muted small mb-2">Notification timezone</div>
+          <input
+            type="text"
+            name="event_timezone"
+            class="form-control"
+            value="{{ event.timezone or '' }}"
+            data-tz-name-input-fallback
+            placeholder="e.g. America/New_York"
+          >
+          <div class="form-text">Times in Discord reminders will use this timezone. Auto-detected from your browser — edit if the event is in a different location.</div>
         </div>
         <div class="d-flex flex-wrap gap-2">
           <button class="btn btn-primary" type="submit">Save Event</button>
