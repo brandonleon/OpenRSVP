@@ -26,19 +26,23 @@ from urllib.parse import urlencode
 from .config import settings
 from .crud import (
     create_event,
+    create_event_series,
     create_rsvp,
     create_message,
     ensure_channel,
-    get_channel_by_slug,
+    get_events_in_series,
     get_public_channels,
+    get_series_by_admin_token,
+    get_channel_by_slug,
     set_rsvp_status,
     touch_channel,
     update_event,
     update_rsvp,
     VALID_ATTENDANCE_STATUSES,
+    VALID_RECURRENCE_RULES,
 )
 from .database import SessionLocal
-from .models import Channel, Event, Message, Meta, RSVP
+from .models import Channel, Event, EventSeries, Message, Meta, RSVP
 from .scheduler import start_scheduler, stop_scheduler
 from .storage import fetch_root_token, init_db
 from .utils import (
@@ -1403,6 +1407,8 @@ def submit_event(
     rsvps_closed: bool = Form(False),
     rsvp_close_at: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
+    recurrence_rule: str | None = Form(None),
+    recurrence_count: int = Form(2),
     db: Session = Depends(get_db),
 ):
     public_channels = get_public_channels(db, limit=CHANNEL_SUGGESTION_LIMIT)
@@ -1462,6 +1468,34 @@ def submit_event(
                 "message_class": "alert-danger",
             },
             status_code=400,
+        )
+    cleaned_recurrence = (recurrence_rule or "").strip().lower() or None
+    if cleaned_recurrence and cleaned_recurrence in VALID_RECURRENCE_RULES:
+        series, events = create_event_series(
+            db,
+            title=title,
+            description=description,
+            start_time=normalized_start,
+            end_time=normalized_end,
+            location=location,
+            channel=channel,
+            is_private=is_private,
+            admin_approval_required=admin_approval_required,
+            max_attendees=normalized_max,
+            rsvps_closed=rsvps_closed,
+            rsvp_close_at=normalized_close,
+            recurrence_rule=cleaned_recurrence,
+            recurrence_count=recurrence_count,
+        )
+        return templates.TemplateResponse(
+            request,
+            "series_created.html",
+            {
+                "request": request,
+                "series": series,
+                "events": events,
+                "public_channels": public_channels,
+            },
         )
     event = create_event(
         db,
@@ -2040,6 +2074,28 @@ def save_event_admin(
             "message_class": "alert-success",
             "admin_messages": admin_messages,
             "rsvp_messages": rsvp_messages,
+        },
+    )
+
+
+@app.get("/series/{series_id}/admin/{admin_token}", name="series_admin")
+def series_admin_page(
+    series_id: str,
+    admin_token: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    series = get_series_by_admin_token(db, admin_token)
+    if not series or series.id != series_id:
+        raise HTTPException(status_code=404, detail="Series not found")
+    events = get_events_in_series(db, series_id)
+    return templates.TemplateResponse(
+        request,
+        "series_admin.html",
+        {
+            "request": request,
+            "series": series,
+            "events": events,
         },
     )
 

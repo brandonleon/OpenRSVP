@@ -24,6 +24,11 @@
         {% elif event.rsvp_close_at %}
         <div class="mt-1 badge bg-info text-dark text-uppercase">Auto closes {{ event.rsvp_close_at|relative_time }}</div>
         {% endif %}
+        {% if event.series %}
+        <div class="mt-1">
+          <a class="badge bg-secondary text-decoration-none text-uppercase" href="{{ request.url_for('series_admin', series_id=event.series.id, admin_token=event.series.admin_token) }}">Part of a series &rarr;</a>
+        </div>
+        {% endif %}
       </div>
       <div class="d-flex flex-column align-items-end gap-1">
         <div class="btn-group">

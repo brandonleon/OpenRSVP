@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% set title = "Series created: " ~ events[0].title if events else "Series created" %}
+{% block content %}
+<section class="hero-panel p-4 p-md-5 rounded-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div>
+      <p class="text-uppercase small mb-2 fw-semibold text-secondary" style="letter-spacing: 0.08em;">Recurring series created</p>
+      <h1 class="display-6 fw-semibold text-white mb-2">Save your links</h1>
+      <div class="text-secondary small">{{ events|length }} events created. Each occurrence has its own RSVP page.</div>
+    </div>
+    <a class="btn btn-outline-light" href="/">Back to homepage</a>
+  </div>
+</section>
+
+{% set series_admin_url = request.url_for('series_admin', series_id=series.id, admin_token=series.admin_token) %}
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="p-4 card-flush rounded-3 shadow-sm border border-warning border-opacity-50">
+      <h3 class="h6 text-uppercase text-warning mb-2">Series admin link</h3>
+      <p class="small text-secondary">Keep this secret. It gives you an overview of all occurrences in this series.</p>
+      <div class="alert alert-warning mb-3">
+        <a href="{{ series_admin_url }}">{{ series_admin_url }}</a>
+      </div>
+      <a class="btn btn-outline-light" href="{{ series_admin_url }}">Open Series Admin</a>
+    </div>
+  </div>
+</div>
+
+<h2 class="h5 mb-3">All occurrences ({{ events|length }})</h2>
+<div class="list-group mb-4">
+  {% for event in events %}
+  {% set admin_url = request.url_for('event_admin', event_id=event.id, admin_token=event.admin_token) %}
+  {% set event_url = request.url_for('event_page', event_id=event.id) %}
+  <div class="list-group-item py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+      <div>
+        <div class="fw-semibold">{{ event.title }}</div>
+        <div class="small text-secondary">
+          {{ event.start_time.strftime('%A, %B %-d, %Y at %-I:%M %p') }} UTC
+          {% if event.end_time %}&ndash; {{ event.end_time.strftime('%-I:%M %p') }} UTC{% endif %}
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-sm btn-outline-warning" href="{{ admin_url }}">Admin</a>
+        <a class="btn btn-sm btn-outline-success" href="{{ event_url }}">RSVP page</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<a class="btn btn-secondary" href="/">Back to homepage</a>
+{% endblock %}
