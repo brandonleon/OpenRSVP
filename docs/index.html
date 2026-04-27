@@ -160,7 +160,7 @@
               <h3 class="h5">Single-container friendly</h3>
               <p class="mb-2">FastAPI, APScheduler, and SQLite live in one Docker image. Use <code>openrsvp upgrade-container</code> to rebuild, restart, and prune the dev container with a single command.</p>
               <ul class="mb-0">
-                <li>Dockerfile is based on <code>ghcr.io/astral-sh/uv:python3.12-bookworm-slim</code>.</li>
+                <li>Dockerfile is based on <code>astral/uv:python3.14-alpine</code>.</li>
                 <li><code>uv sync</code> runs during build so the runtime image carries a ready-to-use virtualenv.</li>
                 <li>Mount <code>~/OpenRSVP/data</code> (or any path) to persist SQLite data across rebuilds.</li>
               </ul>

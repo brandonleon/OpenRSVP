@@ -13,9 +13,11 @@ container deployment requested in the specification.
 - SQLite storage with SQLAlchemy models
 - Private RSVP toggle to hide a guest from public lists while keeping the organizer’s view intact
 - Background decay + cleanup using APScheduler (runs hourly)
-- Public/private channel system with dedicated listings at `/channel/<slug>` and
-  a `/help` explainer
-- Typer CLI (`openrsvp`) for server management and token rotation
+- Public/private channel system with dedicated listings at `/channel/<slug>`,
+  a discovery page at `/channels/discover`, and a `/help` explainer
+- My Events (`/my-events`) and My RSVPs (`/my-rsvps`) pages driven by device-local saved links
+- Attendee messaging: guests can message the organizer; hosts can post public announcements or send private notes per RSVP
+- Typer CLI (`openrsvp`) for server management, token rotation, and version bumping
 - Optional end-time support for events with automatic timezone conversion
 
 ## Getting Started
@@ -51,7 +53,7 @@ docker build -t openrsvp .
 docker run -p 8000:8000 openrsvp
 ```
 
-The Docker image is based on `ghcr.io/astral-sh/uv:python3.12-bookworm-slim`
+The Docker image is based on `astral/uv:python3.14-alpine`
 and syncs dependencies via `uv sync` (the `.venv` it creates is placed on
 `PATH`). The container entrypoint starts `openrsvp runserver`, which launches
 FastAPI and the decay scheduler.
@@ -110,14 +112,37 @@ events, and RSVPs using the Typer CLI. This command relies on the Faker dev
 dependency.
 
 ```bash
-openrsvp seed-data --channels 6 --max-events 4 --extra-events 2 --max-rsvps 5 --private-percent 15
+openrsvp seed-data --channels 6 --max-events 4 --extra-events 2 --max-rsvps 5 --private-percent 15 --private-rsvp-percent 20
 ```
 
 Each run creates new channels (public or private), fills them with events, and
 attaches randomized RSVP records. The `--extra-events` flag optionally creates
 events that are not attached to any channel, `--max-rsvps` caps RSVP counts per
-event, and `--private-percent` controls what portion of events are marked
-private.
+event, `--private-percent` controls what portion of events are marked private,
+and `--private-rsvp-percent` controls what portion of RSVPs are marked private.
+
+## Configuration
+
+The `openrsvp config` command reads and writes `openrsvp.toml` in the project
+root. You can also set individual values as `OPENRSVP_<KEY>` environment
+variables, which take precedence over the file.
+
+```bash
+# show the current effective configuration
+openrsvp config --show
+
+# tune decay and cleanup behavior
+openrsvp config --decay-factor 0.90 --hide-after-days 5
+
+# change default server bind and pagination
+openrsvp config --host 127.0.0.1 --port 9000 --events-per-page 20
+
+# toggle the background scheduler
+openrsvp config --disable-scheduler
+```
+
+All settings and their defaults are printed by `--show`. Path overrides
+(`OPENRSVP_DATA_DIR`, `OPENRSVP_DB`) are environment-variable only.
 
 ## Running Tests
 
@@ -137,6 +162,17 @@ You can also run the same defaults via the CLI:
 
 ```bash
 uv run main.py test              # or: openrsvp test
+```
+
+## Version Bumps and Releases
+
+The `release` subcommand group bumps the project version in `pyproject.toml`
+via `uv version` and tags the current commit:
+
+```bash
+openrsvp release patch   # 0.16.0 → 0.16.1
+openrsvp release minor   # 0.16.0 → 0.17.0
+openrsvp release major   # 0.16.0 → 1.0.0
 ```
 
 ## Changelog & Releases
