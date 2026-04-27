@@ -6,11 +6,11 @@ This repo includes `scripts/security_probe.py`, a small authorized probe you can
 
 Run against your dev host:
 
-`python3 scripts/security_probe.py --base-url https://openrsvp.smokehouse.kaotic.cc --scale-events 12`
+`python3 scripts/security_probe.py --base-url http://localhost:8000 --scale-events 12`
 
 To delete the probe-created events afterwards:
 
-`python3 scripts/security_probe.py --base-url https://openrsvp.smokehouse.kaotic.cc --scale-events 12 --cleanup`
+`python3 scripts/security_probe.py --base-url http://localhost:8000 --scale-events 12 --cleanup`
 
 Outputs:
 

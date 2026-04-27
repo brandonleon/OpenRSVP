@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-12 col-md-3 col-lg-2 bg-light border-end py-3">
+            <nav class="nav flex-column">
+                <div class="mb-3">
+                    <h6 class="text-muted text-uppercase small px-3 mb-2">Navigation</h6>
+                    <a href="/help" class="nav-link {{ 'active bg-primary text-white' if request.path == '/help' else '' }}">
+                        Overview
+                    </a>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-muted text-uppercase small px-3 mb-2">Guides</h6>
+                    <a href="/help/events" class="nav-link {{ 'active bg-primary text-white' if '/help/events' in request.path else '' }}">
+                        Event Hosting
+                    </a>
+                    <a href="/help/rsvp" class="nav-link {{ 'active bg-primary text-white' if '/help/rsvp' in request.path else '' }}">
+                        RSVP Guide
+                    </a>
+                    <a href="/help/features" class="nav-link {{ 'active bg-primary text-white' if '/help/features' in request.path else '' }}">
+                        Advanced Features
+                    </a>
+                </div>
+
+                <div class="mb-3">
+                    <h6 class="text-muted text-uppercase small px-3 mb-2">More Information</h6>
+                    <a href="/help/privacy" class="nav-link {{ 'active bg-primary text-white' if '/help/privacy' in request.path else '' }}">
+                        Privacy & Security
+                    </a>
+                    <a href="/help/faq" class="nav-link {{ 'active bg-primary text-white' if '/help/faq' in request.path else '' }}">
+                        Frequently Asked Questions
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-12 col-md-9 col-lg-10 px-4 py-3">
+            {% block help_content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

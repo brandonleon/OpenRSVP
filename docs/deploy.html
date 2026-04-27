@@ -41,7 +41,7 @@
           <div>
             <p class="text-uppercase text-muted mb-1 small fw-semibold">Deployment</p>
             <h1 class="fw-bold mb-0">Development and production setup</h1>
-            <p class="text-muted mb-0">Run locally with uv or Docker, then move to the Nginx + Certbot stack for HTTPS.</p>
+            <p class="text-muted mb-0">Run locally with uv or Docker, then deploy to a server with Nginx + Let's Encrypt HTTPS.</p>
           </div>
           <span class="pill"><span class="text-primary">Stack</span> FastAPI + SQLite</span>
         </div>
@@ -83,53 +83,100 @@ docker compose -f docker-compose.dev.yml up --build</code></pre>
       </section>
 
       <section class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Production</p>
+            <h2 class="fw-bold mb-0">Fresh server setup</h2>
+            <p class="text-muted mb-0">Complete walkthrough from a bare server to a live HTTPS deployment.</p>
+          </div>
+        </div>
+
         <div class="row g-4">
-          <div class="col-lg-7">
+          <div class="col-lg-6">
             <div class="section-card h-100">
-              <p class="text-uppercase text-muted mb-1 small fw-semibold">Production</p>
-              <h3 class="h5">Docker Compose with Nginx + Certbot</h3>
-              <p class="mb-3">Uses <code>docker-compose.yml</code> to run the app behind Nginx with HTTPS certificates from Let's Encrypt.</p>
-              <ol class="mb-3">
-                <li>Point your domain A record to the host running Docker.</li>
-                <li>Update <code>deploy/nginx/default.conf</code> with your domain in <code>server_name</code> and certificate paths.</li>
-                <li>Bootstrap TLS (see the TLS card) before enabling the HTTPS server block.</li>
-                <li>Start the stack and confirm the health check is reachable.</li>
-              </ol>
-              <pre><code>OPENRSVP_DATA_DIR=/srv/openrsvp/data \
-docker compose up -d --build</code></pre>
-              <p class="mb-0 text-muted small">The SQLite database lives inside <code>OPENRSVP_DATA_DIR</code>. Back up this directory regularly.</p>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 1</p>
+              <h3 class="h5">Prerequisites</h3>
+              <ul class="mb-2">
+                <li>Server running Amazon Linux 2023, Ubuntu 22.04+, or similar</li>
+                <li>Docker and Docker Compose v2 installed</li>
+                <li>Ports <strong>80</strong> and <strong>443</strong> open in your firewall / security group</li>
+                <li>A domain with its <strong>A record pointing at the server's public IP</strong> and DNS propagated</li>
+              </ul>
+              <p class="mb-0 text-muted small">DNS must resolve before Let's Encrypt can issue a certificate. Verify with <code>dig your-domain.com</code> or <code>nslookup your-domain.com</code>.</p>
             </div>
           </div>
-          <div class="col-lg-5">
+          <div class="col-lg-6">
             <div class="section-card h-100">
-              <p class="text-uppercase text-muted mb-1 small fw-semibold">TLS</p>
-              <h3 class="h5">Certbot bootstrap and renewals</h3>
-              <p class="mb-2">Nginx expects certs in <code>deploy/certs</code>. For the first run, you may need to comment out the HTTPS server block until certs exist.</p>
-              <pre><code>docker compose run --rm certbot certonly \
-  --webroot -w /var/www/certbot \
-  -d your-domain.com \
-  --email you@example.com --agree-tos --no-eff-email</code></pre>
-              <p class="mb-2">After issuing certs, restore the HTTPS block (if removed) and restart Nginx:</p>
-              <pre><code>docker compose up -d nginx</code></pre>
-              <p class="mb-2">Schedule renewals (cron or systemd timer):</p>
-              <pre><code>docker compose run --rm certbot renew
-docker compose exec nginx nginx -s reload</code></pre>
-              <p class="mb-2 text-muted small">You can also run <code>openrsvp renew-certs</code> to execute the same renewal + reload flow.</p>
-              <p class="mb-0 text-muted small">Keep ports 80 and 443 open so ACME challenges can succeed.</p>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 2</p>
+              <h3 class="h5">Clone the repo</h3>
+              <pre><code>git clone https://github.com/brandonleon/OpenRSVP.git
+cd OpenRSVP</code></pre>
+              <p class="mb-0 text-muted small">Clone to any directory — <code>~/OpenRSVP</code> is a reasonable default. The SQLite database is stored in <code>./data/</code> by default, separate from the source tree.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 3</p>
+              <h3 class="h5">Configure your domain</h3>
+              <p class="mb-2">Copy the example env file and fill in your values — this is the only configuration step required for a standard deployment.</p>
+              <pre><code>cp .env.example .env
+# Edit .env and set:
+#   DOMAIN=your-domain.com
+#   EMAIL=you@example.com</code></pre>
+              <p class="mb-0 text-muted small"><code>DOMAIN</code> is injected into the nginx config via the official nginx image's built-in <code>envsubst</code> template support. No manual file editing needed.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 4</p>
+              <h3 class="h5">Issue the TLS certificate</h3>
+              <p class="mb-2">Run the bootstrap script. It handles the chicken-and-egg problem between nginx and certbot automatically.</p>
+              <pre><code>./scripts/init-certs.sh</code></pre>
+              <p class="mb-2">The script reads <code>DOMAIN</code> and <code>EMAIL</code> from <code>.env</code>, temporarily loads an HTTP-only nginx config for the ACME challenge, obtains the certificate, then restarts nginx with the full SSL config.</p>
+              <p class="mb-0 text-muted small">You can also pass values as arguments: <code>./scripts/init-certs.sh your-domain.com you@example.com</code></p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 5</p>
+              <h3 class="h5">Start the full stack</h3>
+              <pre><code>docker compose up -d</code></pre>
+              <p class="mb-2">This starts three containers: <code>app</code> (FastAPI on port 8000 internally), <code>nginx</code> (ports 80 and 443), and <code>certbot</code> (automatic renewal via crond).</p>
+              <p class="mb-0 text-muted small">The SQLite database persists in <code>./data/</code> across rebuilds. To use a different path, set <code>OPENRSVP_DATA_DIR</code> in <code>.env</code>.</p>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="section-card h-100">
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Step 6</p>
+              <h3 class="h5">Verify and get the admin token</h3>
+              <pre><code># Confirm HTTPS is working
+curl -I https://your-domain.com
+
+# Fetch the root admin token
+docker compose exec app openrsvp admin-token</code></pre>
+              <p class="mb-0 text-muted small">The root admin token grants full visibility across all events. Store it securely — it is not recoverable from the UI.</p>
             </div>
           </div>
         </div>
       </section>
 
       <section class="my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <p class="text-uppercase text-muted mb-1 small fw-semibold">Operations</p>
+            <h2 class="fw-bold mb-0">Ongoing maintenance</h2>
+          </div>
+        </div>
+
         <div class="row g-4">
           <div class="col-lg-4">
             <div class="section-card h-100">
-              <p class="text-uppercase text-muted mb-1 small fw-semibold">Admin</p>
-              <h3 class="h5">Root token</h3>
-              <p class="mb-2">Fetch the root admin token inside the container.</p>
-              <pre><code>docker compose exec app openrsvp admin-token</code></pre>
-              <p class="mb-0 text-muted small">Store the token securely. It grants full visibility but still cannot edit guest RSVPs.</p>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">TLS Renewal</p>
+              <h3 class="h5">Automatic via crond</h3>
+              <p class="mb-2">The certbot container runs <code>crond</code> internally and checks for renewal every 12 hours. On renewal, it signals nginx to reload without a restart.</p>
+              <p class="mb-2">To trigger a manual check:</p>
+              <pre><code>docker compose exec certbot /renew.sh</code></pre>
+              <p class="mb-0 text-muted small">The certbot container mounts <code>/var/run/docker.sock</code> to exec into the nginx container on renewal — a standard trade-off for single-server deployments.</p>
             </div>
           </div>
           <div class="col-lg-4">
@@ -139,18 +186,20 @@ docker compose exec nginx nginx -s reload</code></pre>
               <p class="mb-2">Pull new code and rebuild the image.</p>
               <pre><code>git pull --ff-only
 docker compose up -d --build</code></pre>
-              <p class="mb-0 text-muted small">The data directory stays on the host, so restarts do not wipe events.</p>
+              <p class="mb-0 text-muted small">The data directory stays on the host, so restarts do not wipe events or RSVPs.</p>
             </div>
           </div>
           <div class="col-lg-4">
             <div class="section-card h-100">
-              <p class="text-uppercase text-muted mb-1 small fw-semibold">Checks</p>
+              <p class="text-uppercase text-muted mb-1 small fw-semibold">Logs</p>
               <h3 class="h5">Health and logs</h3>
-              <p class="mb-2">Confirm the app is reachable and the scheduler is running.</p>
-              <pre><code>curl -I https://your-domain.com
+              <pre><code>docker compose logs --tail=200 app
+docker compose logs --tail=50 nginx
 
-docker compose logs --tail=200 app</code></pre>
-              <p class="mb-0 text-muted small">Use <code>docker compose logs -f</code> during deploys to watch for errors.</p>
+# certbot renewal log
+docker compose exec certbot \
+  cat /var/log/certbot-cron.log</code></pre>
+              <p class="mb-0 text-muted small">Use <code>docker compose logs -f</code> during deploys to watch for errors in real time.</p>
             </div>
           </div>
         </div>
@@ -158,7 +207,7 @@ docker compose logs --tail=200 app</code></pre>
 
       <div class="divider my-5"></div>
       <p class="footer text-center mb-4">
-        <a href="https://openrsvp.kaotic.cc/">OpenRSVP</a> &middot;
+        <a href="https://github.com/brandonleon/OpenRSVP">OpenRSVP</a> &middot;
         <a href="https://fastapi.tiangolo.com/">FastAPI</a> &middot;
         <a href="https://www.sqlite.org/">SQLite</a> &middot;
         <a href="https://catppuccin.com/">Catppuccin Latte</a>

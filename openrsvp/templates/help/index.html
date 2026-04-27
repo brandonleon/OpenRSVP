@@ -1,0 +1,46 @@
+{% extends "help/help_base.html" %}
+{% block help_content %}
+<div class="row g-4">
+    <div class="col-12">
+        <h1 class="display-6 mb-4">OpenRSVP Help Center</h1>
+        <p class="lead text-muted">Your comprehensive guide to understanding and using OpenRSVP.</p>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">For Event Hosts</h5>
+                <p class="card-text text-muted mb-3">Learn how to create, manage, and customize events with ease.</p>
+                <a href="/help/events" class="btn btn-outline-primary">Event Hosting Guide</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">For Attendees</h5>
+                <p class="card-text text-muted mb-3">Understand how to RSVP, track events, and manage your responses.</p>
+                <a href="/help/rsvp" class="btn btn-outline-primary">RSVP Guide</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Advanced Features</h5>
+                <p class="card-text text-muted mb-3">Explore unique capabilities like themes, sharing tools, and privacy controls.</p>
+                <a href="/help/features" class="btn btn-outline-primary">Feature Overview</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 mt-5">
+        <div class="alert alert-light border" role="alert">
+            <h4 class="alert-heading">Need More Help?</h4>
+            <p class="mb-0">Check out our Frequently Asked Questions or browse through our detailed guides. Can't find what you're looking for? <a href="{{ repo_url }}/issues" target="_blank">Open an issue on GitHub</a>.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
