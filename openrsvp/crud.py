@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+import calendar
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .config import settings
-from .models import Channel, Event, Message, RSVP
+from .models import Channel, Event, EventSeries, Message, RSVP
 from .utils import slugify, to_naive_utc, utcnow
 
 CHANNEL_VISIBILITIES = {"public", "private"}
 VALID_APPROVAL_STATUSES = {"pending", "approved", "rejected"}
 VALID_ATTENDANCE_STATUSES = {"yes", "no", "maybe"}
+VALID_RECURRENCE_RULES = {"daily", "weekly", "biweekly", "monthly"}
+MAX_SERIES_OCCURRENCES = 52
 
 
 def _now() -> datetime:
@@ -155,6 +158,109 @@ def update_event(
     session.add(event)
     session.flush()
     return event
+
+
+def _add_months(dt: datetime, months: int) -> datetime:
+    """Add a number of months to a datetime, clamping the day if needed."""
+    total_months = dt.month - 1 + months
+    year = dt.year + total_months // 12
+    month = total_months % 12 + 1
+    day = min(dt.day, calendar.monthrange(year, month)[1])
+    return dt.replace(year=year, month=month, day=day)
+
+
+def _offset_datetime(dt: datetime, rule: str, n: int) -> datetime:
+    """Offset a datetime by n recurrence periods."""
+    if rule == "daily":
+        return dt + timedelta(days=n)
+    if rule == "weekly":
+        return dt + timedelta(weeks=n)
+    if rule == "biweekly":
+        return dt + timedelta(weeks=n * 2)
+    if rule == "monthly":
+        return _add_months(dt, n)
+    return dt
+
+
+def create_event_series(
+    session: Session,
+    *,
+    title: str,
+    description: str | None,
+    start_time: datetime,
+    end_time: datetime | None,
+    location: str | None,
+    channel: Channel | None,
+    admin_approval_required: bool = False,
+    is_private: bool = False,
+    max_attendees: int | None = None,
+    rsvps_closed: bool = False,
+    rsvp_close_at: datetime | None = None,
+    recurrence_rule: str,
+    recurrence_count: int,
+) -> tuple[EventSeries, list[Event]]:
+    """Create a recurring event series with all occurrences pre-generated."""
+    if recurrence_rule not in VALID_RECURRENCE_RULES:
+        raise ValueError(f"Invalid recurrence rule: {recurrence_rule}")
+    recurrence_count = max(2, min(recurrence_count, MAX_SERIES_OCCURRENCES))
+
+    series = EventSeries(
+        admin_token=secrets.token_urlsafe(32),
+        recurrence_rule=recurrence_rule,
+        created_at=_now(),
+    )
+    session.add(series)
+    session.flush()
+
+    duration = (end_time - start_time) if end_time else None
+    close_delta = (rsvp_close_at - start_time) if rsvp_close_at else None
+
+    events: list[Event] = []
+    for i in range(recurrence_count):
+        offset_start = _offset_datetime(start_time, recurrence_rule, i)
+        offset_end = (offset_start + duration) if duration else None
+        offset_close = (offset_start + close_delta) if close_delta else None
+
+        event = Event(
+            admin_token=secrets.token_urlsafe(32),
+            series=series,
+            is_private=is_private,
+            admin_approval_required=admin_approval_required,
+            rsvps_closed=rsvps_closed,
+            rsvp_close_at=to_naive_utc(offset_close),
+            max_attendees=max_attendees,
+            title=title,
+            description=description,
+            start_time=to_naive_utc(offset_start),
+            end_time=to_naive_utc(offset_end),
+            location=location,
+            score=settings.initial_event_score,
+            channel=channel,
+        )
+        session.add(event)
+        events.append(event)
+
+    session.flush()
+    return series, events
+
+
+def get_series_by_admin_token(
+    session: Session, admin_token: str
+) -> EventSeries | None:
+    stmt = select(EventSeries).where(EventSeries.admin_token == admin_token)
+    return session.scalars(stmt).first()
+
+
+def get_events_in_series(
+    session: Session, series_id: str
+) -> list[Event]:
+    stmt = (
+        select(Event)
+        .where(Event.series_id == series_id)
+        .options(selectinload(Event.rsvps))
+        .order_by(Event.start_time)
+    )
+    return list(session.scalars(stmt).all())
 
 
 def create_message(

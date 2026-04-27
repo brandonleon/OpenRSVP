@@ -6,8 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from openrsvp import api, database
-from openrsvp.crud import create_event, ensure_channel
-from openrsvp.models import Event, Message, RSVP
+from openrsvp.crud import create_event, create_event_series, ensure_channel
+from openrsvp.models import Event, EventSeries, Message, RSVP
 from openrsvp.utils import utcnow
 from openrsvp import crud
 
@@ -1288,3 +1288,146 @@ def test_yes_to_no_frees_slot(client):
     session.refresh(event)
     assert event.yes_count == 1
     session.close()
+
+
+# ---------------------------------------------------------------------------
+# Repeating event series tests
+# ---------------------------------------------------------------------------
+
+def _series_form_payload(start: datetime, rule: str = "weekly", count: int = 3) -> dict:
+    return {
+        "title": "Weekly Meetup",
+        "description": "Regular gathering",
+        "start_time": _datetime_str(start),
+        "end_time": _datetime_str(start + timedelta(hours=1)),
+        "location": "The Hub",
+        "channel_name": "",
+        "channel_visibility": "public",
+        "is_private": False,
+        "admin_approval_required": False,
+        "rsvps_closed": False,
+        "rsvp_close_at": "",
+        "timezone_offset_minutes": 0,
+        "recurrence_rule": rule,
+        "recurrence_count": count,
+    }
+
+
+def test_create_series_via_form_renders_series_created(client):
+    start = utcnow().replace(microsecond=0)
+    resp = client.post("/events", data=_series_form_payload(start, rule="weekly", count=4))
+    assert resp.status_code == 200
+    assert b"Series admin link" in resp.content
+    assert b"occurrences" in resp.content.lower()
+
+
+def test_create_series_via_form_generates_correct_count(client):
+    start = utcnow().replace(microsecond=0)
+    resp = client.post("/events", data=_series_form_payload(start, rule="daily", count=5))
+    assert resp.status_code == 200
+    assert b"5 events created" in resp.content
+
+
+def test_create_series_via_form_saves_localStorage_nodes(client):
+    start = utcnow().replace(microsecond=0)
+    resp = client.post("/events", data=_series_form_payload(start, rule="weekly", count=3))
+    assert resp.status_code == 200
+    assert resp.content.count(b"data-event-admin-token") == 3
+
+
+def test_create_series_invalid_rule_falls_through_to_single_event(client):
+    start = utcnow().replace(microsecond=0)
+    payload = _series_form_payload(start)
+    payload["recurrence_rule"] = "invalid-rule"
+    resp = client.post("/events", data=payload)
+    # An invalid rule is treated as no recurrence — single event is created
+    assert resp.status_code == 200
+    assert b"Event created" in resp.content
+
+
+def test_series_admin_page_renders(client):
+    session = database.SessionLocal()
+    start = utcnow().replace(microsecond=0)
+    series, events = create_event_series(
+        session,
+        title="Admin Page Series",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        recurrence_rule="weekly",
+        recurrence_count=3,
+    )
+    session.commit()
+    session.close()
+
+    resp = client.get(f"/series/{series.id}/admin/{series.admin_token}")
+    assert resp.status_code == 200
+    assert b"Admin Page Series" in resp.content
+    assert b"weekly" in resp.content.lower()
+
+
+def test_series_admin_page_404_bad_token(client):
+    session = database.SessionLocal()
+    start = utcnow().replace(microsecond=0)
+    series, _ = create_event_series(
+        session,
+        title="Token Test",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        recurrence_rule="weekly",
+        recurrence_count=2,
+    )
+    session.commit()
+    session.close()
+
+    resp = client.get(f"/series/{series.id}/admin/wrong-token")
+    assert resp.status_code == 404
+
+
+def test_series_admin_page_404_wrong_series_id(client):
+    session = database.SessionLocal()
+    start = utcnow().replace(microsecond=0)
+    series, _ = create_event_series(
+        session,
+        title="ID Mismatch",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        recurrence_rule="weekly",
+        recurrence_count=2,
+    )
+    session.commit()
+    session.close()
+
+    resp = client.get(f"/series/wrong-id/admin/{series.admin_token}")
+    assert resp.status_code == 404
+
+
+def test_event_admin_page_shows_series_link(client):
+    session = database.SessionLocal()
+    start = utcnow().replace(microsecond=0)
+    _, events = create_event_series(
+        session,
+        title="Series Link Test",
+        description=None,
+        start_time=start,
+        end_time=None,
+        location=None,
+        channel=None,
+        recurrence_rule="weekly",
+        recurrence_count=2,
+    )
+    session.commit()
+    event = events[0]
+    session.close()
+
+    resp = client.get(f"/e/{event.id}/admin/{event.admin_token}")
+    assert resp.status_code == 200
+    assert b"Part of a series" in resp.content

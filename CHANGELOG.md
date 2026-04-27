@@ -8,6 +8,18 @@ The format is based on Keep a Changelog, and this project adheres to SemVer.
 
 ### Added
 
+- Repeating events: choose daily, weekly, biweekly, or monthly recurrence and a
+  count (2–52) when creating an event to generate a series of independent
+  occurrences, each with its own RSVP page and admin link.
+- `EventSeries` model and `event_series` table (migration `0003_repeating_events`)
+  to group occurrences; each `Event` gains a nullable `series_id` FK.
+- Series admin page at `/series/<id>/admin/<token>` listing all occurrences with
+  RSVP counts and quick-manage links.
+- "Part of a series →" badge on individual event admin pages linking back to
+  the series overview.
+- Documentation page `docs/repeating-events.html` covering recurrence rules,
+  the series admin page, per-occurrence independence, and data model details.
+
 ### Changed
 
 ### Fixed

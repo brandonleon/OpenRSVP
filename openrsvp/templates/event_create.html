@@ -107,11 +107,38 @@
               We automatically mark the event private to match the channel. You can switch it back to public if you prefer; if you do, the channel stays hidden and will not appear on the event page. Share the channel link separately if you want guests to browse it.
             </div>
           </div>
+          <hr class="my-4">
+          <h5 class="mb-3">Repeating Event</h5>
+          <div class="mb-3">
+            <label class="form-label" for="recurrence-rule">Repeat</label>
+            <select id="recurrence-rule" name="recurrence_rule" class="form-select" data-recurrence-toggle>
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="biweekly">Every two weeks</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="mb-4 d-none" data-recurrence-options>
+            <label class="form-label" for="recurrence-count">Number of occurrences (2–52)</label>
+            <input type="number" id="recurrence-count" name="recurrence_count" class="form-control" min="2" max="52" value="4">
+            <div class="form-text">Includes this first event. Each occurrence gets its own RSVP page and admin link.</div>
+          </div>
           <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
             <a class="btn btn-outline-secondary" href="/">Cancel</a>
             <button class="btn btn-primary" type="submit">Create Event</button>
           </div>
         </form>
+        <script>
+          (function () {
+            var sel = document.querySelector('[data-recurrence-toggle]');
+            var opts = document.querySelector('[data-recurrence-options]');
+            if (!sel || !opts) return;
+            sel.addEventListener('change', function () {
+              opts.classList.toggle('d-none', !sel.value);
+            });
+          })();
+        </script>
       </div>
     </div>
   </div>

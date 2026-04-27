@@ -38,12 +38,24 @@ class Meta(Base):
     updated_at = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 
 
+class EventSeries(Base):
+    __tablename__ = "event_series"
+
+    id = Column(String(36), primary_key=True, default=_uuid)
+    admin_token = Column(String(128), nullable=False, unique=True)
+    recurrence_rule = Column(String(32), nullable=False)  # daily, weekly, biweekly, monthly
+    created_at = Column(DateTime, default=_now, nullable=False)
+
+    events = relationship("Event", back_populates="series", order_by="Event.start_time")
+
+
 class Event(Base):
     __tablename__ = "events"
 
     id = Column(String(36), primary_key=True, default=_uuid)
     admin_token = Column(String(128), nullable=False, unique=True)
     channel_id = Column(String(36), ForeignKey("channels.id"), nullable=True)
+    series_id = Column(String(36), ForeignKey("event_series.id"), nullable=True)
     is_private = Column(Boolean, default=False, nullable=False)
     admin_approval_required = Column(Boolean, default=False, nullable=False)
     rsvps_closed = Column(Boolean, default=False, nullable=False)
@@ -60,6 +72,7 @@ class Event(Base):
     last_accessed = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 
     channel = relationship("Channel", back_populates="events")
+    series = relationship("EventSeries", back_populates="events")
     rsvps = relationship("RSVP", back_populates="event", cascade="all, delete-orphan")
     messages = relationship(
         "Message",
