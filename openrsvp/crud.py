@@ -7,7 +7,7 @@ import secrets
 from datetime import datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from .config import settings
 from .models import Channel, Event, EventSeries, Message, RSVP
@@ -257,6 +257,7 @@ def get_events_in_series(
     stmt = (
         select(Event)
         .where(Event.series_id == series_id)
+        .options(selectinload(Event.rsvps))
         .order_by(Event.start_time)
     )
     return list(session.scalars(stmt).all())

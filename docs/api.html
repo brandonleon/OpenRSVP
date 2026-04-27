@@ -60,7 +60,8 @@
                 <strong>Tip:</strong> send ISO timestamps; include <code>timezone_offset_minutes</code> when creating/updating events so local times are stored correctly in UTC.
               </div>
               <p class="mb-2 text-muted small">Private RSVPs are hidden from <code>GET /api/v1/events/{id}</code> but are visible when using the event owner endpoints.</p>
-              <p class="mb-0 text-muted small">Public responses omit private channel metadata and redact locations for approval-required events unless you send an admin/root token or an approved Yes RSVP token.</p>
+              <p class="mb-2 text-muted small">Public responses omit private channel metadata and redact locations for approval-required events unless you send an admin/root token or an approved Yes RSVP token.</p>
+              <p class="mb-0 text-muted small"><strong>Recurring series:</strong> series creation is currently web-UI only (via the event creation form). Each occurrence in a series is a standalone event accessible through the standard event endpoints using its own <code>event_id</code> and admin token.</p>
             </div>
           </div>
           <div class="col-lg-6">
