@@ -7,11 +7,12 @@ container deployment requested in the specification.
 ## Features
 
 - Magic-link authentication for root admin, event admins, and RSVP guests
+- **No admin role required to create events** — anyone can create an event and receive a unique admin token for managing that specific event
 - Device-side helpers: copy-to-clipboard toasts and optional local storage so browsers can reopen admin/RSVP magic links (clearable in the UI)
 - Catppuccin themes (Latte, Mocha, Frappé, Macchiato) with per-browser preference and system fallback
 - FastAPI + Jinja2 UI using Bootstrap 5 (CDN)
 - SQLite storage with SQLAlchemy models
-- Private RSVP toggle to hide a guest from public lists while keeping the organizer’s view intact
+- Private RSVP toggle to hide a guest from public lists while keeping the organizer's view intact
 - Background decay + cleanup using APScheduler (runs hourly)
 - Public/private channel system with dedicated listings at `/channel/<slug>`,
   a discovery page at `/channels/discover`, and a `/help` explainer
