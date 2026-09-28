@@ -28,8 +28,12 @@ SessionLocal = scoped_session(
 
 @contextmanager
 def get_session():
-    """Context manager returning a SQLAlchemy session."""
-    session = SessionLocal()
+    """Context manager returning a standalone SQLAlchemy session.
+
+    Uses the scoped session's factory so closing it never detaches objects
+    belonging to an in-flight request's thread-local session.
+    """
+    session = SessionLocal.session_factory()
     try:
         yield session
         session.commit()

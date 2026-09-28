@@ -10,7 +10,7 @@ default:
 # Start the development server
 [group('dev')]
 dev:
-    uv run python main.py --dev
+    uv run python main.py runserver --dev
 
 # Run all tests
 [group('dev')]

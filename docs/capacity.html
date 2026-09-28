@@ -59,6 +59,8 @@
                 <li>Only <strong>Yes</strong> RSVPs count toward the limit; Maybe/No do not.</li>
                 <li>When full, standard users cannot submit a Yes RSVP.</li>
                 <li>Admins can still force-accept guests above the cap.</li>
+                <li>Each RSVP counts as the guest plus their extra guests (<code>guest_count + 1</code>).</li>
+                <li>Hosts can limit extra guests per RSVP with <code>max_guests</code> (0–5, default 5). Set it to 0 to turn guests off. Lowering it later does not change existing RSVPs until the guest edits them.</li>
                 <li>Need a hard cutoff instead of a cap? Use the “Close RSVPs” toggle or schedule an auto-close time.</li>
               </ul>
               <h4 class="h6 text-uppercase text-muted">EventFull response</h4>

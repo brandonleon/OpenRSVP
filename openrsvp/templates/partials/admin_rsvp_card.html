@@ -11,7 +11,7 @@
       <div>
         <div class="fw-semibold">{{ rsvp.name }}</div>
         {% if rsvp.pronouns %}<div class="text-muted small">{{ rsvp.pronouns }}</div>{% endif %}
-        <div class="text-muted small">Guests: {{ rsvp.guest_count }}</div>
+        {% if rsvp.event.max_guests or rsvp.guest_count %}<div class="text-muted small">Guests: {{ rsvp.guest_count }}</div>{% endif %}
         <div class="text-muted small">Attendance: {{ rsvp.attendance_status|capitalize }}</div>
       </div>
       <div class="text-end">

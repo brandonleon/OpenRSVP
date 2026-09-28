@@ -56,8 +56,8 @@
           </div>
         </div>
         <div class="text-end small text-muted">
-          Attending: {{ rsvp.attendance_status | capitalize }}<br>
-          Guests: {{ rsvp.guest_count }}
+          Attending: {{ rsvp.attendance_status | capitalize }}{% if event.max_guests or rsvp.guest_count %}<br>
+          Guests: {{ rsvp.guest_count }}{% endif %}
         </div>
       </div>
       {% if rsvp.approval_status == 'pending' %}
@@ -97,11 +97,15 @@
           <div class="form-text">Only Yes counts toward the cap.</div>
           {% endif %}
         </div>
+        {% if event.max_guests > 0 %}
         <div class="mb-3">
           <label class="form-label">Guest Count (extra people with you)</label>
-          <input type="number" name="guest_count" min="0" max="5" class="form-control" value="{{ rsvp.guest_count }}">
-          <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests).</div>
+          <input type="number" name="guest_count" min="0" max="{{ event.max_guests }}" class="form-control" value="{{ rsvp.guest_count }}">
+          <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests). Up to {{ event.max_guests }} allowed.</div>
         </div>
+        {% else %}
+        <input type="hidden" name="guest_count" value="0">
+        {% endif %}
         <div class="mb-3">
           <label class="form-label">Notes</label>
           <textarea name="note" class="form-control" rows="3" placeholder="Add a new note for the organizer"></textarea>

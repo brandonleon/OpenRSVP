@@ -58,11 +58,15 @@
             <div class="form-text">Only Yes counts against the limit; Maybe keeps you flexible.</div>
             {% endif %}
           </div>
+          {% if event.max_guests > 0 %}
           <div class="mb-3">
             <label class="form-label">Guest Count (extra people with you)</label>
-            <input type="number" name="guest_count" class="form-control" min="0" max="5" value="0">
-            <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests).</div>
+            <input type="number" name="guest_count" class="form-control" min="0" max="{{ event.max_guests }}" value="0">
+            <div class="form-text">Enter guests in addition to yourself (e.g., 2 = you plus 2 guests). Up to {{ event.max_guests }} allowed.</div>
           </div>
+          {% else %}
+          <input type="hidden" name="guest_count" value="0">
+          {% endif %}
           <div class="mb-3">
             <label class="form-label">Notes</label>
             <textarea name="note" class="form-control" rows="3" placeholder="Anything we should know"></textarea>

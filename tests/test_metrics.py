@@ -179,7 +179,9 @@ class TestMetricsAccess:
     def test_require_metrics_access_allowed(self, db):
         """Allow access from configured IP range."""
         # Configure allowed IP
-        meta = Meta(key="metrics_allowed_ips", value="127.0.0.1/32", updated_at=utcnow())
+        meta = Meta(
+            key="metrics_allowed_ips", value="127.0.0.1/32", updated_at=utcnow()
+        )
         db.merge(meta)
         db.commit()
 
@@ -193,7 +195,9 @@ class TestMetricsAccess:
     def test_require_metrics_access_denied(self, db):
         """Deny access from non-allowed IP."""
         # Configure allowed IP
-        meta = Meta(key="metrics_allowed_ips", value="192.168.1.0/24", updated_at=utcnow())
+        meta = Meta(
+            key="metrics_allowed_ips", value="192.168.1.0/24", updated_at=utcnow()
+        )
         db.merge(meta)
         db.commit()
 

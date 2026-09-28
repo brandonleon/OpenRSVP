@@ -778,7 +778,9 @@ def metrics_add(cidr: str = typer.Argument(..., help="CIDR range to add")) -> No
         meta_entry = db.query(Meta).filter(Meta.key == "metrics_allowed_ips").first()
 
         if meta_entry and meta_entry.value:
-            existing_cidrs = [r.strip() for r in meta_entry.value.split(",") if r.strip()]
+            existing_cidrs = [
+                r.strip() for r in meta_entry.value.split(",") if r.strip()
+            ]
             if cidr in existing_cidrs:
                 typer.secho(
                     f"Range {cidr} is already in the allowed list",
@@ -809,7 +811,9 @@ def metrics_add(cidr: str = typer.Argument(..., help="CIDR range to add")) -> No
 
 
 @metrics_app.command("remove")
-def metrics_remove(cidr: str = typer.Argument(..., help="CIDR range to remove")) -> None:
+def metrics_remove(
+    cidr: str = typer.Argument(..., help="CIDR range to remove"),
+) -> None:
     """Remove a single IP range from the allowed list."""
     from .database import SessionLocal
     from .models import Meta
@@ -861,7 +865,7 @@ def metrics_remove(cidr: str = typer.Argument(..., help="CIDR range to remove"))
 
 @metrics_app.command("clear")
 def metrics_clear(
-    yes: bool = typer.Option(False, "--yes", help="Skip confirmation prompt")
+    yes: bool = typer.Option(False, "--yes", help="Skip confirmation prompt"),
 ) -> None:
     """Remove all IP ranges (disable metrics endpoint)."""
     from .database import SessionLocal

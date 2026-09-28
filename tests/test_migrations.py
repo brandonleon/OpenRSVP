@@ -61,3 +61,31 @@ def test_upgrade_database_creates_fresh_schema(monkeypatch, tmp_path):
     assert inspector.has_table("channels")
     assert inspector.has_table("rsvps")
     assert inspector.has_table("messages")
+
+
+def test_max_guests_migration_backfills_existing_events(monkeypatch, tmp_path):
+    from alembic import command
+
+    db_path = tmp_path / "pre0004.sqlite"
+    engine = create_engine(f"sqlite:///{db_path}", future=True)
+    _patch_db(monkeypatch, engine, db_path)
+    config = storage._alembic_config()
+    command.upgrade(config, "0003_repeating_events")
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "insert into events (id, admin_token, is_private, admin_approval_required,"
+                " rsvps_closed, title, start_time, score, created_at, last_modified,"
+                " last_accessed) values ('e1', 'tok', 0, 0, 0, 'Old', '2030-01-01',"
+                " 100, '2030-01-01', '2030-01-01', '2030-01-01')"
+            )
+        )
+
+    command.upgrade(config, "head")
+
+    with engine.connect() as conn:
+        value = conn.execute(
+            text("select max_guests from events where id='e1'")
+        ).scalar()
+    assert value == 5

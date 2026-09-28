@@ -44,7 +44,7 @@ tests/
 
 ```bash
 # Development server (auto-reload)
-uv run python main.py --dev
+uv run python main.py runserver --dev
 # or
 openrsvp runserver --dev
 
@@ -185,4 +185,4 @@ TLS is handled by nginx + Certbot (Let's Encrypt). Certificates live in `deploy/
 
 ## Current Version
 
-`0.17.0` (see `CHANGELOG.md`). Follow [Keep a Changelog](https://keepachangelog.com/) format for changelog entries. The `develop` branch is used for active development; PRs merge to `main`.
+`0.18.0a1` (see `CHANGELOG.md`). Follow [Keep a Changelog](https://keepachangelog.com/) format for changelog entries. The `develop` branch is used for active development; PRs merge to `main`.

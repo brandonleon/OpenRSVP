@@ -31,7 +31,11 @@ def _iso(dt: datetime) -> str:
 
 
 def _make_event(
-    session, *, max_attendees: int | None = None, title: str = "Capacity Test"
+    session,
+    *,
+    max_attendees: int | None = None,
+    title: str = "Capacity Test",
+    max_guests: int = 5,
 ):
     start = utcnow().replace(microsecond=0)
     event = create_event(
@@ -45,6 +49,7 @@ def _make_event(
         is_private=False,
         admin_approval_required=False,
         max_attendees=max_attendees,
+        max_guests=max_guests,
     )
     session.commit()
     return event
@@ -372,7 +377,7 @@ def test_event_page_counts_public_and_private_party_sizes(client):
 
     event_page = client.get(f"/e/{event.id}")
     assert event_page.status_code == 200
-    assert "3 public people (1 RSVP" in event_page.text
+    assert "3 public people attending (1 RSVP" in event_page.text
     assert "+ 2 private people (1 RSVP" in event_page.text
 
     session.close()
@@ -1294,6 +1299,7 @@ def test_yes_to_no_frees_slot(client):
 # Repeating event series tests
 # ---------------------------------------------------------------------------
 
+
 def _series_form_payload(start: datetime, rule: str = "weekly", count: int = 3) -> dict:
     return {
         "title": "Weekly Meetup",
@@ -1315,7 +1321,9 @@ def _series_form_payload(start: datetime, rule: str = "weekly", count: int = 3) 
 
 def test_create_series_via_form_renders_series_created(client):
     start = utcnow().replace(microsecond=0)
-    resp = client.post("/events", data=_series_form_payload(start, rule="weekly", count=4))
+    resp = client.post(
+        "/events", data=_series_form_payload(start, rule="weekly", count=4)
+    )
     assert resp.status_code == 200
     assert b"Series admin link" in resp.content
     assert b"occurrences" in resp.content.lower()
@@ -1323,14 +1331,18 @@ def test_create_series_via_form_renders_series_created(client):
 
 def test_create_series_via_form_generates_correct_count(client):
     start = utcnow().replace(microsecond=0)
-    resp = client.post("/events", data=_series_form_payload(start, rule="daily", count=5))
+    resp = client.post(
+        "/events", data=_series_form_payload(start, rule="daily", count=5)
+    )
     assert resp.status_code == 200
     assert b"5 events created" in resp.content
 
 
 def test_create_series_via_form_saves_localStorage_nodes(client):
     start = utcnow().replace(microsecond=0)
-    resp = client.post("/events", data=_series_form_payload(start, rule="weekly", count=3))
+    resp = client.post(
+        "/events", data=_series_form_payload(start, rule="weekly", count=3)
+    )
     assert resp.status_code == 200
     assert resp.content.count(b"data-event-admin-token") == 3
 
@@ -1556,4 +1568,168 @@ def test_duplicate_event_wrong_token_rejected(client):
         follow_redirects=False,
     )
     assert response.status_code == 403
+    session.close()
+
+
+def test_max_guests_zero_forces_guest_count_to_zero(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=2, max_guests=0, title="No Guests")
+
+    created = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={"name": "Solo", "attendance_status": "yes", "guest_count": 3},
+    )
+    assert created.status_code == 201
+    assert created.json()["rsvp"]["guest_count"] == 0
+
+    web = client.post(
+        f"/e/{event.id}/rsvp",
+        data={"name": "Web Solo", "attendance_status": "yes", "guest_count": "4"},
+    )
+    assert web.status_code == 200
+    session.refresh(event)
+    assert event.yes_count == 2
+    assert all(r.guest_count == 0 for r in event.rsvps)
+
+    form = client.get(f"/e/{event.id}")
+    assert 'name="guest_count"' not in form.text
+    session.close()
+
+
+def test_max_guests_limits_and_patch_preserves_existing(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_guests=2, title="Two Guests")
+
+    created = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={"name": "Party", "attendance_status": "yes", "guest_count": 5},
+    )
+    body = created.json()
+    assert body["rsvp"]["guest_count"] == 2
+    token = body["rsvp"]["rsvp_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    patched = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        json={"guest_count": 9},
+        headers=headers,
+    )
+    assert patched.json()["rsvp"]["guest_count"] == 2
+
+    # Lowering the limit later does not alter stored RSVPs until guest_count is sent.
+    admin = client.patch(
+        f"/api/v1/events/{event.id}",
+        json={"max_guests": 0},
+        headers={"Authorization": f"Bearer {event.admin_token}"},
+    )
+    assert admin.status_code == 200
+    assert admin.json()["event"]["max_guests"] == 0
+    renamed = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        json={"name": "Renamed"},
+        headers=headers,
+    )
+    assert renamed.json()["rsvp"]["guest_count"] == 2
+    session.close()
+
+
+def test_event_max_guests_defaults_to_five_and_is_validated(client):
+    resp = client.post(
+        "/api/v1/events",
+        json={"title": "Defaults", "start_time": "2030-01-01T10:00:00"},
+    )
+    assert resp.status_code in (200, 201)
+    assert resp.json()["event"]["max_guests"] == 5
+
+    bad = client.post(
+        "/api/v1/events",
+        json={
+            "title": "Bad",
+            "start_time": "2030-01-01T10:00:00",
+            "max_guests": 6,
+        },
+    )
+    assert bad.status_code == 422
+
+
+def test_rejected_rsvp_does_not_hold_capacity(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=2, max_guests=0, title="Reject Frees")
+    first = _create_pending_rsvp(session, event, name="Rejected One")
+    first.approval_status = "rejected"
+    session.commit()
+    session.refresh(event)
+    assert event.yes_count == 0
+
+    for name in ("A", "B"):
+        resp = client.post(
+            f"/api/v1/events/{event.id}/rsvps",
+            json={"name": name, "attendance_status": "yes"},
+        )
+        assert resp.status_code == 201
+    session.close()
+
+
+def test_existing_yes_guest_can_edit_when_event_over_capacity(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=1, max_guests=0, title="Over Cap")
+    first = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={"name": "A", "attendance_status": "yes"},
+    ).json()["rsvp"]
+    client.post(
+        f"/api/v1/events/{event.id}/rsvps?force_accept=true",
+        json={"name": "Forced", "attendance_status": "yes"},
+        headers={"Authorization": f"Bearer {event.admin_token}"},
+    )
+    headers = {"Authorization": f"Bearer {first['rsvp_token']}"}
+    renamed = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self", json={"name": "A2"}, headers=headers
+    )
+    assert renamed.status_code == 200
+    session.close()
+
+
+def test_growing_party_when_full_is_still_rejected(client):
+    session = database.SessionLocal()
+    event = _make_event(session, max_attendees=2, title="No Growth")
+    mine = client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={"name": "A", "attendance_status": "yes"},
+    ).json()["rsvp"]
+    client.post(
+        f"/api/v1/events/{event.id}/rsvps",
+        json={"name": "B", "attendance_status": "yes"},
+    )
+    grow = client.patch(
+        f"/api/v1/events/{event.id}/rsvps/self",
+        json={"guest_count": 1},
+        headers={"Authorization": f"Bearer {mine['rsvp_token']}"},
+    )
+    assert grow.status_code == 400
+    session.close()
+
+
+def test_root_token_opens_event_admin_page(client):
+    from openrsvp import storage
+
+    storage.ensure_root_token()
+    root = storage.fetch_root_token()
+    session = database.SessionLocal()
+    event = _make_event(session, title="Root Access")
+    response = client.get(f"/e/{event.id}/admin/{root}")
+    assert response.status_code == 200
+    session.close()
+
+
+def test_public_attendee_badge_counts_only_yes(client):
+    session = database.SessionLocal()
+    event = _make_event(session, title="Badge")
+    for name, status, guests in (("Y", "yes", 1), ("M", "maybe", 3), ("N", "no", 2)):
+        client.post(
+            f"/api/v1/events/{event.id}/rsvps",
+            json={"name": name, "attendance_status": status, "guest_count": guests},
+        )
+    page = client.get(f"/e/{event.id}")
+    assert "2 public people attending (1 RSVP)" in page.text
     session.close()

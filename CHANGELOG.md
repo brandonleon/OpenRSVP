@@ -6,6 +6,8 @@ The format is based on Keep a Changelog, and this project adheres to SemVer.
 
 ## [Unreleased]
 
+## [0.18.0a1] - 2026-09-28
+
 ### Added
 
 - Repeating events: choose daily, weekly, biweekly, or monthly recurrence and a
@@ -19,10 +21,27 @@ The format is based on Keep a Changelog, and this project adheres to SemVer.
   the series overview.
 - Documentation page `docs/repeating-events.html` covering recurrence rules,
   the series admin page, per-occurrence independence, and data model details.
+- Per-event guest allowance (`max_guests`, 0–5, default 5): hosts choose how many
+  extra guests each RSVP may bring; 0 turns guests off. Available in the create
+  and admin forms and the JSON API. Migration `0004_event_max_guests` backfills
+  existing events with 5, so current behavior and stored RSVPs are unchanged.
+  Existing RSVPs keep their guests until the guest edits them.
 
 ### Changed
 
+- Capacity ("spots filled") and the public attendee badge now count only
+  "yes" RSVPs that are not rejected; pending RSVPs still hold their spot.
+  The public badge reads "N public people attending" and ignores maybe/no.
+- The justfile `dev` recipe now runs `main.py runserver --dev`.
+
 ### Fixed
+
+- Opening an event admin page with the root admin token no longer returns a 500
+  (`get_session()` now uses an independent session instead of closing the
+  request's thread-local session).
+- Rejected RSVPs no longer consume event capacity.
+- Existing "yes" guests can edit their RSVP when an event is over capacity
+  (e.g. after a force-accept) as long as their party size does not grow.
 
 ### Removed
 

@@ -43,7 +43,9 @@ class EventSeries(Base):
 
     id = Column(String(36), primary_key=True, default=_uuid)
     admin_token = Column(String(128), nullable=False, unique=True)
-    recurrence_rule = Column(String(32), nullable=False)  # daily, weekly, biweekly, monthly
+    recurrence_rule = Column(
+        String(32), nullable=False
+    )  # daily, weekly, biweekly, monthly
     created_at = Column(DateTime, default=_now, nullable=False)
 
     events = relationship("Event", back_populates="series", order_by="Event.start_time")
@@ -61,6 +63,7 @@ class Event(Base):
     rsvps_closed = Column(Boolean, default=False, nullable=False)
     rsvp_close_at = Column(DateTime, nullable=True)
     max_attendees = Column(Integer, nullable=True)
+    max_guests = Column(Integer, default=5, nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     start_time = Column(DateTime, nullable=False)
@@ -84,11 +87,14 @@ class Event(Base):
     )
 
     @property
+    def guest_limit(self) -> int:
+        """Maximum extra guests each RSVP may bring (0 disables guests)."""
+        return int(self.max_guests) if self.max_guests is not None else 5
+
+    @property
     def yes_count(self) -> int:
         """Return the total attending party size (RSVP + guests)."""
-        return sum(
-            (r.guest_count or 0) + 1 for r in self.rsvps if r.attendance_status == "yes"
-        )
+        return sum(r.party_size for r in self.rsvps if r.holds_spot)
 
 
 class RSVP(Base):
@@ -107,6 +113,19 @@ class RSVP(Base):
     last_modified = Column(DateTime, default=_now, onupdate=_now, nullable=False)
 
     event = relationship("Event", back_populates="rsvps")
+
+    @property
+    def party_size(self) -> int:
+        """The guest plus any extra guests they are bringing."""
+        return int(self.guest_count or 0) + 1
+
+    @property
+    def holds_spot(self) -> bool:
+        """Whether this RSVP counts against event capacity (yes and not rejected)."""
+        return bool(
+            self.attendance_status == "yes" and self.approval_status != "rejected"
+        )
+
     messages = relationship(
         "Message",
         back_populates="rsvp",

@@ -38,8 +38,10 @@ from .crud import (
     touch_channel,
     update_event,
     update_rsvp,
+    MAX_GUESTS_LIMIT,
     VALID_ATTENDANCE_STATUSES,
     VALID_RECURRENCE_RULES,
+    clamp_max_guests,
 )
 from .database import SessionLocal
 from .models import Channel, Event, EventSeries, Message, Meta, RSVP
@@ -346,20 +348,16 @@ def _collect_metrics(db: Session) -> dict[str, int | float]:
         db.query(func.count(Event.id)).filter(Event.end_time > now).scalar() or 0
     )
     metrics["openrsvp_events_private"] = (
-        db.query(func.count(Event.id)).filter(Event.is_private == True).scalar()
-        or 0
+        db.query(func.count(Event.id)).filter(Event.is_private == True).scalar() or 0
     )
     metrics["openrsvp_events_created_24h"] = (
-        db.query(func.count(Event.id)).filter(Event.created_at >= day_ago).scalar()
-        or 0
+        db.query(func.count(Event.id)).filter(Event.created_at >= day_ago).scalar() or 0
     )
 
     # RSVP metrics
     metrics["openrsvp_rsvps_total"] = db.query(func.count(RSVP.id)).scalar() or 0
     metrics["openrsvp_rsvps_yes_total"] = (
-        db.query(func.count(RSVP.id))
-        .filter(RSVP.attendance_status == "yes")
-        .scalar()
+        db.query(func.count(RSVP.id)).filter(RSVP.attendance_status == "yes").scalar()
         or 0
     )
     metrics["openrsvp_rsvps_created_24h"] = (
@@ -367,13 +365,9 @@ def _collect_metrics(db: Session) -> dict[str, int | float]:
     )
 
     # Channel metrics
-    metrics["openrsvp_channels_total"] = (
-        db.query(func.count(Channel.id)).scalar() or 0
-    )
+    metrics["openrsvp_channels_total"] = db.query(func.count(Channel.id)).scalar() or 0
     metrics["openrsvp_channels_public"] = (
-        db.query(func.count(Channel.id))
-        .filter(Channel.visibility == "public")
-        .scalar()
+        db.query(func.count(Channel.id)).filter(Channel.visibility == "public").scalar()
         or 0
     )
 
@@ -540,10 +534,9 @@ def _ensure_rsvp_by_id(db: Session, event: Event, rsvp_id: str) -> RSVP:
 def _yes_party_size(event: Event, *, exclude_rsvp: RSVP | None = None) -> int:
     excluded_id = exclude_rsvp.id if exclude_rsvp else None
     return sum(
-        (rsvp.guest_count or 0) + 1
+        rsvp.party_size
         for rsvp in event.rsvps
-        if rsvp.attendance_status == "yes"
-        and (excluded_id is None or rsvp.id != excluded_id)
+        if rsvp.holds_spot and (excluded_id is None or rsvp.id != excluded_id)
     )
 
 
@@ -571,6 +564,14 @@ def _enforce_attendance_capacity(
     yes_party_size = _yes_party_size(event, exclude_rsvp=current_rsvp)
     proposed_party_size = (_clamp_guest_count(new_guest_count) or 0) + 1
     if yes_party_size + proposed_party_size <= event.max_attendees:
+        return False
+    if (
+        current_rsvp is not None
+        and current_rsvp.holds_spot
+        and proposed_party_size <= current_rsvp.party_size
+    ):
+        # Already holding a spot and not growing: allow edits even when the event
+        # is over capacity (e.g. after an admin force-accept).
         return False
     if force_accept:
         if not admin_token:
@@ -636,12 +637,12 @@ def _get_bearer_token(request: Request) -> str | None:
     return token or None
 
 
-def _clamp_guest_count(raw: int | None) -> int:
+def _clamp_guest_count(raw: int | None, limit: int = MAX_GUESTS_LIMIT) -> int:
     try:
         value = int(raw or 0)
     except (TypeError, ValueError):
         value = 0
-    return max(0, min(value, 5))
+    return max(0, min(value, limit))
 
 
 def _normalize_event_times(
@@ -743,7 +744,7 @@ def _serialize_event(
     yes_count = event.yes_count
     if event.admin_approval_required and not include_unapproved_yes_count:
         yes_count = sum(
-            (r.guest_count or 0) + 1
+            r.party_size
             for r in event.rsvps
             if r.approval_status == "approved" and r.attendance_status == "yes"
         )
@@ -758,6 +759,7 @@ def _serialize_event(
         "admin_approval_required": event.admin_approval_required,
         "score": event.score,
         "max_attendees": event.max_attendees,
+        "max_guests": event.max_guests,
         "yes_count": yes_count,
         "rsvps_closed": event.rsvps_closed,
         "rsvp_close_at": event.rsvp_close_at.isoformat()
@@ -789,8 +791,12 @@ def _serialize_event(
         payload["rsvp_counts"] = {
             "public": len(public_rsvps),
             "private": len(private_rsvps),
-            "public_party_size": sum((r.guest_count or 0) + 1 for r in public_rsvps),
-            "private_party_size": sum((r.guest_count or 0) + 1 for r in private_rsvps),
+            "public_party_size": sum(
+                r.party_size for r in public_rsvps if r.attendance_status == "yes"
+            ),
+            "private_party_size": sum(
+                r.party_size for r in private_rsvps if r.attendance_status == "yes"
+            ),
         }
     if include_messages is not None:
         payload["messages"] = [_serialize_message(m) for m in include_messages]
@@ -941,6 +947,12 @@ class EventCreatePayload(BaseModel):
     max_attendees: int | None = Field(
         None, ge=1, description="Maximum number of YES RSVPs allowed"
     )
+    max_guests: int = Field(
+        MAX_GUESTS_LIMIT,
+        ge=0,
+        le=MAX_GUESTS_LIMIT,
+        description="Maximum extra guests per RSVP (0 disables guests)",
+    )
     rsvps_closed: bool = False
     rsvp_close_at: str | None = Field(
         None, description="Optional ISO datetime string for auto-closing RSVPs"
@@ -960,6 +972,12 @@ class EventUpdatePayload(BaseModel):
     admin_approval_required: bool | None = None
     max_attendees: int | None = Field(
         None, ge=1, description="Maximum number of YES RSVPs allowed"
+    )
+    max_guests: int | None = Field(
+        None,
+        ge=0,
+        le=MAX_GUESTS_LIMIT,
+        description="Maximum extra guests per RSVP (0 disables guests)",
     )
     rsvps_closed: bool | None = None
     rsvp_close_at: str | None = Field(
@@ -1507,6 +1525,7 @@ def submit_event(
     is_private: bool = Form(False),
     admin_approval_required: bool = Form(False),
     max_attendees: str | None = Form(None),
+    max_guests: int = Form(MAX_GUESTS_LIMIT),
     end_time: str | None = Form(None),
     rsvps_closed: bool = Form(False),
     rsvp_close_at: str | None = Form(None),
@@ -1586,6 +1605,7 @@ def submit_event(
             is_private=is_private,
             admin_approval_required=admin_approval_required,
             max_attendees=normalized_max,
+            max_guests=clamp_max_guests(max_guests),
             rsvps_closed=rsvps_closed,
             rsvp_close_at=normalized_close,
             recurrence_rule=cleaned_recurrence,
@@ -1612,6 +1632,7 @@ def submit_event(
         is_private=is_private,
         admin_approval_required=admin_approval_required,
         max_attendees=normalized_max,
+        max_guests=clamp_max_guests(max_guests),
         rsvps_closed=rsvps_closed,
         rsvp_close_at=normalized_close,
     )
@@ -1638,9 +1659,13 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
     approved_rsvps = [r for r in event.rsvps if r.approval_status == "approved"]
     rsvps = [r for r in approved_rsvps if not getattr(r, "is_private", False)]
     private_rsvps = [r for r in approved_rsvps if getattr(r, "is_private", False)]
-    private_rsvp_count = len(private_rsvps)
-    public_party_size = sum((r.guest_count or 0) + 1 for r in rsvps)
-    private_party_size = sum((r.guest_count or 0) + 1 for r in private_rsvps)
+    has_private_rsvps = bool(private_rsvps)
+    public_yes = [r for r in rsvps if r.attendance_status == "yes"]
+    private_yes = [r for r in private_rsvps if r.attendance_status == "yes"]
+    public_yes_count = len(public_yes)
+    private_rsvp_count = len(private_yes)
+    public_party_size = sum(r.party_size for r in public_yes)
+    private_party_size = sum(r.party_size for r in private_yes)
     available_yes_slots = _available_yes_slots(event)
     event_is_full = (
         available_yes_slots == 0 if available_yes_slots is not None else False
@@ -1655,6 +1680,8 @@ def event_page(event_id: str, request: Request, db: Session = Depends(get_db)):
             "request": request,
             "event": event,
             "rsvps": rsvps,
+            "has_private_rsvps": has_private_rsvps,
+            "public_yes_count": public_yes_count,
             "private_rsvp_count": private_rsvp_count,
             "public_party_size": public_party_size,
             "private_party_size": private_party_size,
@@ -1716,7 +1743,7 @@ def create_rsvp_view(
             },
         )
     normalized_status = _normalize_attendance_status(attendance_status)
-    guest_count = max(0, min(guest_count, 5))
+    guest_count = _clamp_guest_count(guest_count, event.guest_limit)
     try:
         _enforce_attendance_capacity(
             event=event,
@@ -1809,7 +1836,7 @@ def save_rsvp(
     event = _ensure_event(db, event_id)
     rsvp = _ensure_rsvp(db, event, rsvp_token)
     normalized_status = _normalize_attendance_status(attendance_status)
-    guest_count = max(0, min(guest_count, 5))
+    guest_count = _clamp_guest_count(guest_count, event.guest_limit)
     try:
         _enforce_attendance_capacity(
             event=event,
@@ -2013,6 +2040,7 @@ def save_event_admin(
     admin_approval_required: bool = Form(False),
     rsvps_closed: bool = Form(False),
     max_attendees: str | None = Form(None),
+    max_guests: int = Form(MAX_GUESTS_LIMIT),
     end_time: str | None = Form(None),
     rsvp_close_at: str | None = Form(None),
     timezone_offset_minutes: int = Form(0),
@@ -2139,6 +2167,7 @@ def save_event_admin(
         admin_approval_required=admin_approval_required,
         is_private=is_private,
         max_attendees=normalized_max,
+        max_guests=clamp_max_guests(max_guests),
         rsvps_closed=rsvps_closed,
         rsvp_close_at=normalized_close,
         update_rsvp_close_at=True,
@@ -2460,6 +2489,7 @@ def duplicate_event(
         is_private=event.is_private,
         admin_approval_required=event.admin_approval_required,
         max_attendees=event.max_attendees,
+        max_guests=event.guest_limit,
         rsvps_closed=False,
         rsvp_close_at=None,
     )
@@ -2887,6 +2917,7 @@ def api_create_event(payload: EventCreatePayload, db: Session = Depends(get_db))
         is_private=payload.is_private,
         admin_approval_required=payload.admin_approval_required,
         max_attendees=payload.max_attendees,
+        max_guests=payload.max_guests,
         rsvps_closed=payload.rsvps_closed,
         rsvp_close_at=normalized_close,
     )
@@ -3000,6 +3031,7 @@ def api_update_event(
         admin_approval_required=admin_approval_required,
         is_private=data.get("is_private", event.is_private),
         max_attendees=data.get("max_attendees", event.max_attendees),
+        max_guests=data.get("max_guests"),
         rsvps_closed=data.get("rsvps_closed"),
         rsvp_close_at=normalized_close,
         update_rsvp_close_at=update_close,
@@ -3224,7 +3256,7 @@ def api_create_rsvp(
 ):
     event = _ensure_event(db, event_id)
     normalized_status = _normalize_attendance_status(payload.attendance_status)
-    guest_count = _clamp_guest_count(payload.guest_count)
+    guest_count = _clamp_guest_count(payload.guest_count, event.guest_limit)
     admin_token = _get_bearer_token(request) if force_accept else None
     if event.rsvps_closed:
         if force_accept:
@@ -3298,7 +3330,10 @@ def api_update_own_rsvp(
     new_status = _normalize_attendance_status(
         data.get("attendance_status", rsvp.attendance_status)
     )
-    guest_count = _clamp_guest_count(data.get("guest_count", rsvp.guest_count))
+    if "guest_count" in data:
+        guest_count = _clamp_guest_count(data["guest_count"], event.guest_limit)
+    else:
+        guest_count = int(rsvp.guest_count)
     try:
         _enforce_attendance_capacity(
             event=event,

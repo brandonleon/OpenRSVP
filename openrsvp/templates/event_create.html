@@ -52,6 +52,11 @@
             <div class="form-text">Only YES RSVPs count toward this limit.</div>
           </div>
           <div class="mb-3">
+            <label class="form-label">Guests allowed per RSVP</label>
+            <input type="number" name="max_guests" class="form-control" min="0" max="5" value="5">
+            <div class="form-text">Extra people each guest can bring (0–5). Set to 0 to turn guests off.</div>
+          </div>
+          <div class="mb-3">
             <label class="form-label">Channel Name</label>
             <input type="text" name="channel_name" class="form-control" placeholder="Enter or pick a channel" list="public-channel-options">
             <div class="form-text">Private channels never appear in this list—type them manually. Showing the top public options; type to search beyond the default suggestions.</div>

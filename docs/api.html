@@ -106,6 +106,7 @@
   }'</code></pre>
               <div class="callout mb-0">
                 Response includes <code>admin_token</code> (the event owner token) plus <code>links.admin</code> for the owner page and <code>links.public</code> for the guest view.
+                Optional <code>max_guests</code> (0–5, default 5) sets how many extra guests each RSVP may bring; 0 disables guests. It is also accepted on <code>PATCH</code> and returned in event JSON.
               </div>
             </div>
           </div>

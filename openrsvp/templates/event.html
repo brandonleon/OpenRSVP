@@ -82,13 +82,13 @@
       <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2 mb-2">
         <h3 class="h6 text-uppercase text-muted mb-0">Attendees</h3>
         <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-2 w-100 w-md-auto">
-          <span class="badge bg-light text-dark w-100 w-md-auto text-center text-md-start">{{ public_party_size }} public people ({{ rsvps|length }} RSVP{% if rsvps|length != 1 %}s{% endif %})</span>
+          <span class="badge bg-light text-dark w-100 w-md-auto text-center text-md-start">{{ public_party_size }} public people attending ({{ public_yes_count }} RSVP{% if public_yes_count != 1 %}s{% endif %})</span>
           {% if private_rsvp_count %}
           <span class="badge bg-secondary w-100 w-md-auto text-center text-md-start">+ {{ private_party_size }} private people ({{ private_rsvp_count }} RSVP{% if private_rsvp_count != 1 %}s{% endif %})</span>
           {% endif %}
         </div>
       </div>
-      {% if private_rsvp_count %}
+      {% if has_private_rsvps %}
       <p class="small text-muted mb-3">Some guests chose to keep their RSVP private. The organizer can see them, but they are hidden from this list.</p>
       {% endif %}
       <div class="list-group list-group-flush" id="event-rsvp-list">
@@ -107,7 +107,7 @@
                   <span class="badge bg-dark text-uppercase">Private</span>
                   {% endif %}
                 </div>
-                <div class="small text-muted">Guests: {{ rsvp.guest_count }}</div>
+                {% if event.max_guests or rsvp.guest_count %}<div class="small text-muted">Guests: {{ rsvp.guest_count }}</div>{% endif %}
               </div>
             </div>
           </div>

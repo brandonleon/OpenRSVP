@@ -170,6 +170,11 @@
             >
             <div class="form-text">Only YES RSVPs count toward this limit.</div>
           </div>
+          <div class="mt-3">
+            <label class="form-label">Guests allowed per RSVP</label>
+            <input type="number" name="max_guests" class="form-control" min="0" max="5" value="{{ event.max_guests }}">
+            <div class="form-text">Extra people each guest can bring (0–5). Set to 0 to turn guests off. Existing RSVPs keep their guests until the guest edits them.</div>
+          </div>
         </div>
         <div>
           <div class="fw-semibold text-uppercase text-muted small mb-2">Channel & privacy</div>

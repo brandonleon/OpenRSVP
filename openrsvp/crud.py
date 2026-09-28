@@ -19,6 +19,14 @@ VALID_APPROVAL_STATUSES = {"pending", "approved", "rejected"}
 VALID_ATTENDANCE_STATUSES = {"yes", "no", "maybe"}
 VALID_RECURRENCE_RULES = {"daily", "weekly", "biweekly", "monthly"}
 MAX_SERIES_OCCURRENCES = 52
+MAX_GUESTS_LIMIT = 5
+
+
+def clamp_max_guests(value: int | None) -> int:
+    """Clamp an event's per-RSVP guest allowance to 0..MAX_GUESTS_LIMIT."""
+    if value is None:
+        return MAX_GUESTS_LIMIT
+    return max(0, min(int(value), MAX_GUESTS_LIMIT))
 
 
 def _normalize_attendance(status: str | None) -> str:
@@ -159,6 +167,7 @@ def create_event(
     admin_approval_required: bool = False,
     is_private: bool = False,
     max_attendees: int | None = None,
+    max_guests: int = MAX_GUESTS_LIMIT,
     rsvps_closed: bool = False,
     rsvp_close_at: datetime | None = None,
 ) -> Event:
@@ -174,6 +183,7 @@ def create_event(
         rsvps_closed=rsvps_closed,
         rsvp_close_at=normalized_close,
         max_attendees=max_attendees,
+        max_guests=clamp_max_guests(max_guests),
         title=title,
         description=description,
         start_time=normalized_start,
@@ -254,6 +264,7 @@ def create_event_series(
     admin_approval_required: bool = False,
     is_private: bool = False,
     max_attendees: int | None = None,
+    max_guests: int = MAX_GUESTS_LIMIT,
     rsvps_closed: bool = False,
     rsvp_close_at: datetime | None = None,
     recurrence_rule: str,
@@ -289,6 +300,7 @@ def create_event_series(
             rsvps_closed=rsvps_closed,
             rsvp_close_at=to_naive_utc(offset_close),
             max_attendees=max_attendees,
+            max_guests=clamp_max_guests(max_guests),
             title=title,
             description=description,
             start_time=to_naive_utc(offset_start),
@@ -304,16 +316,12 @@ def create_event_series(
     return series, events
 
 
-def get_series_by_admin_token(
-    session: Session, admin_token: str
-) -> EventSeries | None:
+def get_series_by_admin_token(session: Session, admin_token: str) -> EventSeries | None:
     stmt = select(EventSeries).where(EventSeries.admin_token == admin_token)
     return session.scalars(stmt).first()
 
 
-def get_events_in_series(
-    session: Session, series_id: str
-) -> list[Event]:
+def get_events_in_series(session: Session, series_id: str) -> list[Event]:
     stmt = (
         select(Event)
         .where(Event.series_id == series_id)
@@ -375,6 +383,7 @@ def update_event(
     admin_approval_required: bool,
     is_private: bool,
     max_attendees: int | None = None,
+    max_guests: int | None = None,
     rsvps_closed: bool | None = None,
     rsvp_close_at: datetime | None = None,
     update_rsvp_close_at: bool = False,
@@ -391,6 +400,8 @@ def update_event(
     event.admin_approval_required = admin_approval_required
     event.channel = channel
     event.max_attendees = max_attendees
+    if max_guests is not None:
+        event.max_guests = clamp_max_guests(max_guests)
     if rsvps_closed is not None:
         event.rsvps_closed = rsvps_closed
     if update_rsvp_close_at:
@@ -423,7 +434,7 @@ def update_rsvp(
     rsvp.attendance_status = normalized_attendance
     rsvp.approval_status = normalized_approval
     rsvp.pronouns = pronouns
-    rsvp.guest_count = min(max(guest_count or 0, 0), 5)
+    rsvp.guest_count = min(max(guest_count or 0, 0), MAX_GUESTS_LIMIT)
     rsvp.is_private = bool(is_private)
     rsvp.last_modified = _now()
     session.add(rsvp)
