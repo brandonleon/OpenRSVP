@@ -1,0 +1,45 @@
+schema: spec-driven
+
+context: |
+  OpenRSVP has no user accounts. Access is capability-based: an event's admin_token
+  grants organizer access, an RSVP's rsvp_token grants attendee self-service, and an
+  optional root token grants instance-wide admin. Tokens must never be exposed in
+  public pages or API responses.
+  Public pages and public API responses must not reveal private RSVPs (is_private),
+  private event locations, or private channels to callers without the matching token.
+  Events and channels are ephemeral: a decay cycle lowers scores and deletes stale
+  events; anything owned by an event or RSVP must be removed with it.
+  Database is SQLite; every schema change ships as an Alembic migration under
+  openrsvp/alembic/versions and must upgrade existing databases in place.
+  The HTML UI (Jinja + HTMX) and the JSON API (/api/v1) must stay at feature parity.
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+# Example:
+#   context: |
+#     Designs and tasks must cover Windows, macOS, and Linux
+#     Write all artifacts in Spanish
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
