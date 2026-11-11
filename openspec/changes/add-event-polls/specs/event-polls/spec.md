@@ -127,6 +127,23 @@ The organizer view SHALL show, for each option, how many RSVPs selected it and t
 - **WHEN** the organizer opens the event admin page
 - **THEN** "Vegan" shows no RSVPs in its totals
 
+### Requirement: Poll is copied to series occurrences and duplicates
+When an organizer creates a repeating event series with a poll, each occurrence SHALL get its own copy of the poll. When an organizer duplicates an event, the new event SHALL get a copy of the source event's questions and options without any answers. A copied poll MUST be independent of the poll it was copied from.
+
+#### Scenario: Series occurrences each get the poll
+- **WHEN** an organizer creates a weekly series of 4 events with the question "Meal preference" and 3 options
+- **THEN** each of the 4 events has that question with the same 3 options in the same order
+
+#### Scenario: Editing one occurrence leaves the others unchanged
+- **GIVEN** a series whose occurrences were created with the same poll
+- **WHEN** the organizer adds an option to one occurrence's question
+- **THEN** only that occurrence has the new option
+
+#### Scenario: Duplicate copies questions but not answers
+- **GIVEN** an event with a poll that attendees have answered
+- **WHEN** the organizer duplicates the event
+- **THEN** the new event has the same questions and options, and none of the new event's options have answers
+
 ### Requirement: Poll data is deleted with its owner
 Poll questions, options, and answers MUST be deleted when their event is deleted by any path, including organizer deletion, root admin deletion, API deletion, and the decay cycle. An RSVP's answers MUST be deleted when that RSVP is deleted.
 
