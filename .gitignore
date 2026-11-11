@@ -17,3 +17,11 @@ data/
 .DS_Store
 openrsvp/.DS_Store
 .kopiaignore
+
+# OpenSpec agent integrations (regenerate locally with `openspec init` / `openspec update`)
+.claude/commands/opsx/
+.claude/skills/openspec-*/
+.opencode/commands/opsx-*.md
+.opencode/skills/openspec-*/
+.pi/prompts/opsx-*.md
+.pi/skills/openspec-*/
